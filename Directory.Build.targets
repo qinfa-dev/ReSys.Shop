@@ -1,0 +1,9 @@
+<Project>
+
+  <ItemGroup>
+    <None Update="$(MSBuildThisFileDirectory).editorconfig" CopyToOutputDirectory="PreserveNewest" Link=".editorconfig" />
+  </ItemGroup>
+
+  <!-- Add any custom build targets here -->
+
+</Project>
