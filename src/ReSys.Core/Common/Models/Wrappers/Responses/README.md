@@ -78,3 +78,63 @@ var fluentResponse = ApiResponse<object>.Success(null, "Operation successful")
     .WithMetadata("version", "v1.0");
 // Result: { IsSuccess: true, Message: "Operation successful", Links: { "self": "/api/resource/1" }, Metadata: { "version": "v1.0" }, ... }
 ```
+# Common Wrappers for API Responses
+
+This directory provides a set of extension methods designed to streamline the handling of `ErrorOr` results and convert them into standardized API responses for different ASP.NET Core application types (MVC Controllers and Minimal APIs). The goal is to offer consistent and predictable ways to return success or error outcomes from service layers to HTTP clients, adhering to best practices like RFC 7807 Problem Details.
+
+---
+
+## Modules
+
+### 1. `ErrorOrActionResultExtensions.cs`
+
+This class provides extension methods specifically for ASP.NET Core MVC Controllers, enabling the conversion of `ErrorOr` results into `Microsoft.AspNetCore.Mvc.ActionResult` types.
+
+-   **Purpose**: To seamlessly integrate the `ErrorOr` functional error handling library with traditional MVC controller actions, ensuring that API responses correctly reflect the operation's outcome using appropriate HTTP status codes.
+-   **Key Features**:
+    -   **Direct HTTP Status Mapping**: Automatically maps `ErrorOr.ErrorType` (e.g., `Validation`, `NotFound`, `Conflict`) to corresponding HTTP status codes (e.g., 400 Bad Request, 404 Not Found, 409 Conflict).
+    -   **RFC 7807 Problem Details**: Generates `ProblemDetails` for general errors and `ValidationProblemDetails` for validation errors, providing structured and machine-readable error responses.
+    -   **Convenience Methods**: Includes methods like `ToActionResult<T>`, `ToCreatedAtActionResult<T>`, `ToNoContentResult` (for `Updated` and `Deleted` results), and `ToAcceptedResult<T>` for common API response patterns.
+    -   **Performance**: Utilizes a `FrozenDictionary` for efficient error type to status code mapping.
+
+### 2. `ErrorOrApiResponseExtensions.cs`
+
+This class offers extension methods to wrap `ErrorOr` results within a standardized `ApiResponse` object. This approach ensures a consistent JSON response structure, regardless of the operation's success or failure.
+
+-   **Purpose**: To provide a unified response format for all API endpoints, where the HTTP status code is always 200 OK (on the wire), but the actual operation status and details are conveyed within the `ApiResponse` object itself. This is often preferred in scenarios like Single Page Applications (SPAs) or mobile clients that benefit from predictable response parsing.
+-   **Key Features**:
+    -   **Consistent Wrapper**: All responses are encapsulated in an `ApiResponse<T>` or `ApiResponse` object, containing `IsSuccess`, `Message`, `Status` (the actual HTTP status code of the operation), `Errors`, and `Data`.
+    -   **Error Details**: Maps `ErrorOr.Error` details into the `Errors` dictionary of the `ApiResponse`, providing structured error messages.
+    -   **Advanced Features**: Supports pagination metadata (`ToApiResponsePaged`), HATEOAS links (`ToApiResponseWithLinks`), and additional custom metadata (`ToApiResponseWithMetadata`).
+    -   **Minimal API Integration**: Includes `ToTypedApiResponse` and `ToTypedApiResponseCreated` for use with Minimal APIs, returning `IResult` wrapped in `TypedResults.Ok`.
+    -   **Performance**: Also uses a `FrozenDictionary` for efficient status code mapping.
+
+### 3. `ErrorOrExtensions.cs`
+
+This class acts as a central documentation and entry point for all `ErrorOr` conversion extensions within this directory. It doesn't contain implementation logic but guides developers on choosing the appropriate extension based on their API design philosophy.
+
+-   **Purpose**: To provide a high-level overview and usage guide for the different `ErrorOr` integration strategies, helping developers understand when to use direct HTTP status codes versus a standardized API response wrapper.
+-   **Content**: Includes remarks and examples illustrating the use cases for `ErrorOrTypedResultsExtensions`, `ErrorOrActionResultExtensions`, and `ErrorOrApiResponseExtensions`, along with considerations for performance and API design.
+
+### 4. `ErrorOrTypedResultsExtensions.cs`
+
+This class provides extension methods tailored for ASP.NET Core Minimal APIs, converting `ErrorOr` results into `Microsoft.AspNetCore.Http.IResult` types.
+
+-   **Purpose**: To enable clean and idiomatic integration of `ErrorOr` with Minimal APIs, allowing developers to return direct HTTP status codes and RFC 7807 compliant Problem Details from their endpoint handlers.
+-   **Key Features**:
+    -   **Direct HTTP Status Mapping**: Similar to `ErrorOrActionResultExtensions`, it maps `ErrorOr.ErrorType` to appropriate HTTP status codes.
+    -   **RFC 7807 Problem Details**: Generates `ProblemDetails` and `ValidationProblemDetails` using `Results.Problem` and `Results.ValidationProblem`.
+    -   **Convenience Methods**: Offers methods like `ToTypedResult<T>`, `ToTypedResultCreated<T>`, `ToTypedResultNoContent` (for `Updated` and `Deleted` results), and `ToTypedResultAccepted<T>` for common Minimal API response patterns.
+    -   **Performance**: Employs a `FrozenDictionary` for optimized status code lookups.
+
+---
+
+## Purpose
+
+The components within this directory collectively aim to:
+
+-   **Standardize API Responses**: Provide consistent ways to handle and return operation results across the backend API.
+-   **Improve Developer Experience**: Simplify the process of converting `ErrorOr` results into HTTP responses, reducing boilerplate code.
+-   **Enhance Error Reporting**: Ensure that error responses are structured, informative, and adhere to industry standards (RFC 7807).
+-   **Support Different API Styles**: Offer flexible options for API design, whether preferring direct HTTP status codes or a wrapped `ApiResponse` structure.
+-   **Promote Maintainability**: Centralize response handling logic, making it easier to manage and update API response formats.

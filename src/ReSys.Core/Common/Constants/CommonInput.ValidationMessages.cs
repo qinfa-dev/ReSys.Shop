@@ -14,6 +14,20 @@ public static partial class CommonInput
             public const string TooShort = "{0} must be at least {1} characters.";
             public const string TooLong = "{0} cannot exceed {1} characters.";
             public const string InvalidRange = "{0} must be between {1} and {2}.";
+            public const string NotFound = "{0} not found.";
+            public const string AlreadyExists = "{0} with this {1} already exists.";
+            public const string Conflict = "A conflict occurred while processing {0}{1}.";
+            public const string InvalidOperation = "Invalid operation performed on {0}{1}.";
+            public const string InvalidState = "{0} is in an invalid state.";
+            public const string ItemUnavailable = "{0} is currently unavailable.";
+            public const string ConcurrencyConflict = "A concurrency conflict occurred for {0}.";
+            public const string NotAuthorized = "You are not authorized to perform this action on {0}.";
+            public const string Forbidden = "Access to {0} is forbidden.";
+            public const string RelationshipConstraintViolation = "Cannot {0} {1} due to existing relationships.";
+            public const string InsufficientPermissions = "Insufficient permissions to access {0}.";
+            public const string ServiceUnavailable = "Service is temporarily unavailable. Please try again later.";
+            public const string RateLimitExceeded = "Too many requests. Please try again after some time.";
+            public const string FeatureDisabled = "{0} feature is currently disabled.";
         }
 
         public static class Text
@@ -159,25 +173,6 @@ public static partial class CommonInput
             public const string TooFewItems = "{0} must have at least {1} items.";
             public const string TooManyItems = "{0} cannot exceed {1} items.";
             public const string DuplicateItems = "{0} contains duplicate items.";
-        }
-
-        // Business Logic
-        public static class Business
-        {
-            public const string NotFound = "{0} not found.";
-            public const string AlreadyExists = "{0} with this {1} already exists.";
-            public const string Conflict = "A conflict occurred while processing {0}{1}.";
-            public const string InvalidOperation = "Invalid operation performed on {0}{1}.";
-            public const string InvalidState = "{0} is in an invalid state.";
-            public const string ItemUnavailable = "{0} is currently unavailable.";
-            public const string ConcurrencyConflict = "A concurrency conflict occurred for {0}.";
-            public const string NotAuthorized = "You are not authorized to perform this action on {0}.";
-            public const string Forbidden = "Access to {0} is forbidden.";
-            public const string RelationshipConstraintViolation = "Cannot {0} {1} due to existing relationships.";
-            public const string InsufficientPermissions = "Insufficient permissions to access {0}.";
-            public const string ServiceUnavailable = "Service is temporarily unavailable. Please try again later.";
-            public const string RateLimitExceeded = "Too many requests. Please try again after some time.";
-            public const string FeatureDisabled = "{0} feature is currently disabled.";
         }
     }
 }

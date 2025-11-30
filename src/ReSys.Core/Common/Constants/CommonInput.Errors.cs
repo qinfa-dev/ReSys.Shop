@@ -16,6 +16,61 @@ public static partial class CommonInput
             Error.Validation(
                 code: $"{Prefix(prefix: prefix, field: field)}.{nameof(Required)}",
                 description: msg ?? string.Format(ValidationMessages.General.Required, Label(prefix: prefix, field: field)));
+        // Generic Business Errors
+        public static Error NotFound(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(NotFound)}",
+                description: msg ?? string.Format(ValidationMessages.General.NotFound, Label(prefix: prefix, field: field)));
+
+        public static Error AlreadyExists(string? prefix = null, string? field = null, string? identifier = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(AlreadyExists)}",
+                description: msg ?? string.Format(ValidationMessages.General.AlreadyExists, Label(prefix: prefix, field: field), identifier));
+
+        public static Error Conflict(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(Conflict)}",
+                description: msg ?? string.Format(ValidationMessages.General.Conflict, Label(prefix: prefix, field: field)));
+
+        public static Error InvalidOperation(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(InvalidOperation)}",
+                description: msg ?? string.Format(ValidationMessages.General.InvalidOperation, Label(prefix: prefix, field: field)));
+
+        public static Error NotAuthorized(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(NotAuthorized)}",
+                description: msg ?? string.Format(ValidationMessages.General.NotAuthorized, Label(prefix: prefix, field: field)));
+
+        public static Error Forbidden(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(Forbidden)}",
+                description: msg ?? string.Format(ValidationMessages.General.Forbidden, Label(prefix: prefix, field: field)));
+
+        public static Error RelationshipConstraintViolation(string? prefix = null, string? field = null, string? action = null, string? relatedEntity = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(RelationshipConstraintViolation)}",
+                description: msg ?? string.Format(ValidationMessages.General.RelationshipConstraintViolation, action, relatedEntity));
+
+        public static Error InsufficientPermissions(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(InsufficientPermissions)}",
+                description: msg ?? string.Format(ValidationMessages.General.InsufficientPermissions, Label(prefix: prefix, field: field)));
+
+        public static Error ServiceUnavailable(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(ServiceUnavailable)}",
+                description: msg ?? ValidationMessages.General.ServiceUnavailable);
+
+        public static Error RateLimitExceeded(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(RateLimitExceeded)}",
+                description: msg ?? ValidationMessages.General.RateLimitExceeded);
+
+        public static Error FeatureDisabled(string? prefix = null, string? field = null, string? msg = null) =>
+            Error.Validation(
+                code: $"{Prefix(prefix: prefix, field: field)}.{nameof(FeatureDisabled)}",
+                description: msg ?? string.Format(ValidationMessages.General.FeatureDisabled, Label(prefix: prefix, field: field)));
 
         public static Error Null(string? prefix = null, string? field = null, string? msg = null) =>
             Error.Validation(
@@ -448,7 +503,7 @@ public static partial class CommonInput
                 code: $"{Prefix(prefix: prefix, field: field)}.{nameof(EmptyCollection)}",
                 description: customMessage ?? string.Format(ValidationMessages.Collections.EmptyCollection, Label(prefix: prefix, field: field)));
 
-        public static Error TooFewItems(string? prefix = null, string? field = null, int min = 1, string? msg = null) =>
+        public static Error TooFewItems(string? prefix = null, string? field = null, object? min = null, string? msg = null) =>
             Error.Validation(
                 code: $"{Prefix(prefix: prefix, field: field)}.{nameof(TooFewItems)}",
                 description: msg ?? string.Format(ValidationMessages.Collections.TooFewItems, Label(prefix: prefix, field: field), min));
@@ -467,70 +522,6 @@ public static partial class CommonInput
 
         #endregion
         #endregion
-
-        #region Business Logic
-
-        public static class Business
-        {
-
-            // Generic Business Errors
-            public static Error NotFound(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(NotFound)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.NotFound, Label(prefix: prefix, field: field)));
-
-            public static Error AlreadyExists(string? prefix = null, string? field = null, string? identifier = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(AlreadyExists)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.AlreadyExists, Label(prefix: prefix, field: field), identifier));
-
-            public static Error Conflict(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(Conflict)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.Conflict, Label(prefix: prefix, field: field)));
-
-            public static Error InvalidOperation(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(InvalidOperation)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.InvalidOperation, Label(prefix: prefix, field: field)));
-
-            public static Error NotAuthorized(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(NotAuthorized)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.NotAuthorized, Label(prefix: prefix, field: field)));
-
-            public static Error Forbidden(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(Forbidden)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.Forbidden, Label(prefix: prefix, field: field)));
-
-            public static Error RelationshipConstraintViolation(string? prefix = null, string? field = null, string? action = null, string? relatedEntity = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(RelationshipConstraintViolation)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.RelationshipConstraintViolation, action, relatedEntity));
-
-            public static Error InsufficientPermissions(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(InsufficientPermissions)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.InsufficientPermissions, Label(prefix: prefix, field: field)));
-
-            public static Error ServiceUnavailable(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(ServiceUnavailable)}",
-                    description: msg ?? ValidationMessages.Business.ServiceUnavailable);
-
-            public static Error RateLimitExceeded(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(RateLimitExceeded)}",
-                    description: msg ?? ValidationMessages.Business.RateLimitExceeded);
-
-            public static Error FeatureDisabled(string? prefix = null, string? field = null, string? msg = null) =>
-                Error.Validation(
-                    code: $"{Prefix(prefix: prefix, field: field)}.{nameof(FeatureDisabled)}",
-                    description: msg ?? string.Format(ValidationMessages.Business.FeatureDisabled, Label(prefix: prefix, field: field)));
-        }
-        #endregion
-
         #endregion
 
 

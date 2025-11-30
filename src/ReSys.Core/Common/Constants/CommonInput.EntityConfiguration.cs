@@ -12,7 +12,7 @@ public static partial class CommonInput
 {
     #region EF Core Configuration
     #region General Input Configuration
-    public static PropertyBuilder<string?> ConfigureInput(
+    public static PropertyBuilder<string?> ConfigureInputOptional(
         this PropertyBuilder<string?> builder,
         bool isRequired = Constraints.General.IsRequiredByDefault,
         string? columnName = null,
@@ -34,7 +34,39 @@ public static partial class CommonInput
             .HasMaxLength(maxLength: max)
             .HasAnnotation(annotation: "MinLength",
                 value: min)
-            .HasAnnotation("ErrorCode", errorCode ?? (string.IsNullOrWhiteSpace(pattern) ? CommonInput.ValidationMessages.General.InvalidInputCode : CommonInput.ValidationMessages.Text.InvalidPatternCode));
+            .HasAnnotation("ErrorCode", errorCode ?? (string.IsNullOrWhiteSpace(pattern) ? ValidationMessages.General.InvalidInputCode : ValidationMessages.Text.InvalidPatternCode));
+
+        if (!string.IsNullOrWhiteSpace(value: pattern))
+            builder.HasAnnotation(annotation: "Pattern",
+                value: pattern);
+
+        if (!string.IsNullOrWhiteSpace(value: columnType))
+            builder.HasColumnType(typeName: columnType);
+
+        return builder;
+    }
+    public static PropertyBuilder<string> ConfigureInput(
+        this PropertyBuilder<string> builder,
+        string? columnName = null,
+        int? minLength = null,
+        int? maxLength = null,
+        string? pattern = null,
+        string? columnType = null,
+        string? errorCode = null)
+    {
+        ArgumentNullException.ThrowIfNull(argument: builder);
+
+        int min = minLength ?? Constraints.Text.MinLength;
+        int max = maxLength ?? Constraints.Text.MaxLength;
+        string colName = columnName ?? Constraints.General.DefaultFieldName;
+
+        builder
+            .HasColumnName(name: colName)
+            .IsRequired()
+            .HasMaxLength(maxLength: max)
+            .HasAnnotation(annotation: "MinLength",
+                value: min)
+            .HasAnnotation("ErrorCode", errorCode ?? (string.IsNullOrWhiteSpace(pattern) ? ValidationMessages.General.InvalidInputCode : ValidationMessages.Text.InvalidPatternCode));
 
         if (!string.IsNullOrWhiteSpace(value: pattern))
             builder.HasAnnotation(annotation: "Pattern",
@@ -48,20 +80,20 @@ public static partial class CommonInput
     #endregion
 
     #region Email & Phone
-    public static PropertyBuilder<string?> ConfigureEmail(this PropertyBuilder<string?> builder, bool isRequired = true, string? errorCode = null) =>
+    public static PropertyBuilder<string?> ConfigureEmail(this PropertyBuilder<string?> builder, bool isRequired = false, string? errorCode = null) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Email.MaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Email.Pattern)
-            .HasAnnotation("ErrorCode", errorCode ?? CommonInput.ValidationMessages.Contact.InvalidEmailCode);
+            .HasAnnotation("ErrorCode", errorCode ?? ValidationMessages.Contact.InvalidEmailCode);
 
-    public static PropertyBuilder<string?> ConfigurePhone(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigurePhone(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.PhoneNumbers.MaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.PhoneNumbers.Pattern);
 
-    public static PropertyBuilder<string?> ConfigurePhoneE164(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigurePhoneE164(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.PhoneNumbers.E164MaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -69,7 +101,7 @@ public static partial class CommonInput
     #endregion
 
     #region URL & URI
-    public static PropertyBuilder<string?> ConfigureUrlOptional(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureUrlOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.UrlAndUri.UrlMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -81,7 +113,7 @@ public static partial class CommonInput
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.UrlAndUri.UrlPattern);
 
-    public static PropertyBuilder<string?> ConfigureUri(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureUri(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.UrlAndUri.UriMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -89,7 +121,7 @@ public static partial class CommonInput
     #endregion
 
     #region Names & Usernames
-    public static PropertyBuilder<string?> ConfigureNameOptional(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureNameOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.NamesAndUsernames.NameMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -101,7 +133,7 @@ public static partial class CommonInput
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.NamesAndUsernames.NamePattern);
 
-    public static PropertyBuilder<string?> ConfigureUsername(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureUsername(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.NamesAndUsernames.UsernameMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -109,19 +141,19 @@ public static partial class CommonInput
     #endregion
 
     #region Identifiers
-    public static PropertyBuilder<string?> ConfigureGuid(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureGuid(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: 36)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Identifiers.GuidPattern);
 
-    public static PropertyBuilder<string?> ConfigureUlid(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureUlid(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: 26)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Identifiers.UlidPattern);
 
-    public static PropertyBuilder<string?> ConfigureNanoId(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureNanoId(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: 21)
             .HasAnnotation(annotation: "Pattern",
@@ -129,51 +161,57 @@ public static partial class CommonInput
     #endregion
 
     #region Network
-    public static PropertyBuilder<string?> ConfigureIpV4(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureIpV4(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Network.IpV4MaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Network.IpV4Pattern);
 
-    public static PropertyBuilder<string?> ConfigureIpV6(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureIpV6(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Network.IpV6MaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Network.IpV6Pattern);
 
-    public static PropertyBuilder<string?> ConfigureMacAddress(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureMacAddress(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Network.MacAddressMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Network.MacAddressPattern);
 
-    public static PropertyBuilder<string?> ConfigureDomain(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureDomainOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
+            .HasMaxLength(maxLength: Constraints.Network.DomainMaxLength)
+            .HasAnnotation(annotation: "Pattern",
+                value: Constraints.Network.DomainPattern);
+
+    public static PropertyBuilder<string> ConfigureDomain(this PropertyBuilder<string> builder) =>
+        builder
             .HasMaxLength(maxLength: Constraints.Network.DomainMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Network.DomainPattern);
     #endregion
 
     #region Geographic & Postal Codes
-    public static PropertyBuilder<string?> ConfigurePostalCode(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigurePostalCode(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.GeographicAndPostalCodes.PostalCodeMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.GeographicAndPostalCodes.PostalCodePattern);
 
-    public static PropertyBuilder<string?> ConfigureZipCode(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureZipCode(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.GeographicAndPostalCodes.ZipCodeMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.GeographicAndPostalCodes.ZipCodePattern);
 
-    public static PropertyBuilder<string?> ConfigureCanadianPostalCode(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureCanadianPostalCode(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.GeographicAndPostalCodes.CanadianPostalCodeMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.GeographicAndPostalCodes.CanadianPostalCodePattern);
 
-    public static PropertyBuilder<string?> ConfigureUkPostalCode(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureUkPostalCode(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.GeographicAndPostalCodes.UkPostalCodeMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -181,7 +219,7 @@ public static partial class CommonInput
     #endregion
 
     #region Passwords
-    public static PropertyBuilder<string?> ConfigurePassword(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigurePassword(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Passwords.MaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -189,7 +227,7 @@ public static partial class CommonInput
     #endregion
 
     #region Slugs & Versions
-    public static PropertyBuilder<string?> ConfigureSlugOptional(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureSlugOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.SlugsAndVersions.SlugMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -200,13 +238,13 @@ public static partial class CommonInput
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.SlugsAndVersions.SlugPattern);
 
-    public static PropertyBuilder<string?> ConfigureSemVer(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureSemVer(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.SlugsAndVersions.SemVerMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.SlugsAndVersions.SemVerPattern);
 
-    public static PropertyBuilder<string?> ConfigureVersion(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureVersion(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.SlugsAndVersions.VersionMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -214,13 +252,13 @@ public static partial class CommonInput
     #endregion
 
     #region Social Media
-    public static PropertyBuilder<string?> ConfigureTwitterHandle(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureTwitterHandle(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.SocialMedia.TwitterHandleMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.SocialMedia.TwitterHandlePattern);
 
-    public static PropertyBuilder<string?> ConfigureHashtag(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureHashtag(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.SocialMedia.HashtagMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -228,19 +266,19 @@ public static partial class CommonInput
     #endregion
 
     #region Date & Time
-    public static PropertyBuilder<string?> ConfigureDate(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureDate(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.DateAndTime.DateMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.DateAndTime.DatePattern);
 
-    public static PropertyBuilder<string?> ConfigureTime(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureTime(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.DateAndTime.TimeMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.DateAndTime.TimePattern);
 
-    public static PropertyBuilder<string?> ConfigureTimeSpan(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureTimeSpan(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.DateAndTime.TimeSpanMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -248,25 +286,30 @@ public static partial class CommonInput
     #endregion
 
     #region JSON & Boolean
-    public static PropertyBuilder<string?> ConfigureJson(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureJsonOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Json.Pattern);
 
-    public static PropertyBuilder<string?> ConfigureBoolean(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string> ConfigureJson(this PropertyBuilder<string> builder, bool isRequired = false) =>
+        builder.HasAnnotation(annotation: "Pattern",
+                value: Constraints.Json.Pattern);
+
+
+    public static PropertyBuilder<string?> ConfigureBoolean(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.Boolean.Pattern);
     #endregion
 
     #region Payment & Credit Cards
-    public static PropertyBuilder<string?> ConfigureCreditCard(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureCreditCard(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.PaymentAndCreditCards.CreditCardMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.PaymentAndCreditCards.CreditCardPattern);
 
-    public static PropertyBuilder<string?> ConfigureCvv(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureCvv(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.PaymentAndCreditCards.CvvMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -274,7 +317,7 @@ public static partial class CommonInput
     #endregion
 
     #region Color
-    public static PropertyBuilder<string?> ConfigureHexColor(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureHexColor(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Color.HexColorMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -282,13 +325,13 @@ public static partial class CommonInput
     #endregion
 
     #region File System
-    public static PropertyBuilder<string?> ConfigureFilePath(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureFilePath(this PropertyBuilder<string?> builder, bool isRequired = false) =>
     builder.IsRequired(required: isRequired)
         .HasMaxLength(maxLength: Constraints.FileSystem.FilePathMaxLength)
         .HasAnnotation(annotation: "Pattern",
             value: Constraints.FileSystem.FilePathPattern);
 
-    public static PropertyBuilder<string?> ConfigureFileExtension(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureFileExtension(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.FileSystem.FileExtensionMaxLength)
             .HasAnnotation(annotation: "Pattern",
@@ -296,52 +339,73 @@ public static partial class CommonInput
     #endregion
 
     #region Currency & Language
-    public static PropertyBuilder<string?> ConfigureCurrencyCode(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureCurrencyCodeOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.CurrencyAndLanguage.CurrencyCodeLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.CurrencyAndLanguage.CurrencyCodePattern);
+    public static PropertyBuilder<string> ConfigureCurrencyCode(this PropertyBuilder<string> builder) =>
+        builder
+            .HasMaxLength(maxLength: Constraints.CurrencyAndLanguage.CurrencyCodeLength)
+            .HasAnnotation(annotation: "Pattern",
+                value: Constraints.CurrencyAndLanguage.CurrencyCodePattern);
 
-    public static PropertyBuilder<string?> ConfigureLanguageCode(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureLanguageCodeOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.CurrencyAndLanguage.LanguageCodeMaxLength)
             .HasAnnotation(annotation: "Pattern",
                 value: Constraints.CurrencyAndLanguage.LanguageCodePattern);
+
+    public static PropertyBuilder<string> ConfigureLanguageCode(this PropertyBuilder<string> builder, bool isRequired = false) =>
+        builder.HasMaxLength(maxLength: Constraints.CurrencyAndLanguage.LanguageCodeMaxLength)
+            .HasAnnotation(annotation: "Pattern",
+                value: Constraints.CurrencyAndLanguage.LanguageCodePattern);
+
     #endregion
 
     #region Text Content Lengths
-    public static PropertyBuilder<string?> ConfigureShortTextOptional(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureShortTextOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Text.ShortTextMaxLength);
 
     public static PropertyBuilder<string> ConfigureShortText(this PropertyBuilder<string> builder) =>
     builder.HasMaxLength(maxLength: Constraints.Text.ShortTextMaxLength);
 
-    public static PropertyBuilder<string?> ConfigureMediumTextOptional(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureMediumTextOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Text.MediumTextMaxLength);
 
     public static PropertyBuilder<string> ConfigureMediumText(this PropertyBuilder<string> builder) =>
         builder.HasMaxLength(maxLength: Constraints.Text.MediumTextMaxLength);
 
-    public static PropertyBuilder<string> ConfigureLongTextRequired(this PropertyBuilder<string> builder) =>
-        builder.IsRequired(required: true)
-            .HasMaxLength(maxLength: Constraints.Text.LongTextMaxLength);
-
-    public static PropertyBuilder<string?> ConfigureLongText(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string?> ConfigureLongTextOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Text.LongTextMaxLength);
 
-    public static PropertyBuilder<string?> ConfigureDescription(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string> ConfigureLongText(this PropertyBuilder<string> builder) =>
+        builder.HasMaxLength(maxLength: Constraints.Text.LongTextMaxLength);
+
+    public static PropertyBuilder<string?> ConfigureDescriptionOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Text.DescriptionMaxLength);
 
-    public static PropertyBuilder<string?> ConfigureTitle(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string> ConfigureDescription(this PropertyBuilder<string> builder) =>
+        builder
+            .HasMaxLength(maxLength: Constraints.Text.DescriptionMaxLength);
+
+    public static PropertyBuilder<string?> ConfigureTitleOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
             .HasMaxLength(maxLength: Constraints.Text.TitleMaxLength);
 
-    public static PropertyBuilder<string?> ConfigureComment(this PropertyBuilder<string?> builder, bool isRequired = true) =>
+    public static PropertyBuilder<string> ConfigureTitle(this PropertyBuilder<string> builder) =>
+        builder.HasMaxLength(maxLength: Constraints.Text.TitleMaxLength);
+
+    public static PropertyBuilder<string?> ConfigureCommentOptional(this PropertyBuilder<string?> builder, bool isRequired = false) =>
         builder.IsRequired(required: isRequired)
+            .HasMaxLength(maxLength: Constraints.Text.CommentMaxLength);
+
+    public static PropertyBuilder<string> ConfigureComment(this PropertyBuilder<string> builder, bool isRequired = false) =>
+        builder
             .HasMaxLength(maxLength: Constraints.Text.CommentMaxLength);
     #endregion
 
