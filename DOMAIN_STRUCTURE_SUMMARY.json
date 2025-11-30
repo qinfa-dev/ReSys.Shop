@@ -1,0 +1,1017 @@
+{
+  "project": "ReSys.Shop",
+  "description": "Multi-store e-commerce platform with visual similarity recommendations",
+  "architecture": "Clean Architecture + Domain-Driven Design (DDD) + CQRS",
+  "technology": ".NET 9 + Entity Framework Core + MediatR + PostgreSQL",
+  "timestamp": "2025-11-30",
+  "boundedContexts": [
+    {
+      "name": "Stores",
+      "path": "src/ReSys.Core/Domain/Stores",
+      "description": "Multi-store/channel configuration and management",
+      "aggregateRoot": "Store",
+      "keyProperties": {
+        "id": "Guid",
+        "name": "string (max 100)",
+        "code": "string (max 50, uppercase)",
+        "url": "string (max 255)",
+        "presentation": "string (max 100)",
+        "defaultCurrency": "string (one of: USD, EUR, GBP, VND)",
+        "defaultLocale": "string (default: en)",
+        "timezone": "string (default: UTC)",
+        "available": "bool",
+        "default": "bool (only one store can be default)",
+        "guestCheckoutAllowed": "bool",
+        "passwordProtected": "bool",
+        "storefront_password": "string (hashed)",
+        "metaTitle": "string?",
+        "metaDescription": "string?",
+        "metaKeywords": "string?",
+        "seoTitle": "string?",
+        "mailFromAddress": "string?",
+        "customerSupportEmail": "string?",
+        "facebook": "string?",
+        "instagram": "string?",
+        "twitter": "string?"
+      },
+      "childEntities": {
+        "StoreProduct": {
+          "description": "Link between Store and Product",
+          "properties": {
+            "storeId": "Guid",
+            "productId": "Guid",
+            "visible": "bool",
+            "featured": "bool"
+          }
+        },
+        "StoreStockLocation": {
+          "description": "Link between Store and StockLocation with priority",
+          "properties": {
+            "storeId": "Guid",
+            "stockLocationId": "Guid",
+            "priority": "int (lower = higher priority)"
+          }
+        },
+        "StoreShippingMethod": {
+          "description": "Link between Store and ShippingMethod with custom cost override",
+          "properties": {
+            "storeId": "Guid",
+            "shippingMethodId": "Guid",
+            "available": "bool",
+            "storeBaseCost": "decimal?"
+          }
+        },
+        "StorePaymentMethod": {
+          "description": "Link between Store and PaymentMethod",
+          "properties": {
+            "storeId": "Guid",
+            "paymentMethodId": "Guid",
+            "available": "bool"
+          }
+        }
+      },
+      "keyMethods": [
+        "Create(name, presentation, code, url, currency)",
+        "Update(name, presentation, url, email, metadata)",
+        "SetAddress(address1, address2, city, zipcode, phone, company, countryId, stateId)",
+        "SetSocialLinks(facebook, instagram, twitter)",
+        "AddProduct(product, visible, featured)",
+        "AddStockLocation(location, priority)",
+        "AddShippingMethod(method, available, storeBaseCost)",
+        "AddPaymentMethod(method, available)",
+        "MakeDefault()",
+        "ProtectWithPassword(password)",
+        "Delete(force)"
+      ],
+      "relationships": {
+        "Country": "foreign key (optional)",
+        "State": "foreign key (optional)",
+        "Products": "many-to-many via StoreProduct",
+        "StockLocations": "many-to-many via StoreStockLocation",
+        "ShippingMethods": "many-to-many via StoreShippingMethod",
+        "PaymentMethods": "many-to-many via StorePaymentMethod",
+        "Orders": "one-to-many (soft delete protected)",
+        "Taxonomies": "one-to-many (categories specific to store)"
+      },
+      "concerns": [
+        "IHasMetadata (publicMetadata, privateMetadata)",
+        "IHasUniqueName (unique index on Name)",
+        "IHasSeoMetadata (MetaTitle, MetaDescription, MetaKeywords)",
+        "IAddress (Address1, Address2, City, Zipcode, Phone, Company)",
+        "IHasParameterizableName (Name + Presentation)",
+        "ISoftDeletable (DeletedAt, DeletedBy, IsDeleted)"
+      ],
+      "events": [
+        "StoreCreated(storeId, name, code)",
+        "StoreUpdated(storeId)",
+        "StoreMadeDefault(storeId)",
+        "StoreDeleted(storeId)",
+        "StoreRestored(storeId)",
+        "StoreAddressUpdated(storeId)",
+        "StoreSocialLinksUpdated(storeId)",
+        "ProductAddedToStore(storeId, productId)",
+        "ProductRemovedFromStore(storeId, productId)",
+        "StockLocationAddedToStore(storeId, stockLocationId, priority)",
+        "ShippingMethodAddedToStore(storeId, shippingMethodId)",
+        "PaymentMethodAddedToStore(storeId, paymentMethodId)"
+      ]
+    },
+    {
+      "name": "Catalog.Products",
+      "path": "src/ReSys.Core/Domain/Catalog/Products",
+      "description": "Product management with variants, images, properties, and SEO",
+      "aggregateRoot": "Product",
+      "keyProperties": {
+        "id": "Guid",
+        "name": "string (max 200, unique)",
+        "presentation": "string (display name)",
+        "slug": "string (max 200, lowercase with hyphens, generated from name)",
+        "description": "string? (max 5000)",
+        "status": "ProductStatus (Draft | Active | Archived)",
+        "isDigital": "bool (affects order fulfillment)",
+        "availableOn": "DateTimeOffset?",
+        "makeActiveAt": "DateTimeOffset? (scheduled activation)",
+        "discontinueOn": "DateTimeOffset? (scheduled discontinuation)",
+        "metaTitle": "string? (SEO)",
+        "metaDescription": "string? (SEO)",
+        "metaKeywords": "string? (SEO)",
+        "isDeleted": "bool (soft delete)"
+      },
+      "enums": {
+        "ProductStatus": {
+          "values": ["Draft", "Active", "Archived"],
+          "description": "Current lifecycle state of the product"
+        }
+      },
+      "childEntities": {
+        "Variant": {
+          "description": "Product variant with specific options, prices, and stock",
+          "keyProperties": {
+            "productId": "Guid",
+            "isMaster": "bool (every product has exactly one master variant)",
+            "sku": "string? (max 200)",
+            "barcode": "string? (max 100)",
+            "weight": "decimal? (in WeightUnit)",
+            "height": "decimal?",
+            "width": "decimal?",
+            "depth": "decimal?",
+            "weightUnit": "string (g | kg | lb | oz)",
+            "dimensionsUnit": "string (mm | cm | in | ft)",
+            "trackInventory": "bool (default true)",
+            "costPrice": "decimal? (internal cost)",
+            "costCurrency": "string?",
+            "position": "int (sort order)",
+            "discontinueOn": "DateTimeOffset?"
+          },
+          "childItems": {
+            "Price": {
+              "properties": {
+                "amount": "decimal",
+                "compareAtAmount": "decimal (original price for showing discounts)",
+                "currency": "string (3-char code)"
+              }
+            },
+            "StockItem": {
+              "description": "Stock at a specific location",
+              "properties": {
+                "stockLocationId": "Guid",
+                "quantityOnHand": "int",
+                "quantityReserved": "int",
+                "backorderable": "bool"
+              }
+            },
+            "ProductImage": {
+              "properties": {
+                "url": "string",
+                "type": "string (thumbnail | detailed | swatch | etc)",
+                "altText": "string?",
+                "position": "int",
+                "contentType": "string? (mime type)",
+                "width": "int?",
+                "height": "int?"
+              }
+            },
+            "VariantOptionValue": {
+              "description": "Link to specific option values (e.g., Size:Large, Color:Red)"
+            }
+          },
+          "computedProperties": [
+            "Purchasable: bool (has price AND (in stock OR backorderable))",
+            "InStock: bool",
+            "Backorderable: bool",
+            "TotalOnHand: double (sum across all locations)"
+          ]
+        },
+        "ProductOptionType": {
+          "description": "Link to OptionType (e.g., Size, Color)",
+          "properties": {
+            "productId": "Guid",
+            "optionTypeId": "Guid"
+          }
+        },
+        "ProductProperty": {
+          "description": "Custom key-value properties for product (e.g., Material: Cotton)",
+          "properties": {
+            "productId": "Guid",
+            "propertyId": "Guid",
+            "value": "string"
+          }
+        },
+        "Classification": {
+          "description": "Link to Taxon (category)",
+          "properties": {
+            "productId": "Guid",
+            "taxonId": "Guid"
+          }
+        },
+        "Review": {
+          "description": "Customer product reviews"
+        }
+      },
+      "keyMethods": [
+        "Create(name, description, slug, metaTitle, metaDescription, availableOn, makeActiveAt, discontinueOn, isDigital)",
+        "Update(name, presentation, description, slug, metaTitle, metadata)",
+        "Activate() - ProductStatus.Draft -> Active",
+        "Archive() - ProductStatus.Active -> Archived",
+        "Draft() - set to Draft status",
+        "Discontinue() - set DiscontinueOn to now + Archive",
+        "AddImage(image)",
+        "RemoveImage(assetId)",
+        "AddOptionType(productOptionType)",
+        "AddClassification(classification) - add category",
+        "AddProductProperty(property)",
+        "AddVariant(variant)",
+        "Delete() - soft delete, prevents if has completed orders"
+      ],
+      "relationships": {
+        "Variants": "one-to-many (required: one master)",
+        "Images": "one-to-many",
+        "OptionTypes": "many-to-many via ProductOptionType",
+        "Properties": "many-to-many via ProductProperty",
+        "Taxons/Categories": "many-to-many via Classification",
+        "Stores": "many-to-many via StoreProduct",
+        "Orders": "through Variant -> LineItem -> Order"
+      },
+      "concerns": [
+        "IHasParameterizableName (Name + Presentation)",
+        "IHasUniqueName (unique index on Name)",
+        "IHasMetadata (publicMetadata, privateMetadata)",
+        "IHasSlug (auto-generated slug from name)",
+        "IHasSeoMetadata (MetaTitle, MetaDescription, MetaKeywords)",
+        "ISoftDeletable (DeletedAt, DeletedBy, IsDeleted)"
+      ],
+      "events": [
+        "Created(productId)",
+        "ProductUpdated(productId)",
+        "ProductActivated(productId)",
+        "ProductArchived(productId)",
+        "ProductDrafted(productId)",
+        "ProductDiscontinued(productId)",
+        "ProductDeleted(productId)",
+        "ProductImageAdded(productId, imageId)",
+        "ProductImageRemoved(productId, imageId)",
+        "ProductOptionTypeAdded(productId, productOptionTypeId)",
+        "ProductOptionTypeRemoved(productId, optionTypeId)",
+        "ProductCategoryAdded(productId, taxonId)",
+        "ProductCategoryRemoved(productId, taxonId)",
+        "VariantAdded(variantId, productId)",
+        "VariantRemoved(variantId, productId)",
+        "ProductPropertyAdded(productId, productPropertyId)"
+      ]
+    },
+    {
+      "name": "Catalog.Taxonomies",
+      "path": "src/ReSys.Core/Domain/Catalog/Taxonomies",
+      "description": "Hierarchical categories/taxonomies (nested set model)",
+      "aggregateRoot": "Taxonomy",
+      "keyProperties": {
+        "id": "Guid",
+        "storeId": "Guid (taxonomy is store-specific)",
+        "name": "string (normalized, slug-like)",
+        "presentation": "string (human-readable)",
+        "position": "int"
+      },
+      "childEntities": {
+        "Taxon": {
+          "description": "Category node (e.g., Electronics, Phones, Smartphones)",
+          "properties": {
+            "name": "string",
+            "presentation": "string",
+            "parentId": "Guid? (null for root)",
+            "lft": "int (nested set left)",
+            "rgt": "int (nested set right)",
+            "taxonomyId": "Guid"
+          }
+        }
+      },
+      "keyMethods": [
+        "Create(storeId, name, presentation, position)",
+        "AddTaxon(taxon)",
+        "RemoveTaxon(taxonId)"
+      ],
+      "relationships": {
+        "Store": "many-to-one",
+        "Taxons": "one-to-many (nested set hierarchy)",
+        "Products": "many-to-many via Classification"
+      },
+      "concerns": [
+        "IHasParameterizableName",
+        "IHasUniqueName",
+        "IHasPosition",
+        "IHasMetadata"
+      ]
+    },
+    {
+      "name": "Catalog.OptionTypes",
+      "path": "src/ReSys.Core/Domain/Catalog/OptionTypes",
+      "description": "Product option types (Size, Color, etc.) with values",
+      "aggregateRoot": "OptionType",
+      "keyProperties": {
+        "id": "Guid",
+        "name": "string (e.g., 'Size')",
+        "presentation": "string (e.g., 'Choose Size')",
+        "position": "int"
+      },
+      "childEntities": {
+        "OptionValue": {
+          "description": "Specific value for option (e.g., 'Large' for Size)",
+          "properties": {
+            "optionTypeId": "Guid",
+            "name": "string",
+            "presentation": "string",
+            "position": "int"
+          }
+        }
+      },
+      "keyMethods": [
+        "Create(name, presentation)",
+        "AddOptionValue(optionValue)",
+        "RemoveOptionValue(valueId)"
+      ]
+    },
+    {
+      "name": "Orders",
+      "path": "src/ReSys.Core/Domain/Orders",
+      "description": "Order lifecycle: Cart -> Address -> Delivery -> Payment -> Confirm -> Complete/Canceled",
+      "aggregateRoot": "Order",
+      "keyProperties": {
+        "id": "Guid",
+        "storeId": "Guid",
+        "userId": "string? (null for guest orders)",
+        "number": "string (generated: RYYYYMMDDNNNN)",
+        "state": "OrderState (enum)",
+        "currency": "string (3-char code)",
+        "email": "string? (for guest orders)",
+        "itemTotalCents": "long (base line item total * 100)",
+        "shipmentTotalCents": "long (shipping cost * 100)",
+        "adjustmentTotalCents": "long (discounts/adjustments * 100)",
+        "totalCents": "long (itemTotal + shipmentTotal + adjustmentTotal)",
+        "specialInstructions": "string? (max 500)",
+        "promoCode": "string? (applied promotion code, uppercase)",
+        "promotionId": "Guid?",
+        "shippingMethodId": "Guid?",
+        "fulfillmentLocationId": "Guid? (warehouse/stock location)",
+        "completedAt": "DateTimeOffset? (when order was finalized)",
+        "canceledAt": "DateTimeOffset? (when order was canceled)"
+      },
+      "enums": {
+        "OrderState": {
+          "values": [
+            "Cart (0) - items being added",
+            "Address (1) - shipping/billing addresses required",
+            "Delivery (2) - select warehouse & shipping method",
+            "Payment (3) - payment authorization pending",
+            "Confirm (4) - final review before completion",
+            "Complete (5) - order finalized, inventory reserved",
+            "Canceled (6) - order canceled, inventory released"
+          ],
+          "transitions": "unidirectional progression via Next() method, except Cancel() which is callable from any non-Complete state"
+        }
+      },
+      "childEntities": {
+        "LineItem": {
+          "description": "Product in order with quantity and unit price",
+          "properties": {
+            "orderId": "Guid",
+            "variantId": "Guid",
+            "quantity": "int (min 1)",
+            "unitPrice": "decimal (snapshot of price at purchase time)",
+            "subtotalCents": "long (quantity * unitPrice * 100)"
+          },
+          "children": {
+            "LineItemAdjustment": {
+              "description": "Promotion discount on specific line item",
+              "properties": {
+                "lineItemId": "Guid",
+                "amountCents": "long (usually negative)",
+                "description": "string",
+                "promotionId": "Guid?"
+              }
+            }
+          }
+        },
+        "UserAddress": {
+          "description": "Shipping and Billing addresses (linked from Identity context)",
+          "properties": {
+            "firstName": "string",
+            "lastName": "string",
+            "address1": "string",
+            "address2": "string?",
+            "city": "string",
+            "zipcode": "string",
+            "countryId": "Guid",
+            "stateId": "Guid?"
+          }
+        },
+        "OrderAdjustment": {
+          "description": "Order-level discount",
+          "properties": {
+            "orderId": "Guid",
+            "amountCents": "long (usually negative)",
+            "description": "string",
+            "promotionId": "Guid?"
+          }
+        },
+        "Shipment": {
+          "description": "Fulfillment plan for physical orders",
+          "properties": {
+            "orderId": "Guid",
+            "shippingMethodId": "Guid",
+            "stockLocationId": "Guid? (fulfillment warehouse)",
+            "state": "ShipmentState (Pending | Shipped | Delivered)"
+          }
+        },
+        "Payment": {
+          "description": "Payment transaction attempt",
+          "properties": {
+            "orderId": "Guid",
+            "amountCents": "long",
+            "currency": "string",
+            "paymentMethodId": "Guid",
+            "paymentMethodType": "string (card | bank_transfer | cash_on_delivery | etc)",
+            "isCompleted": "bool (authorization successful)",
+            "completedAt": "DateTimeOffset?"
+          }
+        }
+      },
+      "keyMethods": [
+        "Create(storeId, currency, userId, email)",
+        "Next() - state machine transition (Cart->Address->Delivery->Payment->Confirm->Complete)",
+        "Cancel() - transition to Canceled state from any non-Complete state",
+        "AddLineItem(variant, quantity)",
+        "RemoveLineItem(lineItemId)",
+        "UpdateLineItemQuantity(lineItemId, quantity)",
+        "SetShippingAddress(address)",
+        "SetBillingAddress(address)",
+        "SetFulfillmentLocation(stockLocation)",
+        "SetShippingMethod(shippingMethod)",
+        "ApplyPromotion(promotion, code)",
+        "RemovePromotion()",
+        "AddPayment(amountCents, paymentMethodId, paymentMethodType)",
+        "RecalculateTotals()"
+      ],
+      "computedProperties": [
+        "IsCart: bool (State == Cart)",
+        "IsComplete: bool (State == Complete)",
+        "IsCanceled: bool (State == Canceled)",
+        "ItemCount: int (sum of line item quantities)",
+        "Total: decimal (TotalCents / 100)",
+        "ItemTotal: decimal (ItemTotalCents / 100)",
+        "ShipmentTotal: decimal (ShipmentTotalCents / 100)",
+        "TotalWeight: decimal (sum of variant weights * quantities)",
+        "HasPromotion: bool (PromotionId.HasValue)",
+        "IsFullyDigital: bool (all line items are digital products)"
+      ],
+      "relationships": {
+        "Store": "many-to-one",
+        "User": "optional many-to-one",
+        "Promotion": "optional many-to-one",
+        "ShippingMethod": "optional many-to-one",
+        "FulfillmentLocation": "optional many-to-one (StockLocation)",
+        "LineItems": "one-to-many",
+        "Adjustments": "one-to-many",
+        "Shipments": "one-to-many (typically 1 for physical orders)",
+        "Payments": "one-to-many"
+      },
+      "stateValidation": {
+        "Cart->Address": "at least one line item required",
+        "Address->Delivery": "for non-digital orders: ship address AND bill address required",
+        "Delivery->Payment": "for non-digital orders: create shipment with method + location",
+        "Payment->Confirm": "total payment amount >= order total",
+        "Confirm->Complete": "all payments marked as completed",
+        "Any->Canceled": "cannot cancel if already Complete"
+      },
+      "events": [
+        "Created(orderId, storeId)",
+        "StateChanged(orderId, newState)",
+        "LineItemAdded(orderId, variantId, quantity)",
+        "LineItemRemoved(orderId, lineItemId)",
+        "ShippingAddressSet(orderId)",
+        "BillingAddressSet(orderId)",
+        "ShippingMethodSelected(orderId, shippingMethodId)",
+        "FulfillmentLocationSelected(orderId, storeId, stockLocationId)",
+        "PromotionApplied(orderId, promotionId, discountAmount)",
+        "PromotionRemoved(orderId, promotionId)",
+        "Completed(orderId, storeId) - triggers FinalizeInventory event",
+        "Canceled(orderId, storeId) - triggers ReleaseInventory event",
+        "FinalizeInventory(orderId, storeId) - internal: reduce inventory for completed order",
+        "ReleaseInventory(orderId, storeId) - internal: restore inventory for canceled order"
+      ]
+    },
+    {
+      "name": "Inventories",
+      "path": "src/ReSys.Core/Domain/Inventories",
+      "description": "Stock tracking across warehouse locations",
+      "aggregateRoot": "StockLocation",
+      "keyProperties": {
+        "id": "Guid",
+        "name": "string (warehouse name)",
+        "presentation": "string (display name)",
+        "active": "bool",
+        "default": "bool (primary fulfillment location)",
+        "address1": "string?",
+        "address2": "string?",
+        "city": "string?",
+        "zipcode": "string?",
+        "phone": "string?",
+        "company": "string?",
+        "countryId": "Guid?",
+        "stateId": "Guid?"
+      },
+      "childEntities": {
+        "StockItem": {
+          "description": "Inventory of a variant at a location",
+          "properties": {
+            "stockLocationId": "Guid",
+            "variantId": "Guid",
+            "sku": "string (snapshot of variant SKU)",
+            "quantityOnHand": "int (available stock)",
+            "quantityReserved": "int (reserved for orders in progress)",
+            "backorderable": "bool (allow sales beyond stock)"
+          },
+          "children": {
+            "StockMovement": {
+              "description": "Audit log of inventory adjustments",
+              "properties": {
+                "stockItemId": "Guid",
+                "quantity": "int (positive or negative change)",
+                "originator": "MovementOriginator enum",
+                "reason": "string (why stock changed)",
+                "stockTransferId": "Guid? (if part of transfer)"
+              },
+              "enum": {
+                "MovementOriginator": ["Purchase", "Return", "Adjustment", "Transfer", "Restock"]
+              }
+            }
+          }
+        },
+        "StockTransfer": {
+          "description": "Movement of stock between locations",
+          "properties": {
+            "fromStockLocationId": "Guid",
+            "toStockLocationId": "Guid",
+            "variantId": "Guid",
+            "quantity": "int"
+          }
+        }
+      },
+      "keyMethods": [
+        "Create(name, presentation, active, isDefault, countryId, address, city, zipcode, stateId, phone, company)",
+        "Update(name, presentation, active, address, city, zipcode, countryId, stateId, phone, company)",
+        "StockItemOrCreate(variant) - get or create stock item for variant",
+        "Unstock(variant, quantity, originator, stockTransferId) - reduce inventory",
+        "Restock(variant, quantity, originator, stockTransferId) - increase inventory",
+        "LinkStore(store)",
+        "UnlinkStore(store)",
+        "MakeDefault()",
+        "Delete() - only if no stock items"
+      ],
+      "relationships": {
+        "StockItems": "one-to-many",
+        "Stores": "many-to-many via StoreStockLocation",
+        "Country": "optional foreign key",
+        "State": "optional foreign key"
+      },
+      "concerns": [
+        "IHasParameterizableName",
+        "IHasUniqueName",
+        "IAddress",
+        "IHasMetadata",
+        "ISoftDeletable"
+      ],
+      "events": [
+        "Created(stockLocationId)",
+        "Updated(stockLocationId)",
+        "Deleted(stockLocationId)",
+        "Restored(stockLocationId)",
+        "StockLocationMadeDefault(stockLocationId)",
+        "LinkedToStockLocation(stockLocationId, storeId)",
+        "UnlinkedFromStockLocation(stockLocationId, storeId)"
+      ]
+    },
+    {
+      "name": "Promotions",
+      "path": "src/ReSys.Core/Domain/Promotions",
+      "description": "Discounts with rules and calculation logic",
+      "aggregateRoot": "Promotion",
+      "keyProperties": {
+        "id": "Guid",
+        "name": "string (unique, max 100)",
+        "promotionCode": "string? (uppercase coupon code)",
+        "description": "string?",
+        "minimumOrderAmount": "decimal? (order total must exceed this)",
+        "maximumDiscountAmount": "decimal? (cap on discount value)",
+        "startsAt": "DateTimeOffset? (activation date)",
+        "expiresAt": "DateTimeOffset? (expiry date)",
+        "usageLimit": "int? (max uses across all customers)",
+        "usageCount": "int (current usage count)",
+        "active": "bool (manual activation flag)",
+        "requiresCouponCode": "bool (must enter code to apply)"
+      },
+      "enums": {
+        "PromotionType": {
+          "values": ["None", "OrderDiscount", "ItemDiscount", "FreeShipping", "BuyXGetY"]
+        },
+        "DiscountType": {
+          "values": ["Percentage", "FixedAmount"]
+        }
+      },
+      "childEntities": {
+        "PromotionAction": {
+          "description": "What discount to apply",
+          "types": [
+            "PercentageDiscount(percentage: decimal)",
+            "FixedAmountDiscount(amount: decimal, currency: string)",
+            "FreeShippingAction()",
+            "BuyXGetYAction(buyQuantity: int, getQuantity: int, variant: Variant)"
+          ]
+        },
+        "PromotionRule": {
+          "description": "Condition for promotion to apply",
+          "types": [
+            "CartTotalRule(minimumCartTotal: decimal)",
+            "TaxonRule(taxonIds: List<Guid>) - apply only to products in these categories",
+            "UserRule(userIds: List<string>) - apply only to specific users",
+            "DateRangeRule(startDate: DateTimeOffset, endDate: DateTimeOffset)"
+          ]
+        }
+      },
+      "keyMethods": [
+        "Create(name, action, code, description, minimumOrderAmount, maximumDiscountAmount, startsAt, expiresAt, usageLimit, requiresCouponCode)",
+        "Update(name, code, description, action, minimumOrderAmount, maximumDiscountAmount, startsAt, expiresAt, usageLimit, active, requiresCouponCode)",
+        "AddRule(rule)",
+        "RemoveRule(ruleId)",
+        "IncrementUsage() - called when promotion is applied to an order",
+        "Validate() - verify date ranges, code requirements, etc",
+        "Activate()",
+        "Deactivate()"
+      ],
+      "computedProperties": [
+        "Type: PromotionType (derived from Action type)",
+        "IsActive: bool (Active flag AND within date range AND has remaining usage)",
+        "IsExpired: bool (ExpiresAt < now)",
+        "HasUsageLimit: bool (UsageLimit.HasValue)",
+        "RemainingUsage: int"
+      ],
+      "relationships": {
+        "Orders": "many-to-many (via Order.PromotionId)",
+        "PromotionRules": "one-to-many",
+        "OrderAdjustments": "one-to-many",
+        "LineItemAdjustments": "one-to-many"
+      },
+      "events": [
+        "Created(promotionId, name)",
+        "Updated(promotionId)",
+        "Deleted(promotionId)",
+        "UsageIncreased(promotionId, newUsageCount)",
+        "Used(promotionId, orderId)",
+        "Activated(promotionId)",
+        "Deactivated(promotionId)",
+        "RuleAdded(promotionId, ruleId)",
+        "RuleRemoved(promotionId, ruleId)"
+      ]
+    },
+    {
+      "name": "Payments",
+      "path": "src/ReSys.Core/Domain/Payments",
+      "description": "Payment methods and provider integration",
+      "aggregateRoot": "PaymentMethod",
+      "keyProperties": {
+        "id": "Guid",
+        "name": "string (unique, max 100)",
+        "presentation": "string",
+        "description": "string?",
+        "type": "PaymentType (enum)",
+        "active": "bool",
+        "position": "int",
+        "autoCapture": "bool (auto-authorize payments)",
+        "displayOn": "DisplayOn (Both | AdminOnly | FrontendOnly)"
+      },
+      "enums": {
+        "PaymentType": {
+          "values": [
+            "CreditCard",
+            "DebitCard",
+            "BankTransfer",
+            "CashOnDelivery",
+            "Wallet",
+            "PayPal",
+            "Stripe",
+            "ApplePay",
+            "GooglePay",
+            "StoreCredit",
+            "GiftCard",
+            "Check",
+            "Crypto"
+          ]
+        }
+      },
+      "childEntities": {
+        "Payment": {
+          "description": "Payment transaction (in Orders context, but referenced here)",
+          "properties": {
+            "orderId": "Guid",
+            "amountCents": "long",
+            "currency": "string",
+            "paymentMethodId": "Guid",
+            "paymentMethodType": "string",
+            "isCompleted": "bool",
+            "completedAt": "DateTimeOffset?"
+          }
+        },
+        "PaymentSource": {
+          "description": "Saved payment method (card, bank account, etc)",
+          "properties": {
+            "paymentMethodId": "Guid",
+            "sourceType": "string (card_token, bank_account, etc)",
+            "sourceData": "string (encrypted)",
+            "isDefault": "bool"
+          }
+        }
+      },
+      "keyMethods": [
+        "Create(name, presentation, type, description, active, autoCapture, position, displayOn)",
+        "Update(name, presentation, description, active, autoCapture, position, displayOn)",
+        "Delete()",
+        "Restore()"
+      ],
+      "computedProperties": [
+        "IsCardPayment: bool (CreditCard or DebitCard)",
+        "RequiresManualCapture: bool (!AutoCapture)",
+        "SourceRequired: bool (!StoreCredit && !GiftCard)",
+        "SupportsSavedCards: bool",
+        "MethodCode: string (lowercase type name)"
+      ],
+      "relationships": {
+        "Payments": "one-to-many",
+        "StorePaymentMethods": "one-to-many",
+        "PaymentSources": "one-to-many"
+      },
+      "events": [
+        "Created(paymentMethodId, name, type)",
+        "Updated(paymentMethodId)",
+        "Deleted(paymentMethodId)",
+        "Restored(paymentMethodId)"
+      ]
+    },
+    {
+      "name": "Shipping",
+      "path": "src/ReSys.Core/Domain/Shipping",
+      "description": "Shipping methods and cost calculation",
+      "aggregateRoot": "ShippingMethod",
+      "keyProperties": {
+        "id": "Guid",
+        "name": "string (unique, max 100)",
+        "presentation": "string",
+        "description": "string?",
+        "type": "ShippingType (enum)",
+        "baseCost": "decimal",
+        "currency": "string (default USD)",
+        "active": "bool",
+        "position": "int",
+        "estimatedDaysMin": "int?",
+        "estimatedDaysMax": "int?",
+        "maxWeight": "decimal? (maximum parcel weight)",
+        "displayOn": "DisplayOn (Both | AdminOnly | FrontendOnly)"
+      },
+      "enums": {
+        "ShippingType": {
+          "values": ["Standard", "Express", "Overnight", "Pickup", "FreeShipping"]
+        }
+      },
+      "keyMethods": [
+        "Create(name, presentation, type, baseCost, description, active, estimatedDaysMin, estimatedDaysMax, position)",
+        "Update(name, presentation, description, baseCost, active, estimatedDaysMin, estimatedDaysMax, maxWeight, position)",
+        "CalculateCost(orderWeight, orderTotal) - decimal: applies overweight surcharge if needed",
+        "Delete()"
+      ],
+      "computedProperties": [
+        "IsFreeShipping: bool (Type == FreeShipping OR BaseCost == 0)",
+        "IsExpressShipping: bool (Express OR Overnight)",
+        "EstimatedDelivery: string (e.g., '2-3 days')"
+      ],
+      "relationships": {
+        "StoreShippingMethods": "one-to-many",
+        "Shipments": "one-to-many"
+      },
+      "events": [
+        "Created(shippingMethodId, name)",
+        "Updated(shippingMethodId)",
+        "Deleted(shippingMethodId)"
+      ]
+    },
+    {
+      "name": "Identity",
+      "path": "src/ReSys.Core/Domain/Identity",
+      "description": "User authentication, authorization, and profile management",
+      "aggregateRoot": "ApplicationUser (inherits from IdentityUser)",
+      "keyProperties": {
+        "id": "string (GUID as string from IdentityUser)",
+        "userName": "string (unique, max 100)",
+        "email": "string (unique, max 256)",
+        "emailConfirmed": "bool",
+        "phoneNumber": "string? (E.164 format)",
+        "phoneNumberConfirmed": "bool",
+        "firstName": "string?",
+        "lastName": "string?",
+        "lockoutEnd": "DateTimeOffset? (account lockout until this time)",
+        "lockoutEnabled": "bool",
+        "accessFailedCount": "int"
+      },
+      "childEntities": {
+        "UserAddress": {
+          "description": "Saved addresses (shipping/billing)",
+          "properties": {
+            "id": "Guid",
+            "userId": "string",
+            "firstName": "string",
+            "lastName": "string",
+            "address1": "string",
+            "address2": "string?",
+            "city": "string",
+            "zipcode": "string",
+            "countryId": "Guid",
+            "stateId": "Guid?",
+            "isDefault": "bool (default shipping address)",
+            "isBillingDefault": "bool (default billing address)"
+          }
+        },
+        "ApplicationRole": {
+          "description": "Role assignment (e.g., Admin, Vendor, Customer)",
+          "inherits": "IdentityRole"
+        },
+        "RefreshToken": {
+          "description": "Long-lived token for refresh flow",
+          "properties": {
+            "token": "string",
+            "expiryDate": "DateTimeOffset",
+            "isRevoked": "bool"
+          }
+        }
+      },
+      "keyMethods": [
+        "standard IdentityUser methods (through ASP.NET Core Identity)"
+      ],
+      "relationships": {
+        "Orders": "one-to-many",
+        "UserAddresses": "one-to-many",
+        "Roles": "many-to-many via IdentityUserRole",
+        "Claims": "one-to-many via IdentityUserClaim",
+        "RefreshTokens": "one-to-many",
+        "ProductReviews": "one-to-many",
+        "PaymentSources": "one-to-many"
+      },
+      "concerns": [
+        "IHasAuditable (CreatedAt, UpdatedAt, CreatedBy, UpdatedBy)",
+        "IHasVersion"
+      ]
+    },
+    {
+      "name": "Location",
+      "path": "src/ReSys.Core/Domain/Location",
+      "description": "Countries and states for address selection",
+      "aggregateRoot": "Country",
+      "keyProperties": {
+        "id": "Guid",
+        "name": "string",
+        "iso2": "string (2-letter ISO code)",
+        "iso3": "string (3-letter ISO code)"
+      },
+      "childEntities": {
+        "State": {
+          "description": "Province/state within a country",
+          "properties": {
+            "id": "Guid",
+            "countryId": "Guid",
+            "name": "string",
+            "code": "string (state/province abbreviation)"
+          }
+        }
+      },
+      "keyMethods": [
+        "Create(name, iso2, iso3)",
+        "AddState(state)"
+      ],
+      "relationships": {
+        "States": "one-to-many",
+        "StockLocations": "one-to-many",
+        "Stores": "one-to-many",
+        "UserAddresses": "one-to-many"
+      ]
+    }
+  ],
+  "keyVolumeMetrics": {
+    "stores": {
+      "example": "100-1000 stores",
+      "isolation": "complete data isolation per store (except shared catalog)"
+    },
+    "products": {
+      "example": "10,000-100,000 products per store",
+      "variants": "multiple variants per product (size, color, etc)",
+      "images": "5-10 images per variant"
+    },
+    "orders": {
+      "example": "1,000-10,000 orders per day",
+      "states": "transitions through 6 state changes during lifecycle"
+    },
+    "inventory": {
+      "tracking": "per variant per location (matrix structure)",
+      "auditLog": "all stock movements tracked with StockMovement records"
+    }
+  },
+  "importantPatterns": {
+    "errorHandling": "ErrorOr<T> (railway-oriented programming, no exceptions)",
+    "aggregatePattern": "Only aggregate roots queried from DbContext (Store, Product, Order, etc)",
+    "factoryMethods": "All domain creation via static Create() methods, never new constructor",
+    "domainEvents": "State changes raise events for async processing (published after SaveChangesAsync)",
+    "softDelete": "ISoftDeletable concern on Product, Store, Variant, etc (automatic query filters)",
+    "metadata": "IHasMetadata on most aggregates for extensibility (publicMetadata, privateMetadata)",
+    "concerns": "Reusable behaviors via interface implementation (IHasSlug, IHasUniqueName, etc)",
+    "stateValidation": "Enum-based states (OrderState, ShippingType, ProductStatus) with guarded transitions",
+    "priceHandling": "Prices stored in currency-specific Price entities (not on Variant directly)",
+    "inventoryReservation": "quantityOnHand vs quantityReserved tracking per location"
+  },
+  "criticalRules": {
+    "products": [
+      "Every product must have exactly one master variant (isMaster=true)",
+      "Master variant cannot have option values",
+      "Cannot delete product with completed orders",
+      "Only Active products appear in storefront"
+    ],
+    "orders": [
+      "Orders transition through states unidirectionally (except Cancel)",
+      "Non-digital orders require shipping address + billing address before moving to Delivery",
+      "Non-digital orders require fulfillment location before moving to Payment",
+      "Order total must be paid before moving from Payment to Confirm",
+      "Cannot cancel orders in Complete state",
+      "Completing order triggers FinalizeInventory event to reduce stock"
+    ],
+    "promotions": [
+      "RequiresCouponCode=true mandates a PromotionCode",
+      "Usage tracking prevents exceeding UsageLimit",
+      "Promotions must be within StartsAt and ExpiresAt dates to be active",
+      "Order total must meet MinimumOrderAmount to apply promotion"
+    ],
+    "stores": [
+      "Only one store can have Default=true",
+      "Cannot delete default store (unless force=true)",
+      "Cannot delete store with active orders",
+      "Products are shared across stores but visibility is per-store (StoreProduct.Visible)"
+    ]
+  },
+  "dbContext_ConfigurationHints": {
+    "aggregateRoots": [
+      "Store",
+      "Product",
+      "Order",
+      "Promotion",
+      "ShippingMethod",
+      "PaymentMethod",
+      "StockLocation",
+      "Taxonomy",
+      "OptionType",
+      "ApplicationUser"
+    ],
+    "ownedEntities": [
+      "Price (owned by Variant)",
+      "ProductImage (owned by Variant)",
+      "StockMovement (owned by StockItem)",
+      "LineItemAdjustment (owned by LineItem)",
+      "OrderAdjustment (owned by Order)"
+    ],
+    "softDeleteTables": [
+      "Product (IsDeleted filter)",
+      "Variant (IsDeleted filter)",
+      "Store (IsDeleted filter)",
+      "PaymentMethod (IsDeleted via DeletedAt)"
+    ],
+    "compositeKeys": [
+      "StoreProduct (StoreId, ProductId)",
+      "StoreStockLocation (StoreId, StockLocationId)",
+      "StoreShippingMethod (StoreId, ShippingMethodId)",
+      "StorePaymentMethod (StoreId, PaymentMethodId)",
+      "ProductOptionType (ProductId, OptionTypeId)",
+      "VariantOptionValue (VariantId, OptionValueId)"
+    ]
+  }
+}
