@@ -7,23 +7,33 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Domain\" />
-    <Folder Include="Feature\" />
+    <Compile Remove="Feature\Common\NewFolder\**" />
+    <EmbeddedResource Remove="Feature\Common\NewFolder\**" />
+    <None Remove="Feature\Common\NewFolder\**" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Feature\Common\Wrappers\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Carter" />
     <PackageReference Include="ErrorOr" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="Humanizer.Core" />
+    <PackageReference Include="Mapster" />
+    <PackageReference Include="Mapster.DependencyInjection" />
     <PackageReference Include="MediatR" />
-    <PackageReference Include="Microsoft.AspNetCore.Http.Features" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Pgvector" />
     <PackageReference Include="Pgvector.EntityFrameworkCore" />
     <PackageReference Include="Slugify.Core" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="Serilog" />
   </ItemGroup>
 
 </Project>
