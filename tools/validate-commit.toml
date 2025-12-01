@@ -1,0 +1,53 @@
+# ====================================================================
+# Git Tools Extension
+# Provides Git commit message generation and helpers
+# ====================================================================
+
+# -----------------------------------------------------------------
+# Prompt 3: Validate commit message
+# Usage: gemini validate-commit "feat: add new feature"
+# -----------------------------------------------------------------
+name = "validate-commit"
+description = "Validates a commit message against conventional commits standard"
+
+prompt = """
+## Commit Message Validator
+
+Validate the provided commit message against conventional commits and best practices.
+
+### Validation Checklist
+
+**Format:**
+- [ ] Follows `<type>(<scope>): <subject>` format
+- [ ] Type is valid (feat, fix, docs, style, refactor, perf, test, chore, build, ci, revert)
+- [ ] Scope is present (if applicable)
+- [ ] Subject uses imperative mood
+- [ ] Subject is capitalized
+- [ ] Subject has no period at end
+- [ ] Subject is 50-72 characters
+
+**Body (if present):**
+- [ ] Separated from subject by blank line
+- [ ] Lines wrapped at 72 characters
+- [ ] Explains "why" and "how"
+- [ ] Uses bullet points appropriately
+
+**Footer (if present):**
+- [ ] Separated from body by blank line
+- [ ] Issue references are correct format
+- [ ] Breaking changes are documented
+
+### Provide Feedback
+
+For the commit message below, provide:
+1. ✅ What's correct
+2. ❌ What needs improvement
+3. 💡 Suggested improvements
+4. ✨ Final corrected version
+
+---
+
+**Commit Message to Validate:**
+
+{input}
+"""

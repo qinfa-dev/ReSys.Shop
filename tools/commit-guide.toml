@@ -1,0 +1,274 @@
+# ====================================================================
+# Git Tools Extension
+# Provides Git commit message generation and helpers
+# ====================================================================
+
+# -----------------------------------------------------------------
+# Prompt 2: Show commit message guidelines
+# Usage: gemini commit-guide
+# -----------------------------------------------------------------
+[[prompts]]
+name = "commit-guide"
+description = "Displays commit message guidelines and best practices"
+
+prompt = """
+# Git Commit Message Guidelines
+
+A well-structured commit message is crucial for project maintainability, collaboration, and efficient debugging.
+
+---
+
+## The Anatomy of a Good Commit Message
+
+Every commit message should tell a story about *what* changed, *why* it changed, and *how* it changed.
+
+### Structure
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+---
+
+## 1. Subject Line (50-72 Characters Max)
+
+The subject line is the most important part—it's what people see when scanning history.
+
+### Format
+- **Type**: Categorize the change
+- **Scope** (optional): Component or module affected
+- **Subject**: Brief description
+
+### Rules
+- ✅ Use imperative mood: "Add feature" (not "Added" or "Adding")
+- ✅ Capitalize first letter
+- ✅ No period at end
+- ✅ Keep under 50-72 characters
+- ✅ Be specific and clear
+
+### Commit Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `feat` | New feature | `feat(auth): add social login` |
+| `fix` | Bug fix | `fix(cart): resolve checkout calculation error` |
+| `docs` | Documentation only | `docs(readme): update installation steps` |
+| `style` | Formatting, no code change | `style(ui): fix button alignment` |
+| `refactor` | Code restructure | `refactor(service): simplify user service logic` |
+| `perf` | Performance improvement | `perf(api): optimize database queries` |
+| `test` | Adding/updating tests | `test(auth): add login integration tests` |
+| `chore` | Build process, tools | `chore(deps): update dependencies` |
+| `build` | Build system changes | `build(webpack): configure production build` |
+| `ci` | CI configuration | `ci(github): add automated testing workflow` |
+| `revert` | Revert previous commit | `revert: revert "feat(auth): add social login"` |
+
+### Examples
+
+**Good:**
+```
+feat(api): add pagination to user list endpoint
+fix(auth): resolve token expiration edge case
+docs(contributing): add code review guidelines
+```
+
+**Avoid:**
+```
+fixed stuff
+WIP
+updated files
+asdf
+```
+
+---
+
+## 2. Blank Line
+
+Always include a blank line between the subject and body. Git tools use this to distinguish the two.
+
+---
+
+## 3. Body (Optional, Highly Recommended)
+
+Explain the *why* and *how*. Wrap at 72 characters.
+
+### What to Include
+- **Why**: Why was this change necessary? What problem does it solve?
+- **How**: How was the problem solved? What specific changes were made?
+- **Side effects**: Are there any limitations or known issues?
+- **Context**: Reference related discussions or decisions
+
+### Guidelines
+- ✅ Wrap lines at 72 characters
+- ✅ Use bullet points for multiple points
+- ✅ Reference issues/tickets
+- ✅ Explain non-obvious decisions
+
+### Example
+
+```
+feat(payment): integrate Stripe payment processing
+
+Previously, we only accepted PayPal which limited our customer base.
+This change adds Stripe as an additional payment option.
+
+Changes include:
+- Add Stripe SDK and configuration
+- Create payment processing service
+- Implement webhook handlers for payment events
+- Add payment method selection UI
+- Update order processing to handle both providers
+
+The implementation uses Stripe's Payment Intents API for better
+security and 3D Secure support.
+
+Refs #456
+```
+
+---
+
+## 4. Footer (Optional)
+
+Use for metadata and cross-references.
+
+### Issue References
+- `Fixes #123` - Closes the issue (GitHub/GitLab)
+- `Resolves #123` - Same as Fixes
+- `Closes #123` - Closes issue or PR
+- `Refs #123` - References without closing
+- `Related to #123` - Shows relationship
+
+### Breaking Changes
+```
+BREAKING CHANGE: API endpoint /users now requires authentication
+
+All requests to /users must include a valid JWT token in the
+Authorization header. Update client applications accordingly.
+```
+
+### Co-authors
+```
+Co-authored-by: Jane Doe <jane.doe @example.com>
+Co-authored-by: John Smith <john.smith @example.com>
+```
+
+### Sign-off
+```
+Signed-off-by: Your Name <your.email @example.com>
+```
+
+---
+
+## Best Practices Summary
+
+### ✅ DO
+- Write clear, descriptive messages
+- Use conventional commit format
+- Explain the "why" in the body
+- Reference related issues
+- Keep commits atomic (one logical change)
+- Review your commit before pushing
+- Use consistent tense and style
+
+### ❌ DON'T
+- Write vague messages ("fixed bug", "changes")
+- Mix unrelated changes in one commit
+- Use past tense ("Added" instead of "Add")
+- Commit without reviewing changes
+- Skip the body for non-trivial changes
+- Use commit messages as TODO lists
+
+---
+
+## Conventional Commits vs. Traditional Guidelines
+
+### Key Differences
+
+| Aspect | Conventional | Traditional |
+|--------|--------------|-------------|
+| Subject capitalization | Do NOT capitalize | Capitalize |
+| Type prefix | Required | Optional |
+| Scope | Optional, in parens | Not specified |
+| Breaking changes | `!` or footer | Not specified |
+
+### Our Standard
+
+We follow **Conventional Commits** with these modifications:
+- ✅ Capitalize the first letter of subject
+- ✅ Use imperative mood
+- ✅ Include type prefix
+- ✅ Add scope when relevant
+- ✅ Use `!` for breaking changes
+- ✅ Wrap body at 72 characters
+
+---
+
+## Git Configuration
+
+### Set Commit Template
+
+Create `.gitmessage.txt`:
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+Configure Git:
+```bash
+git config --global commit.template ~/.gitmessage.txt
+```
+
+### Commit Message Editor
+
+```bash
+# Use VSCode as commit editor
+git config --global core.editor "code --wait"
+
+# Use Vim
+git config --global core.editor "vim"
+
+# Use Nano
+git config --global core.editor "nano"
+```
+
+---
+
+## Tools & Automation
+
+### Commitlint
+Enforce conventional commits:
+```bash
+npm install --save-dev @commitlint/cli @commitlint/config-conventional
+```
+
+### Commitizen
+Interactive commit message builder:
+```bash
+npm install --save-dev commitizen
+npx cz
+```
+
+### Husky
+Git hooks for validation:
+```bash
+npm install --save-dev husky
+npx husky add .husky/commit-msg 'npx commitlint --edit $1'
+```
+
+---
+
+## Summary
+
+A good commit message:
+1. **Subject**: Type(scope): Imperative description (50-72 chars)
+2. **Body**: Explains why and how (wrapped at 72 chars)
+3. **Footer**: References issues and breaking changes
+
+**Remember**: Your commit messages are documentation for your future self and your team. Write them with care!
+"""

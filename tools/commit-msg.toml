@@ -1,0 +1,95 @@
+# ====================================================================
+# Git Tools Extension
+# Provides Git commit message generation and helpers
+# ====================================================================
+
+# -----------------------------------------------------------------
+# Prompt 1: Generate commit message from staged changes
+# Usage: gemini commit-msg (after git add)
+# -----------------------------------------------------------------
+name = "commit-msg"
+description = "Generates a conventional commit message from staged changes"
+
+prompt = """
+## Smart Commit Message Generator
+
+Analyze the staged git changes and generate a well-structured conventional commit message.
+
+### Analysis Process
+
+1. **Review Staged Changes**: Examine what files and code have been modified
+2. **Identify Type**: Determine the commit type from the changes
+3. **Determine Scope**: Identify the affected module/component
+4. **Summarize Changes**: Create a concise description of what changed
+5. **Provide Context**: Explain why the change was made (if not obvious)
+
+### Commit Message Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Commit Types
+
+- **feat**: A new feature for the user
+- **fix**: A bug fix
+- **docs**: Documentation only changes
+- **style**: Changes that don't affect code meaning (whitespace, formatting, semicolons)
+- **refactor**: Code change that neither fixes a bug nor adds a feature
+- **perf**: Code change that improves performance
+- **test**: Adding missing tests or correcting existing tests
+- **chore**: Changes to build process, auxiliary tools, or libraries
+- **build**: Changes that affect the build system or external dependencies
+- **ci**: Changes to CI configuration files and scripts
+- **revert**: Reverts a previous commit
+
+### Guidelines
+
+**Subject Line (50-72 characters max):**
+- Use imperative mood ("Add feature" not "Added feature" or "Adding feature")
+- Capitalize first letter
+- No period at the end
+- Be concise and clear
+
+**Body (wrap at 72 characters):**
+- Explain the "what" and "why" vs. "how"
+- Use bullet points if listing multiple changes
+- Reference issues if applicable
+
+**Footer:**
+- Reference issue tracker IDs: `Fixes #123`, `Closes #456`, `Resolves #789`
+- Note breaking changes: `BREAKING CHANGE: description`
+- Co-authors: `Co-authored-by: Name <email @example.com>`
+
+### Instructions
+
+1. Get staged changes: `git diff --cached --no-prefix`
+2. Analyze the changes
+3. Generate appropriate commit message following the format above
+4. Provide the commit message in a code block that can be copied
+
+### Example Output
+
+```
+feat(auth): add JWT token refresh mechanism
+
+Implement automatic token refresh to improve user experience by
+reducing the need for frequent re-authentication. The refresh
+happens silently when the token is within 5 minutes of expiration.
+
+- Add RefreshTokenAsync method to AuthService
+- Implement background token refresh job
+- Add refresh token storage in secure cookie
+- Update authentication middleware to handle refresh
+
+Fixes #234
+```
+
+---
+
+Now, let me analyze your staged changes and generate the commit message...
+"""

@@ -1,0 +1,153 @@
+# ====================================================================
+# Discovery Extension
+# Provides Q&A sessions and idea development tools
+# ====================================================================
+
+# -----------------------------------------------------------------
+# Prompt 2: New Idea Proposal Development
+# Usage: gemini new-idea "Mobile app for fitness tracking"
+# -----------------------------------------------------------------
+
+name = "new-idea"
+description = "Creates a structured proposal from an idea"
+
+prompt = """
+# New Idea Proposal Development
+
+I want to help you build your idea into a simple, yet impactful proposal.
+
+Let's join forces to make this idea into a well-structured proposal document.
+
+## Process
+
+### FIRST: Clarification & Enhancement
+- Clarify any areas of your proposal that may need more details
+- Suggest new requirements based on the functionality provided
+- Consider edge cases that may not be included in your original proposal
+- Organize requirements logically, and break them down into units that would make sense as user stories
+- Raise any important high-level technical considerations, like:
+  - Target platforms (web, mobile, desktop)
+  - Programming languages and frameworks
+  - Database and storage solutions
+  - Third-party integrations
+  - Overall architecture approach
+  - Scalability considerations
+  - Security requirements
+
+### NEXT: Iteration
+- Iterate with you until you tell me you're satisfied with the proposal structure
+- Refine requirements, technical approach, and business model
+- Address any concerns or questions you have
+
+### FINALLY: Document Creation
+- Once you tell me you're ready, create a proposal document in `docs/ideas/` with the following structure as a Markdown file:
+
+## Proposal Structure
+
+```markdown
+# [Project Name]
+
+## 1. Product Overview
+### Core Value Proposition
+[What unique value does this product provide?]
+
+### Target Audience
+[Who are the primary users? What are their needs?]
+
+---
+
+## 2. Functional Specifications
+
+Break down the user's idea into functional specifications:
+
+### 2.1 [Core Feature 1]
+[Detailed description of the feature and its purpose]
+
+### 2.2 [Core Feature 2]
+[Detailed description of the feature and its purpose]
+
+### 2.3 [Core Feature 3]
+[Detailed description of the feature and its purpose]
+
+[Continue numbering as needed...]
+
+---
+
+## 3. Technical Specifications
+
+### Architecture Overview
+[High-level system architecture description]
+
+### Technology Stack
+- **Frontend**: [Languages, frameworks, libraries]
+- **Backend**: [Languages, frameworks, libraries]
+- **Database**: [Database type and technology]
+- **Infrastructure**: [Hosting, cloud services, deployment]
+- **Third-party Services**: [APIs, integrations]
+
+### Key Technical Decisions
+[Rationale for major technical choices]
+
+---
+
+## 4. MVP Scope
+
+### Minimum Viable Product Features
+[List of core features for initial release]
+
+### Success Metrics
+[How will we measure if the MVP is successful?]
+
+### Timeline Estimate
+[Rough estimate for MVP development]
+
+---
+
+## 5. Business Model
+
+### Key Differentiators
+[What makes this product unique in the market?]
+
+### Revenue Model
+[How will this product generate revenue?]
+- Option 1: [Description]
+- Option 2: [Description]
+
+### Competitive Landscape
+[Brief overview of competitors and how this product compares]
+
+---
+
+## 6. Marketing Plan
+
+### Target Audience Details
+[Demographics, psychographics, pain points]
+
+### Marketing Strategy
+[Overall approach to reaching and converting customers]
+
+### Marketing Channels
+- **Channel 1**: [Strategy and tactics]
+- **Channel 2**: [Strategy and tactics]
+- **Channel 3**: [Strategy and tactics]
+
+### Go-to-Market Plan
+[How will we launch and gain initial traction?]
+
+---
+
+## 7. Next Steps
+
+1. [Immediate action item]
+2. [Next action item]
+3. [Future consideration]
+```
+
+---
+
+## Your Idea
+
+Please share your idea, and I'll help you develop it into a comprehensive proposal!
+
+{input}
+"""
