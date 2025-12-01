@@ -10,7 +10,6 @@ public interface IAuditableEntity<TId> :
 public abstract class AuditableEntity<TId> : Entity<TId>, IAuditableEntity<TId> where TId : struct
 {
     public DateTimeOffset? UpdatedAt { get; set; }
-
     public string? UpdatedBy { get; set; }
 
     protected AuditableEntity() 
@@ -19,10 +18,11 @@ public abstract class AuditableEntity<TId> : Entity<TId>, IAuditableEntity<TId> 
 
     protected AuditableEntity(TId id) : base(id: id) { }
 
-    protected AuditableEntity(TId id, string? createdBy) : base(id: id,
-        createdBy: createdBy) { }
-
-   
+    protected AuditableEntity(TId id, string? createdBy) : base(id: id) 
+    {
+        CreatedAt = DateTimeOffset.UtcNow;
+        CreatedBy = createdBy;
+    }
 }
 
 public abstract class AuditableEntity : AuditableEntity<Guid>
@@ -33,6 +33,9 @@ public abstract class AuditableEntity : AuditableEntity<Guid>
     }
     protected AuditableEntity(Guid id) : base(id: id) { }
 
-    protected AuditableEntity(Guid id, string? createdBy) : base(id: id,
-        createdBy: createdBy) { }
+    protected AuditableEntity(Guid id, string? createdBy) : base(id: id) 
+    {
+        CreatedAt = DateTimeOffset.UtcNow;
+        CreatedBy = createdBy;
+    }
 }
