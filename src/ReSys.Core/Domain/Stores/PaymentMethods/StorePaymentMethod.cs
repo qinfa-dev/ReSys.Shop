@@ -1,7 +1,7 @@
 using ErrorOr;
 
 using ReSys.Core.Common.Domain.Entities;
-using ReSys.Core.Domain.Payments;
+using ReSys.Core.Domain.PaymentMethods;
 
 namespace ReSys.Core.Domain.Stores.PaymentMethods;
 

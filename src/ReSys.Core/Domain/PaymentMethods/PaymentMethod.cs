@@ -100,46 +100,22 @@ public sealed class PaymentMethod : Aggregate, IHasUniqueName, IHasPosition, IHa
     /// characteristics, requirements, and integration patterns.
     /// 
     /// <para>
-    /// <strong>Card-Based Payments:</strong>
-    /// <list type="bullet">
-    /// <item><description>CreditCard - Deferred payment using credit card</description></item>
-    /// <item><description>DebitCard - Immediate payment from bank account</description></item>
-    /// </list>
-    /// </para>
-    /// 
-    /// <para>
-    /// <strong>Bank-Based Payments:</strong>
-    /// <list type="bullet">
-    /// <item><description>BankTransfer - Direct bank-to-bank money transfer</description></item>
-    /// </list>
-    /// </para>
-    /// 
-    /// <para>
-    /// <strong>Third-Party Wallets and Gateways:</strong>
-    /// <list type="bullet">
-    /// <item><description>PayPal - PayPal's payment and wallet service</description></item>
-    /// <item><description>Stripe - Stripe's unified payment platform</description></item>
-    /// <item><description>ApplePay - Apple's digital wallet and payment service</description></item>
-    /// <item><description>GooglePay - Google's digital wallet and payment service</description></item>
-    /// <item><description>Wallet - Generic wallet system for stored funds</description></item>
-    /// </list>
-    /// </para>
-    /// 
-    /// <para>
-    /// <strong>Alternative Payment Methods:</strong>
-    /// <list type="bullet">
-    /// <item><description>CashOnDelivery - Payment upon receipt of goods</description></item>
-    /// <item><description>StoreCredit - Payment using store-issued credit</description></item>
-    /// <item><description>GiftCard - Payment using store gift cards</description></item>
-    /// <item><description>Check - Paper check payment method</description></item>
-    /// </list>
-    /// </para>
-    /// 
-    /// <para>
-    /// <strong>Emerging Payment Methods:</strong>
-    /// <list type="bullet">
-    /// <item><description>Crypto - Cryptocurrency payment (e.g., Bitcoin, Ethereum)</description></item>
-    /// </list>
+    /// <strong>Payment Type Reference:</strong>
+    /// | Type | Auto-Capture | Source Required | Save Cards | Best For |
+    /// |------|--------------|-----------------|------------|----------|
+    /// | **CreditCard** | No | Yes | Yes | General payment (authorize & capture) |
+    /// | **DebitCard** | No | Yes | Yes | Direct account debit (authorize & capture) |
+    /// | **BankTransfer** | Yes | No | No | B2B payments, larger sums |
+    /// | **PayPal** | Yes / No | Yes | Yes | Third-party wallet, secure transactions |
+    /// | **Stripe** | Yes / No | Yes | Yes | Payment processor, cards & digital wallets |
+    /// | **ApplePay** | Yes / No | Yes | Yes | Mobile payment, tokenized cards |
+    /// | **GooglePay** | Yes / No | Yes | Yes | Mobile payment, tokenized cards |
+    /// | **Wallet** | Yes | No | No | Stored funds, loyalty programs |
+    /// | **CashOnDelivery** | Yes | No | No | Offline payment, local deliveries |
+    /// | **StoreCredit** | Yes | No | No | Internal balance, refunds as credit |
+    /// | **GiftCard** | Yes | No | No | Gift card payment, promotional use |
+    /// | **Check** | No | No | No | Mailed check, traditional payments |
+    /// | **Crypto** | Yes | Yes | Yes | Cryptocurrency payments, emerging markets |
     /// </para>
     /// </summary>
     public enum PaymentType
@@ -700,23 +676,21 @@ public sealed class PaymentMethod : Aggregate, IHasUniqueName, IHasPosition, IHa
     ///     name: "Credit Card",
     ///     presentation: "Pay with Credit Card",
     ///     type: PaymentMethod.PaymentType.CreditCard,
-    ///     description: "Accept all major credit cards",
     ///     active: true,
-    ///     autoCapture: false, // Manual capture for fraud review
-    ///     position: 0, // Display first
-    ///     displayOn: DisplayOn.Both,
-    ///     publicMetadata: new { "providers": new[] { "Visa", "Mastercard", "Amex" } },
-    ///     privateMetadata: new { "gateway": "Stripe", "account": "acct_xxxxx" }
+    ///     autoCapture: false // Manual capture
     /// );
-    /// 
+    ///
     /// if (result.IsSuccess)
     /// {
     ///     var paymentMethod = result.Value;
-    ///     // Use paymentMethod...
+    ///     // In a real application, you'd save this to a repository and commit.
+    ///     // await repository.AddAsync(paymentMethod);
+    ///     // await unitOfWork.SaveChangesAsync();
     /// }
     /// else
     /// {
     ///     // Handle validation errors
+    ///     var error = result.FirstError;
     /// }
     /// </code>
     /// </example>
@@ -812,17 +786,25 @@ public sealed class PaymentMethod : Aggregate, IHasUniqueName, IHasPosition, IHa
     /// </returns>
     /// <example>
     /// <code>
+    /// // Assume 'repository' and 'unitOfWork' are available in the application service layer
     /// var method = await repository.GetPaymentMethodAsync(id);
-    /// 
+    /// if (method is null) { /* Handle not found */ }
+    ///
     /// // Update only specific properties
     /// var result = method.Update(
-    ///     active: false, // Disable the payment method
-    ///     position: 5    // Move to lower priority
+    ///     active: false,      // Disable
+    ///     position: 10        // Lower priority
     /// );
-    /// 
+    ///
     /// if (result.IsSuccess)
     /// {
-    ///     await repository.SaveAsync();
+    ///     // In a real application, you'd save changes through a unit of work.
+    ///     // await unitOfWork.SaveChangesAsync();
+    /// }
+    /// else
+    /// {
+    ///     // Handle validation errors
+    ///     var error = result.FirstError;
     /// }
     /// </code>
     /// </example>
@@ -907,17 +889,20 @@ public sealed class PaymentMethod : Aggregate, IHasUniqueName, IHasPosition, IHa
     /// </returns>
     /// <example>
     /// <code>
+    /// // Assume 'repository' and 'unitOfWork' are available in the application service layer
     /// var method = await repository.GetPaymentMethodAsync(id);
-    /// 
-    /// var result = method.Delete();
+    /// if (method is null) { /* Handle not found */ }
+    ///
+    /// var result = method.Delete(); // Soft delete
     /// if (result.IsSuccess)
     /// {
-    ///     await repository.SaveAsync();
+    ///     // In a real application, you'd save changes through a unit of work.
+    ///     // await unitOfWork.SaveChangesAsync();
     /// }
     /// else
     /// {
-    ///     // Cannot delete if payments exist
-    ///     var error = result.FirstError;
+    ///     // Cannot delete if payments or payment sources exist
+    ///     var error = result.FirstError; // e.g., PaymentMethod.Errors.InUse
     /// }
     /// </code>
     /// </example>
@@ -958,12 +943,20 @@ public sealed class PaymentMethod : Aggregate, IHasUniqueName, IHasPosition, IHa
     /// </returns>
     /// <example>
     /// <code>
+    /// // Assume 'repository' and 'unitOfWork' are available in the application service layer
     /// var method = await repository.GetPaymentMethodAsync(id);
-    /// 
+    /// if (method is null) { /* Handle not found */ }
+    ///
     /// var result = method.Restore();
     /// if (result.IsSuccess)
     /// {
-    ///     await repository.SaveAsync();
+    ///     // In a real application, you'd save changes through a unit of work.
+    ///     // await unitOfWork.SaveChangesAsync();
+    /// }
+    /// else
+    /// {
+    ///     // This method typically doesn't return an Error unless the object itself is invalid.
+    ///     // It returns the PaymentMethod instance even if it wasn't deleted.
     /// }
     /// </code>
     /// </example>

@@ -499,27 +499,31 @@ public sealed class PaymentSource : AuditableEntity<Guid>, IHasMetadata
     /// </returns>
     /// <example>
     /// <code>
-    /// var result = PaymentSource.Create(
-    ///     userId: "user123",
-    ///     paymentMethodId: paymentMethodGuid,
+    /// // Assume 'user', 'paymentMethodId', 'repository', and 'unitOfWork' are available
+    /// var sourceResult = PaymentSource.Create(
+    ///     userId: user.Id,
+    ///     paymentMethodId: paymentMethodId,
     ///     type: "CreditCard",
     ///     last4: "4242",
     ///     brand: "Visa",
     ///     expirationMonth: 12,
     ///     expirationYear: 2026,
-    ///     isDefault: true,
-    ///     publicMetadata: new { "nickname": "My Visa" },
-    ///     privateMetadata: new { "token": "tok_xxxxx" }
+    ///     isDefault: true
     /// );
-    /// 
-    /// if (result.IsSuccess)
+    ///
+    /// if (sourceResult.IsSuccess)
     /// {
-    ///     var paymentSource = result.Value;
-    ///     // Use paymentSource...
+    ///     var source = sourceResult.Value;
+    ///     // In a real application, you'd add this source to the user's collection
+    ///     // or directly to a repository.
+    ///     // user.PaymentSources.Add(source);
+    ///     // await repository.AddAsync(source);
+    ///     // await unitOfWork.SaveChangesAsync();
     /// }
     /// else
     /// {
-    ///     // Handle validation errors
+    ///     // Handle validation errors (e.g., InvalidExpirationDate)
+    ///     var error = sourceResult.FirstError;
     /// }
     /// </code>
     /// </example>
@@ -597,17 +601,26 @@ public sealed class PaymentSource : AuditableEntity<Guid>, IHasMetadata
     /// </returns>
     /// <example>
     /// <code>
+    /// // Assume 'repository' and 'unitOfWork' are available
     /// var source = await repository.GetPaymentSourceAsync(id);
-    /// 
-    /// // Update only specific properties
+    /// if (source is null) { /* Handle not found */ }
+    ///
+    /// // Update specific properties
     /// var result = source.Update(
-    ///     isDefault: true, // Mark as default payment source
-    ///     expirationMonth: 6 // Update expiration month
+    ///     isDefault: true,           // Mark as default
+    ///     expirationMonth: 6,        // Update month
+    ///     expirationYear: 2025       // Update year
     /// );
-    /// 
+    ///
     /// if (result.IsSuccess)
     /// {
-    ///     await repository.SaveAsync();
+    ///     // In a real application, you'd save changes through a unit of work.
+    ///     // await unitOfWork.SaveChangesAsync();
+    /// }
+    /// else
+    /// {
+    ///     // Handle validation errors (e.g., InvalidExpirationDate)
+    ///     var error = result.FirstError;
     /// }
     /// </code>
     /// </example>
@@ -621,6 +634,25 @@ public sealed class PaymentSource : AuditableEntity<Guid>, IHasMetadata
         IDictionary<string, object?>? privateMetadata = null)
     {
         bool changed = false;
+
+        // Expiration date validation logic (if either part is being updated)
+        if (expirationMonth.HasValue || expirationYear.HasValue)
+        {
+            // Use the new value if provided, otherwise fall back to current value
+            int effectiveMonth = expirationMonth ?? ExpirationMonth ?? 0;
+            int effectiveYear = expirationYear ?? ExpirationYear ?? 0;
+
+            // Only validate if we have enough information (both month and year are non-zero)
+            // If only one is provided, full validation isn't possible here, but individual property setting is allowed.
+            if (effectiveMonth != 0 && effectiveYear != 0)
+            {
+                if (effectiveMonth < 1 || effectiveMonth > 12 || effectiveYear < DateTime.UtcNow.Year ||
+                    (effectiveYear == DateTime.UtcNow.Year && effectiveMonth < DateTime.UtcNow.Month))
+                {
+                    return Errors.InvalidExpirationDate;
+                }
+            }
+        }
 
         if (last4 != null && last4 != Last4) { Last4 = last4.Trim(); changed = true; }
         if (brand != null && brand != Brand) { Brand = brand.Trim(); changed = true; }
@@ -658,13 +690,20 @@ public sealed class PaymentSource : AuditableEntity<Guid>, IHasMetadata
     /// </returns>
     /// <example>
     /// <code>
+    /// // Assume 'repository' and 'unitOfWork' are available
     /// var source = await repository.GetPaymentSourceAsync(id);
-    /// 
+    /// if (source is null) { /* Handle not found */ }
+    ///
     /// var result = source.Delete();
     /// if (result.IsSuccess)
     /// {
-    ///     await repository.DeleteAsync(source);
-    ///     await repository.SaveAsync();
+    ///     // In a real application, the repository would physically remove the entity.
+    ///     // await repository.DeleteAsync(source); // Assuming soft-delete is not applied to PaymentSource itself.
+    ///     // await unitOfWork.SaveChangesAsync();
+    /// }
+    /// else
+    /// {
+    ///     // This method does not return errors, so 'else' block is for completeness.
     /// }
     /// </code>
     /// </example>

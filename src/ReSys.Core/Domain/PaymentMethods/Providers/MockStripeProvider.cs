@@ -20,14 +20,15 @@ public class MockStripeProvider : PaymentProviderBase<StripeProviderOptions>
         _logger.LogInformation("MockStripeProvider initialized with PublishableKey: {PublishableKey}", _options.PublishableKey);
     }
 
-    public override Task<ErrorOr<ProviderResponse>> AuthorizeAsync(AuthorizationRequest request, CancellationToken cancellationToken = default)
+    public override async Task<ErrorOr<ProviderResponse>> AuthorizeAsync(AuthorizationRequest request, CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask;
         _logger.LogInformation("MockStripeProvider: Authorizing amount {Amount} {Currency} for order {OrderNumber}",
             request.Amount, request.Currency, request.OrderNumber);
 
         if (request.Amount <= 0)
         {
-            return Task.FromResult(ErrorOr.Error.Validation("MockStripeProvider.InvalidAmount", "Amount must be positive."));
+            return Error.Validation("MockStripeProvider.InvalidAmount", "Amount must be positive.");
         }
 
         // Simulate success
@@ -37,17 +38,18 @@ public class MockStripeProvider : PaymentProviderBase<StripeProviderOptions>
             TransactionId: transactionId,
             RawResponse: new Dictionary<string, string> { { "mock_status", "authorized" } }
         );
-        return Task.FromResult(ErrorOr.ErrorOr<ProviderResponse>.From(response));
+        return response;
     }
 
-    public override Task<ErrorOr<ProviderResponse>> CaptureAsync(CaptureRequest request, CancellationToken cancellationToken = default)
+    public override async Task<ErrorOr<ProviderResponse>> CaptureAsync(CaptureRequest request, CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask;
         _logger.LogInformation("MockStripeProvider: Capturing transaction {TransactionId} for amount {Amount} {Currency}",
             request.TransactionId, request.Amount, request.Currency);
 
         if (string.IsNullOrEmpty(request.TransactionId))
         {
-            return Task.FromResult(ErrorOr.Error.Validation("MockStripeProvider.InvalidTransactionId", "Transaction ID is required."));
+            return Error.Validation("MockStripeProvider.InvalidTransactionId", "Transaction ID is required.");
         }
 
         // Simulate success
@@ -56,17 +58,18 @@ public class MockStripeProvider : PaymentProviderBase<StripeProviderOptions>
             TransactionId: request.TransactionId,
             RawResponse: new Dictionary<string, string> { { "mock_status", "captured" } }
         );
-        return Task.FromResult(ErrorOr.ErrorOr<ProviderResponse>.From(response));
+        return response;
     }
 
-    public override Task<ErrorOr<ProviderResponse>> RefundAsync(RefundRequest request, CancellationToken cancellationToken = default)
+    public override async Task<ErrorOr<ProviderResponse>> RefundAsync(RefundRequest request, CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask;
         _logger.LogInformation("MockStripeProvider: Refunding transaction {TransactionId} for amount {Amount} {Currency}",
             request.TransactionId, request.Amount, request.Currency);
 
         if (string.IsNullOrEmpty(request.TransactionId))
         {
-            return Task.FromResult(ErrorOr.Error.Validation("MockStripeProvider.InvalidTransactionId", "Transaction ID is required."));
+            return Error.Validation("MockStripeProvider.InvalidTransactionId", "Transaction ID is required.");
         }
 
         // Simulate success
@@ -75,17 +78,18 @@ public class MockStripeProvider : PaymentProviderBase<StripeProviderOptions>
             TransactionId: request.TransactionId,
             RawResponse: new Dictionary<string, string> { { "mock_status", "refunded" } }
         );
-        return Task.FromResult(ErrorOr.ErrorOr<ProviderResponse>.From(response));
+        return response;
     }
 
-    public override Task<ErrorOr<ProviderResponse>> VoidAsync(VoidRequest request, CancellationToken cancellationToken = default)
+    public override async Task<ErrorOr<ProviderResponse>> VoidAsync(VoidRequest request, CancellationToken cancellationToken = default)
     {
+        await Task.CompletedTask;
         _logger.LogInformation("MockStripeProvider: Voiding transaction {TransactionId}",
             request.TransactionId);
 
         if (string.IsNullOrEmpty(request.TransactionId))
         {
-            return Task.FromResult(ErrorOr.Error.Validation("MockStripeProvider.InvalidTransactionId", "Transaction ID is required."));
+            return Error.Validation("MockStripeProvider.InvalidTransactionId", "Transaction ID is required.");
         }
 
         // Simulate success
@@ -94,6 +98,6 @@ public class MockStripeProvider : PaymentProviderBase<StripeProviderOptions>
             TransactionId: request.TransactionId,
             RawResponse: new Dictionary<string, string> { { "mock_status", "voided" } }
         );
-        return Task.FromResult(ErrorOr.ErrorOr<ProviderResponse>.From(response));
+        return response;
     }
 }

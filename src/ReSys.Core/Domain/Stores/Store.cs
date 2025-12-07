@@ -10,7 +10,7 @@ using ReSys.Core.Domain.Location;
 using ReSys.Core.Domain.Location.Countries;
 using ReSys.Core.Domain.Location.States;
 using ReSys.Core.Domain.Orders;
-using ReSys.Core.Domain.Payments;
+using ReSys.Core.Domain.PaymentMethods;
 using ReSys.Core.Domain.ShippingMethods;
 using ReSys.Core.Domain.Stores.PaymentMethods;
 using ReSys.Core.Domain.Stores.Products;
