@@ -10,7 +10,7 @@ namespace ReSys.Core.Common.Domain.Concerns;
 // ============================================================================
 // IHasDisplayOn - Visibility control
 // ============================================================================
-public enum DisplayOn { None, Both, FrontEnd, BackEnd }
+public enum DisplayOn { None, Both, Storefront, BackEnd }
 
 public interface IHasDisplayOn
 {
@@ -20,7 +20,7 @@ public interface IHasDisplayOn
 public static class HasDisplayOn
 {
     public static bool AvailableOnFrontEnd(this IHasDisplayOn entity) =>
-        entity.DisplayOn == DisplayOn.Both || entity.DisplayOn == DisplayOn.FrontEnd;
+        entity.DisplayOn == DisplayOn.Both || entity.DisplayOn == DisplayOn.Storefront;
 
     public static bool AvailableOnBackEnd(this IHasDisplayOn entity) =>
         entity.DisplayOn == DisplayOn.Both || entity.DisplayOn == DisplayOn.BackEnd;

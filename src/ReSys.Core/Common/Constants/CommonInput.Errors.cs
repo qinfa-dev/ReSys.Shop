@@ -30,12 +30,12 @@ public static partial class CommonInput
         public static Error Conflict(string? prefix = null, string? field = null, string? msg = null) =>
             Error.Validation(
                 code: $"{Prefix(prefix: prefix, field: field)}.{nameof(Conflict)}",
-                description: msg ?? string.Format(ValidationMessages.General.Conflict, Label(prefix: prefix, field: field)));
+                description: msg ?? string.Format(ValidationMessages.General.Conflict, Label(prefix: prefix, field: field), string.Empty));
 
         public static Error InvalidOperation(string? prefix = null, string? field = null, string? msg = null) =>
             Error.Validation(
                 code: $"{Prefix(prefix: prefix, field: field)}.{nameof(InvalidOperation)}",
-                description: msg ?? string.Format(ValidationMessages.General.InvalidOperation, Label(prefix: prefix, field: field)));
+                description: msg ?? string.Format(ValidationMessages.General.InvalidOperation, Label(prefix: prefix, field: field), string.Empty));
 
         public static Error NotAuthorized(string? prefix = null, string? field = null, string? msg = null) =>
             Error.Validation(

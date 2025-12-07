@@ -1,3 +1,5 @@
+
+using System.ComponentModel.DataAnnotations;
 using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Domain.Events;
 
@@ -13,6 +15,8 @@ public abstract class Aggregate<TId> : AuditableEntity<TId>, IAggregate<TId>
     private readonly List<IDomainEvent> _uncommittedEvents = [];
 
     public long Version { get; set; }
+
+
 
     public IReadOnlyList<IDomainEvent> DomainEvents => _uncommittedEvents.AsReadOnly();
 
@@ -51,6 +55,8 @@ public abstract class Aggregate<TId> : AuditableEntity<TId>, IAggregate<TId>
 /// </summary>
 public abstract class Aggregate : Aggregate<Guid>
 {
+    [Timestamp]
+    public byte[]? RowVersion { get; set; }
     protected Aggregate() => Id = Guid.NewGuid();
     protected Aggregate(Guid id) : base(id: id) { }
 

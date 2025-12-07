@@ -1,4 +1,4 @@
-﻿namespace SharedKernel.Logging;
+﻿namespace ReSys.Core.Common.Constants;
 
 /// <summary>
 /// Provides predefined log message templates for consistent structured logging across
