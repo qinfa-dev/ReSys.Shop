@@ -82,7 +82,7 @@ public sealed class PaymentSourceConfiguration : IEntityTypeConfiguration<Paymen
 
         #region Relationships
         // Configure relationships for the PaymentSource entity.
-        builder.HasOne(navigationExpression: ps => ps.ApplicationUser)
+        builder.HasOne(navigationExpression: ps => ps.User)
             .WithMany(navigationExpression: user => user.PaymentSources)
             .HasForeignKey(foreignKeyExpression: ps => ps.UserId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade); // Delete payment sources when user is deleted

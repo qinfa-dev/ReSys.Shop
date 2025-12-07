@@ -427,7 +427,7 @@ public sealed class PaymentSource : AuditableEntity<Guid>, IHasMetadata
     /// UserId property
     /// </para>
     /// </summary>
-    public ApplicationUser ApplicationUser { get; set; } = null!;
+    public User User { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the PaymentMethod definition that this source uses.
