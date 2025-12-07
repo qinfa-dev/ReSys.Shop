@@ -109,6 +109,10 @@ public sealed class Promotion : Aggregate, IHasUniqueName
         public static Error InvalidUsageLimit => Error.Validation(
             code: "Promotion.InvalidUsageLimit",
             description: $"Usage limit must be at least {Constraints.MinUsageLimit}.");
+
+        public static Error NameRequired => CommonInput.Errors.Required(prefix: nameof(Promotion), field: nameof(Name));
+
+        public static Error NameTooLong => CommonInput.Errors.TooLong(prefix: nameof(Promotion), field: nameof(Name), maxLength: Constraints.NameMaxLength);
     }
     #endregion
 
@@ -147,14 +151,13 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     public bool RequiresCouponCode { get; set; }
 
     /// <summary>Gets or sets the promotion action that defines the discount/reward calculation.</summary>
-    public PromotionAction? Action { get; set; }
+    public PromotionUsage? Action { get; set; }
     #endregion
 
     #region Relationships
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<PromotionRule> PromotionRules { get; set; } = new List<PromotionRule>();
     public ICollection<OrderAdjustment> OrderAdjustments { get; set; } = new List<OrderAdjustment>();
-    public ICollection<LineItemAdjustment> LineItemAdjustments { get; set; } = new List<LineItemAdjustment>();
     #endregion
 
     #region Computed Properties
@@ -204,7 +207,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     /// Creates a new promotion with the specified configuration.
     /// </summary>
     /// <param name="name">The promotion name (required, trimmed). Must be between MinNameLength and NameMaxLength characters.</param>
-    /// <param name="action">The promotion action defining the discount/reward logic (required).</param>
+    /// <param name="usage">The promotion action defining the discount/reward logic (required).</param>
     /// <param name="code">Optional coupon code (auto-trimmed and uppercased). Required if requiresCouponCode is true.</param>
     /// <param name="description">Optional description of the promotion (trimmed).</param>
     /// <param name="minimumOrderAmount">Optional minimum order amount for promotion eligibility.</param>
@@ -219,7 +222,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     /// </returns>
     public static ErrorOr<Promotion> Create(
         string name,
-        PromotionAction action,
+        PromotionUsage usage,
         string? code = null,
         string? description = null,
         decimal? minimumOrderAmount = null,
@@ -229,6 +232,16 @@ public sealed class Promotion : Aggregate, IHasUniqueName
         int? usageLimit = null,
         bool requiresCouponCode = false)
     {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return Errors.NameRequired;
+        }
+
+        if (name.Length > Constraints.NameMaxLength)
+        {
+            return Errors.NameTooLong;
+        }
+        
         // Validate optional numeric parameters
         if (minimumOrderAmount.HasValue && minimumOrderAmount < Constraints.MinOrderAmount)
             return Errors.InvalidMinimumOrderAmount;
@@ -243,7 +256,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
         {
             Id = Guid.NewGuid(),
             Name = name.Trim(),
-            Action = action,
+            Action = usage,
             PromotionCode = code?.Trim().ToUpperInvariant(),
             Description = description?.Trim(),
             MinimumOrderAmount = minimumOrderAmount,
@@ -287,7 +300,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
         string? name = null,
         string? code = null,
         string? description = null,
-        PromotionAction? action = null,
+        PromotionUsage? action = null,
         decimal? minimumOrderAmount = null,
         decimal? maximumDiscountAmount = null,
         DateTimeOffset? startsAt = null,

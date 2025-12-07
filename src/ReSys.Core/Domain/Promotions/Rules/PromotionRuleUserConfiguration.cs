@@ -52,7 +52,7 @@ public sealed class PromotionRuleUserConfiguration : IEntityTypeConfiguration<Pr
             .HasForeignKey(foreignKeyExpression: pru => pru.PromotionRuleId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-        builder.HasOne(navigationExpression: pru => pru.ApplicationUser)
+        builder.HasOne(navigationExpression: pru => pru.User)
             .WithMany()
             .HasForeignKey(foreignKeyExpression: pru => pru.UserId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);

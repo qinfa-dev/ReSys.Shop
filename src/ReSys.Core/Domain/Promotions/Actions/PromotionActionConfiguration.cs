@@ -7,15 +7,15 @@ using ReSys.Core.Domain.Constants;
 namespace ReSys.Core.Domain.Promotions.Actions;
 
 /// <summary>
-/// Configures the database mapping for the <see cref="PromotionAction"/> entity.
+/// Configures the database mapping for the <see cref="PromotionUsage"/> entity.
 /// </summary>
-public sealed class PromotionActionConfiguration : IEntityTypeConfiguration<PromotionAction>
+public sealed class PromotionActionConfiguration : IEntityTypeConfiguration<PromotionUsage>
 {
     /// <summary>
-    /// Configures the entity of type <see cref="PromotionAction"/>.
+    /// Configures the entity of type <see cref="PromotionUsage"/>.
     /// </summary>
     /// <param name="builder">The builder to configure the entity type.</param>
-    public void Configure(EntityTypeBuilder<PromotionAction> builder)
+    public void Configure(EntityTypeBuilder<PromotionUsage> builder)
     {
         #region Table
         builder.ToTable(name: Schema.Promotions);
@@ -55,7 +55,7 @@ public sealed class PromotionActionConfiguration : IEntityTypeConfiguration<Prom
         #region Relationships
         builder.HasOne(a => a.Promotion)
             .WithOne(p => p.Action)
-            .HasForeignKey<PromotionAction>(a => a.PromotionId)
+            .HasForeignKey<PromotionUsage>(a => a.PromotionId)
             .OnDelete(DeleteBehavior.Cascade);
         #endregion
 

@@ -13,7 +13,6 @@ public sealed class PromotionRule : Aggregate<Guid>
     #region Constraints
     public static class Constraints
     {
-        public static readonly string[] ValidRuleTypes = ["FirstOrder", "ProductInclude", "ProductExclude", "CategoryInclude", "CategoryExclude", "MinimumQuantity", "UserRole"];
         public const int ValueMaxLength =CommonInput.Constraints.Text.LongTextMaxLength;
     }
 
@@ -24,6 +23,9 @@ public sealed class PromotionRule : Aggregate<Guid>
     public static class Errors
     {
         public static Error NotFound(Guid id) => Error.NotFound(code: "PromotionRule.NotFound", description: $"Promotion rule with ID '{id}' was not found.");
+        public static Error ValueRequired => CommonInput.Errors.Required(prefix: nameof(PromotionRule), field: nameof(Value));
+        public static Error ValueTooLong => CommonInput.Errors.TooLong(prefix: nameof(PromotionRule), field: nameof(Value), maxLength: Constraints.ValueMaxLength);
+        public static Error InvalidRuleType => CommonInput.Errors.InvalidValue(prefix: nameof(PromotionRule), field: nameof(Type));
     }
     #endregion
 
@@ -46,6 +48,21 @@ public sealed class PromotionRule : Aggregate<Guid>
     #region Factory Methods
     public static ErrorOr<PromotionRule> Create(Guid promotionId, RuleType type, string value)
     {
+        if (!Enum.IsDefined(typeof(RuleType), type))
+        {
+            return Errors.InvalidRuleType;
+        }
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Errors.ValueRequired;
+        }
+
+        if (value.Length > Constraints.ValueMaxLength)
+        {
+            return Errors.ValueTooLong;
+        }
+
         var promotionRule = new PromotionRule
         {
             Id = Guid.NewGuid(),

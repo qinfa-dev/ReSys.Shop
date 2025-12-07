@@ -21,7 +21,7 @@ public sealed class PromotionRuleUser : AuditableEntity<Guid>
 
     #region Relationships
     public PromotionRule PromotionRule { get; set; } = null!;
-    public ApplicationUser ApplicationUser { get; set; } = null!;
+    public User User { get; set; } = null!;
     #endregion
 
     #region Constructors

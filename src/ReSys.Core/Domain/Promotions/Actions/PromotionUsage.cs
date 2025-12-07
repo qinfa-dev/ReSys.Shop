@@ -51,7 +51,7 @@ namespace ReSys.Core.Domain.Promotions.Actions;
 /// </code>
 /// </para>
 /// </remarks>
-public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
+public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
 {
     #region Constraints
     public static class Constraints
@@ -85,6 +85,11 @@ public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
                 code: "PromotionAction.InvalidDiscountType",
                 description: "Invalid discount type.");
 
+        public static Error InvalidPercentageValue =>
+            Error.Validation(
+                code: "PromotionAction.InvalidPercentageValue",
+                description: "Percentage discount value must be between 0.0m and 1.0m (0% to 100%).");
+
         public static Error Required =>
             Error.Validation(
                 code: "PromotionAction.Required",
@@ -104,7 +109,7 @@ public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
     #endregion
 
     #region Constructors
-    private PromotionAction() { }
+    private PromotionUsage() { }
     #endregion
 
     #region Factory Methods
@@ -113,19 +118,24 @@ public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
     /// Creates an order-level discount action that applies to the entire order.
     /// </summary>
     /// <param name="discountType">Percentage-based or fixed amount discount.</param>
-    /// <param name="value">Discount value (0-100 for percentage, amount in currency for fixed).</param>
+    /// <param name="value">Discount value (0-1.0m for percentage, amount in currency for fixed).</param>
     /// <returns>
     /// On success: A new PromotionAction configured for order discounts.
-    /// On failure: Validation error if value is negative.
+    /// On failure: Validation error if value is invalid.
     /// </returns>
-    public static ErrorOr<PromotionAction> CreateOrderDiscount(
+    public static ErrorOr<PromotionUsage> CreateOrderDiscount(
         Promotion.DiscountType discountType,
         decimal value)
     {
         if (value < Constraints.MinValue)
             return Errors.InvalidValue;
 
-        var action = new PromotionAction
+        if (discountType == Promotion.DiscountType.Percentage && (value < 0.0m || value > 1.0m))
+        {
+            return Errors.InvalidPercentageValue;
+        }
+
+        var action = new PromotionUsage
         {
             Id = Guid.NewGuid(),
             Type = Promotion.PromotionType.OrderDiscount
@@ -141,19 +151,24 @@ public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
     /// Creates an item-level discount action that applies only to eligible items.
     /// </summary>
     /// <param name="discountType">Percentage-based or fixed amount discount.</param>
-    /// <param name="value">Discount value (0-100 for percentage, amount in currency for fixed).</param>
+    /// <param name="value">Discount value (0-1.0m for percentage, amount in currency for fixed).</param>
     /// <returns>
     /// On success: A new PromotionAction configured for item discounts.
-    /// On failure: Validation error if value is negative.
+    /// On failure: Validation error if value is invalid.
     /// </returns>
-    public static ErrorOr<PromotionAction> CreateItemDiscount(
+    public static ErrorOr<PromotionUsage> CreateItemDiscount(
         Promotion.DiscountType discountType,
         decimal value)
     {
         if (value < Constraints.MinValue)
             return Errors.InvalidValue;
+        
+        if (discountType == Promotion.DiscountType.Percentage && (value < 0.0m || value > 1.0m))
+        {
+            return Errors.InvalidPercentageValue;
+        }
 
-        var action = new PromotionAction
+        var action = new PromotionUsage
         {
             Id = Guid.NewGuid(),
             Type = Promotion.PromotionType.ItemDiscount
@@ -171,7 +186,7 @@ public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
     /// <remarks>
     /// Only applies to orders with physical items (not fully digital orders).
     /// </remarks>
-    public static PromotionAction CreateFreeShipping()
+    public static PromotionUsage CreateFreeShipping()
         => new()
         {
             Id = Guid.NewGuid(),
@@ -193,7 +208,7 @@ public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
     /// Example: Buy 2 red shirts, get 1 blue shirt free.
     /// If customer buys 4 red shirts, they get 2 blue shirts free (2 cycles of the 2:1 ratio).
     /// </remarks>
-    public static ErrorOr<PromotionAction> CreateBuyXGetY(
+    public static ErrorOr<PromotionUsage> CreateBuyXGetY(
         Guid buyVariantId,
         int buyQuantity,
         Guid getVariantId,
@@ -205,7 +220,7 @@ public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
         if (getQuantity < Constraints.MinQuantity)
             return Errors.InvalidGetQuantity;
 
-        var action = new PromotionAction
+        var action = new PromotionUsage
         {
             Id = Guid.NewGuid(),
             Type = Promotion.PromotionType.BuyXGetY
@@ -411,7 +426,7 @@ public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
     /// <b>Example:</b>
     /// Rule: Buy 2, Get 1 Free
     /// Customer buys: 4 units of variant A, 3 units of variant B
-    /// Result: Gets 2 units of B free (4 ÷ 2 = 2 cycles, 2 * 1 = 2 free units)
+    /// Result: Gets 2 units of B free (4 ï¿½ 2 = 2 cycles, 2 * 1 = 2 free units)
     /// </para>
     /// </remarks>
     private List<PromotionAdjustment> CalculateBuyXGetY(PromotionCalculationContext context)
