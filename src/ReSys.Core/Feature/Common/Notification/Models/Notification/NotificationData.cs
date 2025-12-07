@@ -4,7 +4,7 @@ using ErrorOr;
 
 using ReSys.Core.Feature.Common.Notification.Constants;
 
-namespace ReSys.Core.Feature.Common.Notification.Models;
+namespace ReSys.Core.Feature.Common.Notification.Models.Notification;
 
 /// <summary>
 /// Represents the base model for sending notifications, regardless of delivery method (Email, SMS, Push, etc.).

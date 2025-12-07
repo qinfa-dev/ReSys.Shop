@@ -1,8 +1,9 @@
 using ErrorOr;
 
 using ReSys.Core.Feature.Common.Notification.Models;
+using ReSys.Core.Feature.Common.Notification.Models.Notification;
 
-namespace ReSys.Core.Feature.Common.Notification.Services;
+namespace ReSys.Core.Feature.Common.Notification.Interfaces;
 
 public interface INotificationService
 {

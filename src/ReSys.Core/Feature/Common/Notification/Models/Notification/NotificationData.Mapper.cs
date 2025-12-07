@@ -2,7 +2,7 @@ using ReSys.Core.Feature.Common.Notification.Constants;
 using ReSys.Core.Feature.Common.Notification.Models.Emails;
 using ReSys.Core.Feature.Common.Notification.Models.Sms;
 
-namespace ReSys.Core.Feature.Common.Notification.Models;
+namespace ReSys.Core.Feature.Common.Notification.Models.Notification;
 
 public static class NotificationDataMapper
 {
