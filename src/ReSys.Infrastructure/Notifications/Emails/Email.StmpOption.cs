@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 
-namespace ReSys.Infrastructure.Notifications;
+namespace ReSys.Infrastructure.Notifications.Emails;
 
 public sealed class SmtpOptions : IValidateOptions<SmtpOptions>
 {

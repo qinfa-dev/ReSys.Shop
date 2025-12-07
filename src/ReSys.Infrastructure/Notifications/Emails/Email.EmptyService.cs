@@ -3,7 +3,7 @@
 using ReSys.Core.Feature.Common.Notification.Interfaces;
 using ReSys.Core.Feature.Common.Notification.Models.Emails;
 
-namespace ReSys.Infrastructure.Notifications;
+namespace ReSys.Infrastructure.Notifications.Emails;
 
 public sealed class EmptyEmailSenderService : IEmailSenderService
 {

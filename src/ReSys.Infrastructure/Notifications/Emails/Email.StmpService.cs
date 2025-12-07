@@ -15,7 +15,7 @@ using Serilog;
 
 using Attachment = FluentEmail.Core.Models.Attachment;
 
-namespace ReSys.Infrastructure.Notifications;
+namespace ReSys.Infrastructure.Notifications.Emails;
 
 public sealed class EmailSenderService(
     IOptions<SmtpOptions> emailSettings,

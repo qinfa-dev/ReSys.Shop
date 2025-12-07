@@ -7,7 +7,7 @@ using ReSys.Core.Feature.Common.Notification.Interfaces;
 using ReSys.Core.Feature.Common.Notification.Models;
 using ReSys.Core.Feature.Common.Notification.Models.Notification;
 
-namespace ReSys.Infrastructure.Notifications;
+namespace ReSys.Infrastructure.Notifications.Services;
 
 internal sealed class NotificationService(
     IEmailSenderService emailSenderService,

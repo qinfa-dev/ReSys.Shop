@@ -9,7 +9,7 @@ using ReSys.Core.Feature.Common.Notification.Interfaces;
 using Sinch;
 using Sinch.SMS;
 
-namespace ReSys.Infrastructure.Notifications;
+namespace ReSys.Infrastructure.Notifications.SMS;
 
 /// <summary>
 /// Registers SMS notification providers (e.g., Sinch).

@@ -14,7 +14,7 @@ using Sinch.SMS;
 using Sinch.SMS.Batches;
 using Sinch.SMS.Batches.Send;
 
-namespace ReSys.Infrastructure.Notifications;
+namespace ReSys.Infrastructure.Notifications.SMS;
 
 public sealed class SmsSinchSenderService(IOptions<SmsOptions> smsOption, ISinchClient sinchClient) : ISmsSenderService
 {

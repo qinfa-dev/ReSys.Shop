@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using ReSys.Core.Common.Constants;
 using ReSys.Core.Feature.Common.Notification.Interfaces;
 
-namespace ReSys.Infrastructure.Notifications;
+namespace ReSys.Infrastructure.Notifications.Emails;
 
 /// <summary>
 /// Registers email notification providers and sender services.

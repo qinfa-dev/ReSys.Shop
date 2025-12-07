@@ -5,7 +5,7 @@ using ReSys.Core.Feature.Common.Notification.Models.Sms;
 
 using Serilog;
 
-namespace ReSys.Infrastructure.Notifications;
+namespace ReSys.Infrastructure.Notifications.SMS;
 
 public sealed class EmptySmsSenderService : ISmsSenderService
 {

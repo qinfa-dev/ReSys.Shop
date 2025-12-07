@@ -7,6 +7,9 @@ using Microsoft.Extensions.Logging;
 
 using ReSys.Core.Common.Constants;
 using ReSys.Core.Feature.Common.Notification.Interfaces;
+using ReSys.Infrastructure.Notifications.Emails;
+using ReSys.Infrastructure.Notifications.Services;
+using ReSys.Infrastructure.Notifications.SMS;
 
 namespace ReSys.Infrastructure.Notifications;
 
