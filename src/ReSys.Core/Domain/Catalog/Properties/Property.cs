@@ -537,10 +537,22 @@ public sealed class Property :
 
     #region Delete
     /// <summary>
-    /// Delete property. Only succeeds if no ProductProperties are assigned.
-    /// Raises Deleted domain event.
+    /// Deletes the property from the system.
+    /// This operation is only permitted if there are no <see cref="ProductProperty"/> associations with any products.
+    /// If associated product properties exist, the deletion will fail to prevent data inconsistencies.
     /// </summary>
-    /// <returns>Deleted result on success; HasProductProperties error if property is in use.</returns>
+    /// <returns>
+    /// An <see cref="ErrorOr{Deleted}"/> result.
+    /// Returns <see cref="Result.Deleted"/> on successful deletion.
+    /// Returns <see cref="Errors.HasProductProperties"/> if the property is still in use by products.
+    /// </returns>
+    /// <remarks>
+    /// Before calling this method, ensure all <see cref="ProductProperty"/> entries linking this
+    /// property to products have been removed.
+    /// <para>
+    /// A <see cref="Events.Deleted"/> domain event is raised upon successful deletion.
+    /// </para>
+    /// </remarks>
     public ErrorOr<Deleted> Delete()
     {
         if (ProductProperties.Any())
@@ -554,18 +566,30 @@ public sealed class Property :
 
     #region Helpers
     /// <summary>
-    /// Returns validation constraints (min/max length, regex) for a specific PropertyKind.
-    /// Used by ProductProperty validation to enforce type-specific rules.
+    /// Provides validation constraints (minimum length, maximum length, and optional regular expression)
+    /// applicable to property values based on their <see cref="PropertyKind"/>.
+    /// This is crucial for consistent data validation across the system, especially when
+    /// assigning values to <see cref="ProductProperty"/> entities.
     /// </summary>
-    /// <param name="kind">The property kind to get constraints for.</param>
-    /// <returns>Tuple of (minLength, maxLength, validationRegex). Regex null if no pattern validation.</returns>
+    /// <param name="kind">The <see cref="PropertyKind"/> for which to retrieve validation constraints.</param>
+    /// <returns>A tuple containing:
+    /// <list type="bullet">
+    /// <item><term>minLength</term><description>The minimum allowed length for the property value.</description></item>
+    /// <item><term>maxLength</term><description>The maximum allowed length for the property value.</description></item>
+    /// <item><term>validationRegex</term><description>An optional <see cref="Regex"/> object for pattern-based validation, or <c>null</c> if no regex validation is needed.</description></item>
+    /// </list>
+    /// </returns>
     /// <remarks>
-    /// Example usage in ProductProperty validator:
+    /// This method is typically used by validators for <see cref="ProductProperty"/> to enforce
+    /// type-specific rules. For example, a validator might use the returned values like this:
     /// <code>
     /// var (minLen, maxLen, regex) = Property.GetValidationConditionForKind(propertyKind);
     /// RuleFor(x => x.Value)
-    ///     .Length(minLen, maxLen)
-    ///     .Matches(regex)  // if regex != null
+    ///     .Length(minLen, maxLen);
+    /// if (regex != null)
+    /// {
+    ///     RuleFor(x => x.Value).Matches(regex);
+    /// }
     /// </code>
     /// </remarks>
     public static (int minLength, int maxLength, Regex? validationRegex) GetValidationConditionForKind(PropertyKind kind) => kind switch
@@ -580,17 +604,21 @@ public sealed class Property :
     };
 
     /// <summary>
-    /// Returns HTML5 input field type for a specific PropertyKind.
-    /// Used by admin UI and API forms to render appropriate input controls.
+    /// Determines the appropriate HTML input field type string corresponding to a specific <see cref="PropertyKind"/>.
+    /// This is useful for UI rendering, allowing client-side applications (e.g., admin panels)
+    /// to dynamically present the correct input control for editing property values.
     /// </summary>
-    /// <param name="kind">The property kind to get field type for.</param>
-    /// <returns>HTML input element string.</returns>
+    /// <param name="kind">The <see cref="PropertyKind"/> for which to determine the HTML input field type.</param>
+    /// <returns>A string representing the HTML input element, e.g., "&lt;input type="text"&gt;".</returns>
     /// <remarks>
-    /// Example outputs:
-    /// ShortText → "&lt;input type=\"text\"&gt;"
-    /// Number → "&lt;input type=\"number\"&gt;"
-    /// RichText → "&lt;rich-text-editor&gt;"
-    /// Boolean → "&lt;input type=\"checkbox\"&gt;"
+    /// Example mappings:
+    /// <list type="bullet">
+    /// <item><term><see cref="PropertyKind.ShortText"/></term><description><c>&lt;input type="text"&gt;</c></description></item>
+    /// <item><term><see cref="PropertyKind.Number"/></term><description><c>&lt;input type="number"&gt;</c></description></item>
+    /// <item><term><see cref="PropertyKind.RichText"/></term><description><c>&lt;rich-text-editor&gt;</c> (custom component)</description></item>
+    /// <item><term><see cref="PropertyKind.Boolean"/></term><description><c>&lt;input type="checkbox"&gt;</c></description></item>
+    /// <item><term><see cref="PropertyKind.LongText"/></term><description><c>&lt;textarea&gt;</c></description></item>
+    /// </list>
     /// </remarks>
     public string GetMetaFieldType() => Kind switch
     {

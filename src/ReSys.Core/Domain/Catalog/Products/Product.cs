@@ -532,6 +532,7 @@ public sealed class Product : Aggregate,
     /// Creates a new <see cref="Product"/> instance.
     /// </summary>
     /// <param name="name">The name of the product.</param>
+    /// <param name="presentation">The new presentation name of the product.</param>
     /// <param name="description">The description of the product.</param>
     /// <param name="slug">The URL-friendly slug for the product. If null or empty, it will be generated from the name.</param>
     /// <param name="metaTitle">The meta title for SEO.</param>
@@ -546,6 +547,7 @@ public sealed class Product : Aggregate,
     /// <returns>An <see cref="ErrorOr{Product}"/> indicating success with the new product, or an error if validation fails.</returns>
     public static ErrorOr<Product> Create(
         string name,
+        string? presentation = null,
         string? description = null,
         string? slug = null,
         string? metaTitle = null,
@@ -558,6 +560,9 @@ public sealed class Product : Aggregate,
         IDictionary<string, object?>? publicMetadata = null,
         IDictionary<string, object?>? privateMetadata = null)
     {
+        // Normalize name and presentation
+        (name, presentation) = HasParameterizableName.NormalizeParams(name: name, presentation: presentation);
+
         // Validate Name
         if (string.IsNullOrWhiteSpace(value: name))
             return Errors.NameRequired;
@@ -583,7 +588,7 @@ public sealed class Product : Aggregate,
         {
             Id = Guid.NewGuid(),
             Name = name.Trim(),
-            Presentation = name.Trim(), // Default presentation to name
+            Presentation = presentation.Trim(), 
             Slug = finalSlug,
             Description = description?.Trim(),
             AvailableOn = availableOn,

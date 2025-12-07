@@ -50,9 +50,9 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Catalog.Products.OptionTypes` bounded context.
 
--   A `ProductOptionType` must always be associated with a valid `ProductId` and `OptionTypeId`.
--   A specific `OptionType` can only be linked to a `Product` once (ensuring uniqueness).
--   `Position` values are always non-negative, ensuring valid display ordering.
+-   A <see cref="ProductOptionType"/> must always be associated with a valid <c>ProductId</c> and <c>OptionTypeId</c>. This is typically enforced during creation of the <see cref="ProductOptionType"/> entity.
+-   A specific <see cref="OptionType"/> can only be linked to a <see cref="Product"/> once. This uniqueness is usually enforced by the parent <see cref="Product"/> aggregate when <see cref="Product.AddOptionType(ProductOptionType)"/> is called, or by unique constraints in the persistence layer.
+-   <c>Position</c> values for a <see cref="ProductOptionType"/> are always non-negative, ensuring valid display ordering, enforced during creation via <c>Math.Max(0, position)</c> and in the <see cref="ProductOptionType.UpdatePosition(int)"/> method.
 
 ---
 
@@ -66,9 +66,9 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create Product Option Type**: Establish a new link between a product and an option type, defining its display order.
--   **Update Position**: Modify the display order of an associated option type for a product.
--   **Delete Product Option Type**: Remove an option type's association with a specific product.
+-   **Create Product Option Type**: Establish a new link between a product and an option type using <see cref="ProductOptionType.Create(Guid, Guid, int)"/>. This method allows defining its display order for the product. The actual addition to a <see cref="Product"/> aggregate is done via <see cref="Product.AddOptionType(ProductOptionType)"/>.
+-   **Update Position**: Modify the display order of an associated option type for a product using <see cref="ProductOptionType.UpdatePosition(int)"/>.
+-   **Delete Product Option Type**: Signal the removal of an option type's association with a specific product using <see cref="ProductOptionType.Delete()"/>. The actual removal from the product's collection is managed by <see cref="Product.RemoveOptionType(Guid)"/> method in the parent <see cref="Product"/> aggregate.
 
 ---
 

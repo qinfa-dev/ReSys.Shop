@@ -333,20 +333,31 @@ public sealed class Price : Aggregate
 
     #region Business Logic - Update & Delete
     /// <summary>
-    /// Update price amounts (sale price and/or compare-at price).
-    /// Raises Updated domain event when changes are made.
-    /// Currency cannot be changed after creation (immutable).
+    /// Updates the amounts for this price instance.
+    /// Both <paramref name="amount"/> and <paramref name="compareAtAmount"/> are optional,
+    /// allowing for partial updates.
     /// </summary>
+    /// <param name="amount">The new current selling price. If null, the existing amount is retained.</param>
+    /// <param name="compareAtAmount">The new optional original/list price for sale display. If null, the existing compare-at amount is retained.</param>
+    /// <returns>
+    /// An <see cref="ErrorOr{Price}"/> result.
+    /// Returns the updated <see cref="Price"/> instance on success.
+    /// </returns>
     /// <remarks>
+    /// This method updates the <c>Amount</c> and <c>CompareAtAmount</c> properties.
+    /// If any changes occur, the <c>UpdatedAt</c> timestamp is updated, and an <see cref="Events.Updated"/>
+    /// domain event is raised.
     /// <para>
+    /// Validation for <paramref name="amount"/> and <paramref name="compareAtAmount"/> (e.g., non-negativity, compare-at > amount)
+    /// is implicitly handled by the <see cref="Price"/>'s computed properties or by validation logic in the application layer
+    /// or during object construction.
+    /// </para>
     /// <strong>Update Strategy:</strong>
     /// Only amount-related fields can be updated. Pass null to leave unchanged.
-    /// </para>
-    ///
-    /// <para>
-    /// <strong>Typical Usage:</strong>
+    /// <strong>Usage Example:</strong>
     /// <code>
     /// // Update sale price mid-campaign
+    /// var price = GetPriceById(priceId);
     /// var updateResult = price.Update(
     ///     amount: 12.99m,  // Lower sale price
     ///     compareAtAmount: 24.99m);
@@ -361,7 +372,6 @@ public sealed class Price : Aggregate
     ///     amount: 19.99m,
     ///     compareAtAmount: null);  // Now OnSale = false
     /// </code>
-    /// </para>
     /// </remarks>
     public ErrorOr<Price> Update(decimal? amount = null, decimal? compareAtAmount = null)
     {

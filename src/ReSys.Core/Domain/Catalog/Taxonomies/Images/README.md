@@ -14,14 +14,14 @@ This domain manages the visual assets (images) associated with taxons (categorie
 
 This section defines the key terms and concepts used within the `Catalog.Taxonomies.Images` bounded context.
 
--   **Taxon Image**: A digital image associated with a specific `Taxon`. Represented by the `TaxonImage` entity.
+-   **Taxon Image**: A digital image associated with a specific <see cref="Taxon"/>. Represented by the <see cref="TaxonImage"/> entity.
 -   **Taxon**: The category or node in a taxonomy with which the image is associated. (Referenced from `Catalog.Taxonomies.Taxa` Bounded Context).
 -   **URL**: The web address where the image file is located.
 -   **Alt Text**: Alternative text for the image, used for accessibility and SEO.
 -   **Position**: The display order of the image among other images for the same taxon.
--   **Image Type**: A categorization of the image's purpose (e.g., `default`, `square`).
--   **Dimensions**: The width and height of the image in pixels, often stored as metadata.
--   **Size**: The file size of the image, often stored as metadata.
+-   **Image Type**: A categorization of the image's purpose (e.g., <c>default</c>, <c>square</c>).
+-   **Dimensions**: The width and height of the image in pixels, stored as metadata.
+-   **Size**: The file size of the image, stored as metadata.
 
 ---
 
@@ -35,14 +35,12 @@ This domain is composed of the following core building blocks:
 
 ### Entities (not part of an Aggregate Root, if any)
 
--   **`TaxonImage`**: This is the central entity of this bounded context. It represents a single image asset and its associated data for a taxon. It inherits from `BaseImageAsset`.
-    -   **Value Objects**: None explicitly defined as separate classes. Properties like `TaxonId`, `Type`, `Url`, `Alt`, `Position`, and metadata for `size`, `width`, `height` are intrinsic attributes of the `TaxonImage` entity.
+-   **`TaxonImage`**: This is the central entity of this bounded context. It represents a single image asset and its associated data for a taxon. It inherits from <see cref="BaseImageAsset"/>.
+    -   **Value Objects**: None explicitly defined as separate classes. Properties like <c>TaxonId</c>, <c>Type</c>, <c>Url</c>, <c>Alt</c>, <c>Position</c>, and metadata for <c>size</c>, <c>width</c>, <c>height</c> (stored in <c>PublicMetadata</c>) are intrinsic attributes of the <see cref="TaxonImage"/> entity.
 
 ### Value Objects (standalone, if any)
 
 -   None.
-
----
 
 ## ⚙️ Domain Services (if any)
 
@@ -54,11 +52,11 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Catalog.Taxonomies.Images` bounded context.
 
--   A `TaxonImage` must always be associated with a valid `TaxonId`.
--   A `Taxon` can typically have only one image of a given `Type`. If a new image with an existing `Type` is added, it replaces the old one.
--   `TaxonImage`s can be categorized by `Type` (e.g., "default", "square") to serve different display contexts.
--   `Url` and `Alt` text have maximum length constraints.
--   `Position` values are always non-negative, ensuring valid display ordering.
+-   A <see cref="TaxonImage"/> must always be associated with a valid <c>TaxonId</c>.
+-   A <c>Taxon</c> can typically have only one image of a given <c>Type</c>. If a new image with an existing <c>Type</c> is added via <see cref="Taxon.AddImage(TaxonImage)"/>, it may replace the old one or result in an error depending on the parent aggregate's implementation.
+-   <see cref="TaxonImage"/>s can be categorized by <c>Type</c> (e.g., "default", "square") to serve different display contexts.
+-   <c>Url</c> and <c>Alt</c> text have maximum length constraints (inherited from <see cref="BaseImageAsset"/> and <see cref="ProductImage.Constraints"/> where applicable).
+-   <c>Position</c> values are always non-negative, ensuring valid display ordering, enforced during creation via <c>SetPosition(int)</c> and factory method parameters.
 
 ---
 
@@ -71,9 +69,9 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create Taxon Image**: Instantiate a new `TaxonImage` for a specific taxon, defining its URL, type, alt text, and position.
--   **Update Taxon Image Details**: Modify the URL, alt text, type, or metadata of an existing taxon image.
--   **Remove Taxon Image**: Delete an image associated with a taxon.
+-   **Create Taxon Image**: Instantiate a new <see cref="TaxonImage"/> using <see cref="TaxonImage.Create(Guid, string, string?, string?, int, int?, int?, int?)"/> for a specific taxon, defining its URL, type, alt text, and position.
+-   **Update Taxon Image Details**: Modify the <c>URL</c>, <c>Alt</c> text, <c>Type</c>, or metadata (including <c>size</c>, <c>width</c>, <c>height</c>) of an existing taxon image using <see cref="TaxonImage.Update(string?, string?, string?, int?, int?, int?)"/>.
+-   **Remove Taxon Image**: Delete an image associated with a taxon. This is typically managed by the parent <see cref="Taxon"/> aggregate.
 
 ---
 

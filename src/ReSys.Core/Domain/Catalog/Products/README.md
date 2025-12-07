@@ -80,16 +80,19 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Catalog.Products` bounded context.
 
--   A `Product` must always have a `Master Variant`.
--   A `Product` cannot be deleted if it has completed orders. (Enforced by `Product.Delete()`)
--   A `Product` cannot be deleted if it has existing variants (other than the master). (Implicitly handled by `Product.Delete()` and `Variant.Delete()`)
--   An `OptionType` or `Property` cannot be added to a `Product` if it's already linked. (Enforced by `AddOptionType()` and `AddProductProperty()`)
--   `Name` and `Slug` are required and adhere to defined length constraints.
--   `DiscontinueOn` date must not be before `MakeActiveAt` date.
--   Product status transitions are managed (Draft -> Active -> Archived).
--   Inventory tracking logic (e.g., `TotalOnHand`, `Purchasable`, `InStock`, `Backorderable`) is consistently applied across variants.
--   Product images have positions and types, and duplicate asset types are prevented.
--   Product properties can be set or updated, and new ones created if they don't exist.
+-   A <see cref="Product"/> must always have exactly one master <see cref="Variant"/>. This is a fundamental invariant enforced during product creation.
+-   The master <see cref="Variant"/> cannot have associated option values, as it represents the default configuration.
+-   The master <see cref="Variant"/> cannot be deleted. If a product needs to be removed, it should be soft-deleted or archived.
+-   A <see cref="Product"/> cannot be hard-deleted if it has completed orders. The <see cref="Product.Delete()"/> method enforces this by returning <see cref="Product.Errors.CannotDeleteWithCompleteOrders"/>. Soft-deletion is used to preserve historical data.
+-   A <see cref="Product"/> cannot be deleted if it has existing non-master variants. All non-master variants must be removed first, or the entire product should be soft-deleted.
+-   An <see cref="OptionType"/> cannot be added to a <see cref="Product"/> if it's already linked (<see cref="Product.AddOptionType(ProductOptionType)"/>). Each option type can only be added once per product.
+-   A <see cref="Property"/> cannot be added to a <see cref="Product"/> if it's already linked (<see cref="Product.AddProductProperty(ProductProperty)"/>). Each property can only be added once per product.
+-   <c>Name</c> and <c>Slug</c> are required, must be unique within the catalog (enforced by persistence layer), and adhere to defined length constraints (<see cref="Product.Constraints.NameMaxLength"/>, <see cref="Product.Constraints.SlugMaxLength"/>).
+-   The <c>DiscontinueOn</c> date cannot be set before the <c>MakeActiveAt</c> date (<see cref="Product.Errors.DiscontinueOnBeforeMakeActiveAt(DateTimeOffset)"/>).
+-   Product status transitions (<see cref="Product.Activate()"/>, <see cref="Product.Archive()"/>, <see cref="Product.Draft()"/>, <see cref="Product.Discontinue()"/>) are managed via specific methods that enforce a controlled lifecycle (Draft -> Active -> Archived).
+-   Inventory tracking logic (e.g., <c>TotalOnHand</c>, <c>Purchasable</c>, <c>InStock</c>, <c>Backorderable</c>) is consistently applied across variants.
+-   Product images have positions and types, and duplicate asset types for a given product are prevented.
+-   Product properties can be set or updated, and new ones created if they don't exist (<see cref="Product.SetPropertyValue(Guid, string)"/>).
 
 ---
 
@@ -108,18 +111,40 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create Product**: Instantiate a new product, including its initial master variant.
--   **Update Product Details**: Modify core product information such as name, description, SEO metadata, availability dates, and general metadata.
--   **Manage Product Lifecycle**: Change the product's `Status` (Activate, Archive, Draft, Discontinue).
--   **Manage Product Assets**: Add, remove, or update product images.
--   **Manage Product Options**: Associate `OptionType`s with the product and manage their relationships.
--   **Manage Product Categories**: Link the product to `Taxon`s within various `Taxonomy`s.
--   **Manage Product Variants**: Add or remove specific `Variant`s for the product.
--   **Manage Product Properties**: Add, remove, or set values for product-specific attributes.
--   **Track Product Engagement**: Increment view and add-to-cart counts.
--   **Soft Delete Product**: Mark a product as deleted, preventing its further use while retaining historical data.
--   **Check Product Availability**: Determine if a product is `Available`, `Purchasable`, `InStock`, or `Backorderable`.
--   **Manage Inventory**: Clear master variant stock and prices.
+-   **Create Product**: Instantiate a new <see cref="Product"/> using <see cref="Product.Create"/>, including its initial master <see cref="Variant"/>. This method performs initial validation and sets up the product's fundamental properties.
+-   **Update Product Details**: Modify core product information such as name, description, SEO metadata, availability dates, and general metadata using <see cref="Product.Update"/>. This allows for partial updates and validates input parameters.
+-   **Manage Product Lifecycle**: Control the product's status through dedicated methods:
+    -   <see cref="Product.Activate()"/>: Transitions to <see cref="ProductStatus.Active"/>.
+    -   <see cref="Product.Archive()"/>: Transitions to <see cref="ProductStatus.Archived"/>.
+    -   <see cref="Product.Draft()"/>: Transitions to <see cref="ProductStatus.Draft"/>.
+    -   <see cref="Product.Discontinue()"/>: Marks the product as discontinued and archives it.
+-   **Manage Product Assets (Images)**:
+    -   <see cref="Product.AddImage(ProductImage)"/>: Add a new image to the product, with validation for duplicates and automatic position assignment.
+    -   <see cref="Product.RemoveImage(Guid)"/>: Remove an image by its ID.
+    -   <see cref="Product.UpdateAsset(Guid, string?, string?, int?, string?, string?, int?, int?, string?, IDictionary{string, object?}, IDictionary{string, object?})"/>: Update properties of an existing image.
+-   **Manage Product Options**:
+    -   <see cref="Product.AddOptionType(ProductOptionType)"/>: Link an <see cref="OptionType"/> to the product.
+    -   <see cref="Product.RemoveOptionType(Guid)"/>: Unlink an <see cref="OptionType"/> from the product.
+-   **Manage Product Categories**:
+    -   <see cref="Product.AddClassification(Classification)"/>: Link the product to a <see cref="Taxon"/> (category).
+    -   <see cref="Product.RemoveClassification(Guid)"/>: Unlink the product from a <see cref="Taxon"/>.
+-   **Manage Product Variants**:
+    -   <see cref="Product.AddVariant(Variant)"/>: Add a new non-master <see cref="Variant"/> to the product.
+    -   <see cref="Product.RemoveVariant(Guid)"/>: Remove a non-master <see cref="Variant"/> from the product.
+-   **Manage Product Properties**:
+    -   <see cref="Product.AddProductProperty(ProductProperty)"/>: Add a custom property with a value to the product.
+    -   <see cref="Product.RemoveProperty(Guid)"/>: Remove a custom property from the product.
+    -   <see cref="Product.SetPropertyValue(Guid, string)"/>: Set or update the value of a specific property, creating it if it doesn't exist.
+-   **Track Product Engagement**: Increment view count (<see cref="Product.IncrementViewCount()"/>) and add-to-cart count (<see cref="Product.IncrementAddToCartCount()"/>) by raising domain events.
+-   **Soft Delete Product**: Mark a product as deleted (<see cref="Product.Delete()"/>), preventing its further use while retaining historical data and enforcing rules against deleting products with completed orders.
+-   **Check Product Availability & Pricing**:
+    -   <see cref="Product.OnSale(string?)"/>: Determine if the product has sale prices.
+    -   <see cref="Product.LowestPrice(string?)"/>: Get the lowest price across variants.
+    -   <see cref="Product.PriceVaries(string?)"/>: Check if prices differ among variants.
+    -   <c>Available</c>, <c>Purchasable</c>, <c>InStock</c>, <c>Backorderable</c>: Computed properties to determine overall availability.
+-   **Manage Master Variant Inventory**:
+    -   <see cref="Product.SetMasterOutOfStock()"/>: Quickly mark the master variant as out of stock.
+    -   <see cref="Product.ClearMasterStockAndPrices()"/>: Remove all stock and price information for the master variant.
 
 ---
 

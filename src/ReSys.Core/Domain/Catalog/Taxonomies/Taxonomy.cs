@@ -124,27 +124,24 @@ public sealed class Taxonomy :
     #region Core Properties
 
     /// <summary>
-    /// Internal system name (slug-like format). Used for identification and must be unique within store.
-    /// Convention: lowercase with hyphens, URL-safe, no special characters.
-    /// Examples: "product-categories", "brands", "seasonal-tags", "vendor-names"
-    /// Used in code/APIs: `taxonomy.Name == "product-categories"`
+    /// Gets or sets the internal system name for the taxonomy.
+    /// This is a slug-like format (lowercase with hyphens, e.g., "product-categories", "brands", "seasonal-tags").
+    /// It is used for identification and must be unique within its associated <see cref="Store"/>.
     /// </summary>
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Human-readable display name shown to customers and admins.
-    /// Can differ significantly from Name for better UX and localization.
-    /// Examples: Name="product-categories" → Presentation="Product Categories"
-    /// Used on storefront: category navigation, admin UI, breadcrumbs
-    /// Can include special formatting: "🏷️ Sale Tags", "👥 Vendors", "Product Categories"
+    /// Gets or sets the human-readable display name shown to customers and administrators.
+    /// This can differ significantly from <see cref="Name"/> for better user experience and localization.
+    /// Examples: <c>Name="product-categories"</c> → <c>Presentation="Product Categories"</c>.
+    /// Can include special formatting like emojis: "🏷️ Sale Tags", "👥 Vendors".
     /// </summary>
     public string Presentation { get; set; } = null!;
 
     /// <summary>
-    /// Positional ordering of this taxonomy among other taxonomies within the store.
-    /// Lower values appear first in navigation UIs and management panels.
-    /// Typical range: 0-999 (increments by 10 for easy insertion: 10, 20, 30...)
-    /// Example: Categories (10), Brands (20), Tags (30)
+    /// Gets or sets the positional ordering of this taxonomy among other taxonomies within the store.
+    /// Lower values typically appear first in navigation UIs and management panels.
+    /// Typical range: 0-999 (often increments by 10 for easy insertion: 10, 20, 30...).
     /// Editors can reorder taxonomies via this field.
     /// </summary>
     public int Position { get; set; }
@@ -153,37 +150,33 @@ public sealed class Taxonomy :
 
     #region Relationships
     /// <summary>
-    /// Store this taxonomy belongs to.
-    /// Foreign key reference to parent Store aggregate.
-    /// Taxonomies are store-specific: each store can have unique category structures.
-    /// Example: Store A has 3 taxonomies (Categories, Brands, Tags); Store B has 2 taxonomies
-    /// Null indicates global/shared taxonomy (rare, typically null for multi-store systems).
+    /// Gets or sets the unique identifier of the <see cref="Store"/> this taxonomy belongs to.
+    /// This is a foreign key reference to the parent <see cref="Store"/> aggregate, indicating
+    /// that taxonomies are store-specific.
+    /// A <c>null</c> value (though typically enforced as non-nullable via EF Core) might imply a global/shared taxonomy.
     /// </summary>
     public Guid? StoreId { get; set; }
     
     /// <summary>
-    /// Navigation property: parent store aggregate.
+    /// Gets or sets the navigation property to the parent <see cref="Store"/> aggregate.
     /// Provides access to store details and configuration.
-    /// Used to filter taxonomies: store.Taxonomies.Where(t => t.Name == "categories")
     /// </summary>
     public Store Store { get; set; } = null!;
     
     /// <summary>
-    /// Computed property: root taxon of this taxonomy hierarchy.
-    /// Returns the single taxon with ParentId = null (entry point to the tree).
-    /// Every taxonomy MUST have exactly one root taxon.
-    /// Used to traverse hierarchy: Root.Children to access top-level categories.
-    /// Example: For "Categories" taxonomy, Root might be named "Products" containing Apparel, Electronics, etc.
-    /// Returns null if taxonomy is empty (unusual state, should not occur in normal operations).
+    /// Gets the computed root <see cref="Taxon"/> of this taxonomy's hierarchy.
+    /// This returns the single <see cref="Taxon"/> with <see cref="Taxon.ParentId"/> = <c>null</c>.
+    /// Every taxonomy is expected to have exactly one root taxon, which serves as the entry point
+    /// to traverse the tree of categories.
+    /// Returns <c>null</c> if the taxonomy is empty (no taxons created yet), an unusual state.
     /// </summary>
     public Taxon? Root => Taxons.FirstOrDefault(predicate: t => t.ParentId == null);
     
     /// <summary>
-    /// Flat collection of ALL taxons in this taxonomy (entire hierarchy).
-    /// Includes root and all descendants at all levels.
-    /// Use nested set properties (Lft/Rgt/Depth) on individual taxons to traverse hierarchy efficiently.
-    /// Not typically used directly; instead access via Root or specific taxon queries.
-    /// Example: For "Categories" taxonomy with 50 taxons total, Taxons.Count == 50
+    /// Gets or sets the flat collection of all <see cref="Taxon"/>s belonging to this taxonomy.
+    /// This includes the root and all its descendants at all levels.
+    /// For efficient hierarchical traversal and querying, the nested set properties
+    /// (<c>Lft</c>, <c>Rgt</c>, <c>Depth</c>) on individual <see cref="Taxon"/>s should be used.
     /// </summary>
     public ICollection<Taxon> Taxons { get; set; } = new List<Taxon>();
 
@@ -191,19 +184,17 @@ public sealed class Taxonomy :
 
     #region Metadata
     /// <summary>
-    /// Public metadata: custom attributes visible to admins and potentially exposed via public APIs.
+    /// Gets or sets public metadata: custom attributes visible to administrators and potentially exposed via public APIs.
     /// Use for: campaign taxonomy labels, featured taxonomy flags, display hints, UI configuration.
-    /// Example: { "campaign": "holiday-2024", "featured": true, "icon": "🛍️", "sort_by": "custom" }
-    /// Visible in: Admin UI, API responses, integration systems.
+    /// Example: <c>{ "campaign": "holiday-2024", "featured": true, "icon": "🛍️", "sort_by": "custom" }</c>.
     /// </summary>
     public IDictionary<string, object?>? PublicMetadata { get; set; } = new Dictionary<string, object?>();
     
     /// <summary>
-    /// Private metadata: custom attributes visible only to admins and backend systems.
+    /// Gets or sets private metadata: custom attributes visible only to administrators and backend systems.
     /// Use for: internal notes, migration tracking, system flags, integration markers.
-    /// Example: { "legacy_id": "tax-12345", "source": "old-system", "needs_review": false }
-    /// Visible in: Admin UI, backend logs, internal systems.
-    /// NEVER exposed: public APIs, customer-facing interfaces.
+    /// Example: <c>{ "legacy_id": "tax-12345", "source": "old-system", "needs_review": false }</c>.
+    /// This data is NEVER exposed via public APIs or customer-facing interfaces.
     /// </summary>
     public IDictionary<string, object?>? PrivateMetadata { get; set; } = new Dictionary<string, object?>();
 
@@ -308,45 +299,44 @@ public sealed class Taxonomy :
 
     #region Business Logic - Update & Delete
     /// <summary>
-    /// Update taxonomy metadata while maintaining structural integrity.
-    /// Supports updating: name, presentation, position, and both metadata collections.
-    /// Raises Updated domain event when changes occur.
-    /// Tracks whether name/presentation changed for cache invalidation.
+    /// Updates the mutable properties of the taxonomy.
+    /// This method allows for partial updates; only provided parameters will be changed.
     /// </summary>
+    /// <param name="storeId">The new unique identifier of the <see cref="Store"/> this taxonomy belongs to. If null, the existing store ID is retained.</param>
+    /// <param name="name">The new internal system name for the taxonomy. If null, the existing name is retained.</param>
+    /// <param name="presentation">The new human-readable display name. If null, the existing presentation is retained.</param>
+    /// <param name="position">The new positional ordering. If null, the existing position is retained.</param>
+    /// <param name="publicMetadata">New public metadata. If null, the existing public metadata is retained.</param>
+    /// <param name="privateMetadata">New private metadata. If null, the existing private metadata is retained.</param>
+    /// <returns>
+    /// An <see cref="ErrorOr{Taxonomy}"/> result.
+    /// Returns the updated <see cref="Taxonomy"/> instance on success.
+    /// Returns one of the <see cref="Errors"/> if validation fails (e.g., name too long).
+    /// </returns>
     /// <remarks>
+    /// This method updates various properties of the taxonomy.
     /// <para>
-    /// <strong>Update Strategy:</strong>
-    /// Pass null for fields to leave unchanged. Only provided values are updated.
-    /// Timestamps (UpdatedAt) automatically set by concern behavior.
+    /// If changes occur, the <c>UpdatedAt</c> timestamp is updated, and an <see cref="Events.Updated"/>
+    /// domain event is added. The event includes a <c>NameChanged</c> flag to help subscribers
+    /// (e.g., search indexers, cache invalidators) respond appropriately if the taxonomy's name
+    /// or presentation (which is tied to uniqueness) has been modified.
     /// </para>
-    ///
-    /// <para>
-    /// <strong>Typical Usage:</strong>
+    /// <strong>Usage Example:</strong>
     /// <code>
-    /// // Update presentation (UI display)
+    /// var taxonomy = GetTaxonomyById(taxonomyId);
     /// var updateResult = taxonomy.Update(
-    ///     presentation: "🏷️ Product Categories");  // Emoji added for visual appeal
+    ///     presentation: "Updated Product Categories",
+    ///     position: 5);
     /// 
-    /// // Reorder taxonomies
-    /// var reorderResult = taxonomy.Update(position: 15);
-    /// 
-    /// // Update metadata for campaign
-    /// var campaignResult = taxonomy.Update(
-    ///     publicMetadata: new { featured = true, campaign = "holiday-2024" },
-    ///     privateMetadata: new { updated_by_user = "admin123", reason = "holiday refresh" });
-    /// 
-    /// // Change name (rarely done - breaks existing references)
-    /// var renameResult = taxonomy.Update(
-    ///     name: "seasonal-categories",
-    ///     presentation: "Seasonal Categories");  // Usually update both together
+    /// if (updateResult.IsError)
+    /// {
+    ///     Console.WriteLine($"Error updating taxonomy: {updateResult.FirstError.Description}");
+    /// }
+    /// else
+    /// {
+    ///     Console.WriteLine($"Taxonomy '{taxonomy.Name}' updated successfully.");
+    /// }
     /// </code>
-    /// </para>
-    ///
-    /// <para>
-    /// <strong>Audit Trail:</strong>
-    /// Every update raises domain event with change flags.
-    /// NameChanged flag helps subscribers invalidate caches/indexes if name/presentation changed.
-    /// </para>
     /// </remarks>
     public ErrorOr<Taxonomy> Update(
         Guid? storeId= null,
@@ -370,6 +360,7 @@ public sealed class Taxonomy :
         {
             Presentation = presentation;
             nameChanged = true;
+            changed = true;
         }
 
         if (position.HasValue && position.Value != Position)
@@ -406,33 +397,38 @@ public sealed class Taxonomy :
     }
 
     /// <summary>
-    /// Delete this taxonomy if it contains no taxons (or only root taxon).
-    /// Raises Deleted domain event for cascade operations and cache invalidation.
-    /// Data integrity: prevents deleting taxonomies with active category structure.
+    /// Deletes this taxonomy from the system.
+    /// This operation is only permitted if the taxonomy contains no <see cref="Taxon"/>s (or only its root taxon).
     /// </summary>
+    /// <returns>
+    /// An <see cref="ErrorOr{Deleted}"/> result.
+    /// Returns <see cref="Result.Deleted"/> on successful deletion.
+    /// Returns <see cref="Errors.HasTaxons"/> if the taxonomy still contains associated taxons.
+    /// </returns>
     /// <remarks>
+    /// To maintain data integrity, a taxonomy cannot be deleted if it still contains an active category structure.
+    /// All associated taxons (except potentially the root, which is implicitly removed with the taxonomy)
+    /// must be deleted or reparented before the taxonomy itself can be deleted.
     /// <para>
-    /// <strong>Deletion Constraints:</strong>
-    /// Taxonomy can only be deleted if Taxons.Count ≤ 1 (empty or root-only).
-    /// Ensures no orphaned taxons remain after taxonomy deletion.
-    /// If taxonomy has product categories, must reparent or delete all taxons first.
+    /// A <see cref="Events.Deleted"/> domain event is raised upon successful deletion.
     /// </para>
-    ///
+    /// <strong>Deletion Constraints:</strong>
+    /// Taxonomy can only be deleted if <c>Taxons.Count</c> is 0 or 1 (empty or root-only).
     /// <para>
-    /// <strong>Typical Workflow:</strong>
+    /// <strong>Typical Workflow for Deletion:</strong>
     /// <code>
-    /// // Cannot delete taxonomy with categories
+    /// // 1. Attempt to delete (will fail if taxons exist)
     /// var deleteResult = taxonomy.Delete();  // Returns HasTaxons error if categories exist
     /// 
-    /// // First, remove all taxons:
-    /// foreach (var taxon in taxonomy.Taxons.Where(t => t.ParentId != null))
+    /// // 2. First, remove all taxons:
+    /// foreach (var taxon in taxonomy.Taxons.Where(t => t.ParentId != null).ToList())
     /// {
     ///     var removeTaxonResult = taxon.Delete();
     ///     dbContext.Taxons.Remove(taxon);
     /// }
     /// await dbContext.SaveChangesAsync(ct);
     /// 
-    /// // Now deletion succeeds
+    /// // 3. Now deletion succeeds
     /// var finalDeleteResult = taxonomy.Delete();
     /// dbContext.Taxonomies.Remove(taxonomy);
     /// await dbContext.SaveChangesAsync(ct);
@@ -462,30 +458,36 @@ public sealed class Taxonomy :
 
     #region Events
     /// <summary>
-    /// Domain events for taxonomy lifecycle: creation, updates, and deletion.
-    /// Enables asynchronous processing and cross-domain communication.
-    /// Events are published after SaveChangesAsync via EF Core interceptors.
+    /// Defines domain events related to the lifecycle and state changes of a <see cref="Taxonomy"/>.
+    /// These events are crucial for enabling a decoupled, event-driven architecture, allowing
+    /// other services or bounded contexts to react to taxonomy-related changes.
     /// </summary>
     public static class Events
     {
         /// <summary>
         /// Raised when a new taxonomy is created (e.g., "Product Categories" for a store).
-        /// Handlers: Build initial root taxon, update store taxonomy cache, notify integrations.
+        /// Handlers might build the initial root taxon, update store taxonomy caches, or notify integrations.
         /// </summary>
+        /// <param name="TaxonomyId">The unique identifier of the newly created taxonomy.</param>
+        /// <param name="Name">The internal system name of the new taxonomy.</param>
+        /// <param name="Presentation">The human-readable display name of the new taxonomy.</param>
         public record Created(Guid TaxonomyId, string Name, string Presentation) : DomainEvent;
         
         /// <summary>
-        /// Raised when taxonomy metadata or structure is updated.
-        /// NameChanged flag indicates if name/presentation was modified (affecting caches/indexes).
-        /// Handlers: Invalidate product search indexes if name changed, update UI caches, sync external systems.
+        /// Raised when taxonomy metadata or configuration is updated.
         /// </summary>
+        /// <param name="TaxonomyId">The unique identifier of the updated taxonomy.</param>
+        /// <param name="Name">The current internal system name of the taxonomy.</param>
+        /// <param name="Presentation">The current human-readable display name of the taxonomy.</param>
+        /// <param name="NameChanged">True if the Name or Presentation property has changed, indicating a need for cache invalidation or re-indexing.</param>
         public record Updated(Guid TaxonomyId, string Name, string Presentation, bool NameChanged) : DomainEvent;
         
         /// <summary>
         /// Raised when a taxonomy is deleted.
-        /// Only occurs if taxonomy has no associated taxons (fully emptied).
-        /// Handlers: Remove from search indexes, clear caches, update store navigation, audit logging.
+        /// This event is only raised if the taxonomy contains no taxons (or only its root taxon).
+        /// Handlers might remove the taxonomy from search indexes, clear caches, or update store navigation.
         /// </summary>
+        /// <param name="TaxonomyId">The unique identifier of the deleted taxonomy.</param>
         public record Deleted(Guid TaxonomyId) : DomainEvent;
     }
 

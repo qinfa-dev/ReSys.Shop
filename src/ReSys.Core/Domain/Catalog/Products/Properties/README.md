@@ -14,13 +14,13 @@ This domain manages the specific values of generic properties (attributes) as th
 
 This section defines the key terms and concepts used within the `Catalog.Products.Properties` bounded context.
 
--   **Product Property**: A specific value assigned to a generic `Property` for a particular `Product`. It is a junction entity. Represented by the `ProductProperty` entity.
--   **Product**: The entity to which the property value is assigned. (Referenced from `Catalog.Products` Bounded Context).
+-   **Product Property**: A specific value assigned to a generic <see cref="Property"/> for a particular <see cref="Product"/>. It is a junction entity. Represented by the <see cref="ProductProperty"/> entity.
+-   **Product**: The item to which the property value is assigned. (Referenced from `Catalog.Products` Bounded Context).
 -   **Property**: The generic attribute definition (e.g., "Material", "Color"). (Referenced from `Catalog.Properties` Bounded Context).
 -   **Value**: The specific data for the property (e.g., "Cotton", "Red").
 -   **Position**: The display order of this property for the product.
--   **Filter Param**: A URL-friendly slug generated from the `Value` (or explicitly set) for filtering purposes, if the `Property` is filterable.
--   **Is Filterable**: A computed property indicating if the associated generic `Property` is configured to be used for filtering.
+-   **Filter Param**: A URL-friendly slug generated from the <c>Value</c> (or explicitly set) for filtering purposes, if the <see cref="Property"/> is filterable.
+-   **Is Filterable**: A computed property indicating if the associated generic <see cref="Property"/> is configured to be used for filtering.
 
 ---
 
@@ -53,11 +53,11 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Catalog.Products.Properties` bounded context.
 
--   A `ProductProperty` must always be associated with a valid `ProductId` and `PropertyId`.
--   A specific `Property` can only be linked to a `Product` once (ensuring uniqueness).
--   `Value` must adhere to a maximum length constraint (`Constraints.MaxValueLength`).
--   `Position` values are always non-negative.
--   `FilterParam` is automatically generated from the `Value` if the associated `Property` is `Filterable` and no explicit `FilterParam` is provided.
+-   A <see cref="ProductProperty"/> must always be associated with a valid <c>ProductId</c> and <c>PropertyId</c>. This is typically enforced during creation of the <see cref="ProductProperty"/> entity.
+-   A specific <see cref="Property"/> can only be linked to a <see cref="Product"/> once. This uniqueness is usually enforced by the parent <see cref="Product"/> aggregate when <see cref="Product.AddProductProperty(ProductProperty)"/> is called, or by unique constraints in the persistence layer.
+-   <c>Value</c> must adhere to a maximum length constraint (<see cref="ProductProperty.Constraints.MaxValueLength"/>).
+-   <c>Position</c> values are always non-negative, ensuring valid display ordering, enforced during creation via <c>Math.Max(0, position)</c> and in the <see cref="ProductProperty.Update(string?, int?, string?)"/> method.
+-   <c>FilterParam</c> is automatically generated from the <c>Value</c> if the associated <see cref="Property.Filterable"/> is true and no explicit <c>FilterParam</c> is provided. The <c>FilterParam</c> must also adhere to <see cref="ProductProperty.Constraints.FilterParamPattern"/>.
 
 ---
 
@@ -71,9 +71,9 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create Product Property**: Establish a new link between a product and a generic property, assigning a specific `Value` and display `Position`.
--   **Update Product Property**: Modify the `Value`, `Position`, or `FilterParam` of an existing product property.
--   **Delete Product Property**: Remove a property's association and value from a specific product.
+-   **Create Product Property**: Establish a new link between a product and a generic property using <see cref="ProductProperty.Create(Guid, Guid, string, int, bool, string?)"/>. This method assigns a specific <c>Value</c> and display <c>Position</c>. The actual addition to a <see cref="Product"/> aggregate is done via <see cref="Product.AddProductProperty(ProductProperty)"/>.
+-   **Update Product Property**: Modify the <c>Value</c>, <c>Position</c>, or <c>FilterParam</c> of an existing product property using <see cref="ProductProperty.Update(string?, int?, string?)"/>. This supports partial updates.
+-   **Delete Product Property**: Signal the removal of a property's association and value from a specific product using <see cref="ProductProperty.Delete()"/>. The actual removal from the product's collection is managed by <see cref="Product.RemoveProperty(Guid)"/> method in the parent <see cref="Product"/> aggregate.
 
 ---
 

@@ -14,12 +14,12 @@ This domain defines rules that enable the automatic classification of products i
 
 This section defines the key terms and concepts used within the `Catalog.Taxonomies.Rules` bounded context.
 
--   **Taxon Rule**: A specific condition or set of criteria used to automatically associate products with a `Taxon`. Represented by the `TaxonRule` entity.
+-   **Taxon Rule**: A specific condition or set of criteria used to automatically associate products with a <see cref="Taxon"/>. Represented by the <see cref="TaxonRule"/> entity.
 -   **Taxon**: The target category or node in a taxonomy to which products are classified. (Referenced from `Catalog.Taxonomies.Taxa` Bounded Context).
--   **Rule Type**: The kind of criteria the rule evaluates (e.g., "product_name", "product_sku", "product_property").
+-   **Rule Type**: The kind of criteria the rule evaluates (e.g., "product_name", "product_sku", "product_property"). Predefined types are listed in <see cref="TaxonRule.Constraints.RuleTypes"/>.
 -   **Value**: The specific data or pattern to match against (e.g., "laptop", "color:red").
--   **Match Policy**: How the `Value` should be compared (e.g., "is_equal_to", "contains", "greater_than").
--   **Property Name**: For "product_property" rule types, this specifies which product property the rule applies to.
+-   **Match Policy**: How the <c>Value</c> should be compared (e.g., "is_equal_to", "contains", "greater_than"). Predefined policies are listed in <see cref="TaxonRule.Constraints.MatchPolicies"/>.
+-   **Property Name**: For "product_property" rule types, this specifies which product property the rule applies to. It's required for this rule type.
 
 ---
 
@@ -33,14 +33,12 @@ This domain is composed of the following core building blocks:
 
 ### Entities (not part of an Aggregate Root, if any)
 
--   **`TaxonRule`**: This is the central entity of this bounded context. It defines a single rule for automatic product classification. It is an `AuditableEntity`.
-    -   **Value Objects**: None explicitly defined as separate classes. Properties like `Type`, `Value`, `MatchPolicy`, and `PropertyName` are intrinsic attributes of the `TaxonRule` entity.
+-   **`TaxonRule`**: This is the central entity of this bounded context. It defines a single rule for automatic product classification. It is an <see cref="AuditableEntity"/> and includes properties for <c>Type</c>, <c>Value</c>, <c>MatchPolicy</c>, and optional <c>PropertyName</c>.
+    -   **Value Objects**: None explicitly defined as separate classes. Properties like <c>Type</c>, <c>Value</c>, <c>MatchPolicy</c>, and <c>PropertyName</c> are intrinsic attributes of the <see cref="TaxonRule"/> entity.
 
 ### Value Objects (standalone, if any)
 
 -   None.
-
----
 
 ## ⚙️ Domain Services (if any)
 
@@ -52,12 +50,12 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Catalog.Taxonomies.Rules` bounded context.
 
--   A `TaxonRule` must always be associated with a valid `TaxonId`.
--   `Rule Type` must be one of the predefined `Constraints.RuleTypes`.
--   `Match Policy` must be one of the predefined `Constraints.MatchPolicies`.
--   For "product_property" `RuleType`, `PropertyName` is required.
--   A specific rule (combination of `Type`, `Value`, `MatchPolicy`, `PropertyName`) cannot be duplicated within a `Taxon`.
--   `TaxonRule` instances track their creation and update timestamps (`CreatedAt`, `UpdatedAt`), adhering to auditing requirements.
+-   A <see cref="TaxonRule"/> must always be associated with a valid <c>TaxonId</c>.
+-   <c>Rule Type</c> must be one of the predefined types in <see cref="TaxonRule.Constraints.RuleTypes"/>. Invalid types will result in <see cref="TaxonRule.Errors.InvalidType"/>.
+-   <c>Match Policy</c> must be one of the predefined policies in <see cref="TaxonRule.Constraints.MatchPolicies"/>. Invalid policies will result in <see cref="TaxonRule.Errors.InvalidMatchPolicy"/>.
+-   For "product_property" <c>RuleType</c>, <c>PropertyName</c> is required. If missing, it will result in <see cref="TaxonRule.Errors.PropertyNameRequired"/>.
+-   A specific rule (combination of <c>Type</c>, <c>Value</c>, <c>MatchPolicy</c>, <c>PropertyName</c>) should be unique within a <see cref="Taxon"/>. Duplicates may result in <see cref="TaxonRule.Errors.Duplicate"/>.
+-   <see cref="TaxonRule"/> instances track their creation and update timestamps (<c>CreatedAt</c>, <c>UpdatedAt</c>), adhering to auditing requirements.
 
 ---
 
@@ -70,10 +68,10 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create Taxon Rule**: Define a new rule for a taxon, specifying its type, value, match policy, and optional product property name.
--   **Update Taxon Rule**: Modify the type, value, match policy, or property name of an existing rule.
--   **Delete Taxon Rule**: Remove a rule from a taxon.
--   **Evaluate Rule**: Determine if a given `Order` (and its associated products) satisfies the conditions defined by the rule.
+-   **Create Taxon Rule**: Define a new rule for a taxon using <see cref="TaxonRule.Create(Guid, string, string, string?, string?)"/>, specifying its <c>Type</c>, <c>Value</c>, <c>MatchPolicy</c>, and optional <c>PropertyName</c>. This method performs validation for the rule's attributes.
+-   **Update Taxon Rule**: Modify the <c>Type</c>, <c>Value</c>, <c>MatchPolicy</c>, or <c>PropertyName</c> of an existing rule using <see cref="TaxonRule.Update(string?, string?, string?, string?)"/>. This supports partial updates and re-validates the rule.
+-   **Delete Taxon Rule**: Signal the removal of a rule from a taxon using <see cref="TaxonRule.Delete()"/>. The actual removal from the parent's collection is managed by the <see cref="Taxon"/> aggregate.
+-   **Evaluate Rule**: The <see cref="TaxonRule"/> entity itself contains logic (though not exposed as a public method in the snippet, it's implicitly part of the domain's evaluation process) to determine if a given <c>Product</c> (and its associated attributes) satisfies the conditions defined by the rule.
 
 ---
 

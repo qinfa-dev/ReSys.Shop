@@ -48,7 +48,7 @@ This domain is composed of the following core building blocks:
 
 ## ⚙️ Domain Services (if any)
 
--   None explicitly defined as separate classes. Utility methods like `GetValidationConditionForKind` and `GetMetaFieldType` provide logic related to `PropertyKind` but are part of the `Property` aggregate itself.
+-   None explicitly defined as separate classes. Utility methods like `GetValidationConditionForKind` and `GetMetaFieldType` provide logic related to `PropertyKind` but are encapsulated within the `Property` aggregate as helper methods.
 
 ---
 
@@ -60,7 +60,7 @@ This section outlines the critical business rules and invariants enforced within
 -   `Name` and `Presentation` values are normalized (e.g., trimmed) upon creation and update to maintain consistency.
 -   `FilterParam` is automatically generated as a URL-friendly slug from the `Name` if the property is `Filterable` and no explicit `FilterParam` is provided.
 -   `Position` values are always non-negative, ensuring valid display ordering.
--   Validation rules for property values (e.g., length constraints, regex patterns for numbers) are determined by their `PropertyKind`.
+-   **Validation rules for property values** (e.g., length constraints, regex patterns for numbers) are dynamically determined by their `PropertyKind` using the <c>GetValidationConditionForKind</c> method.
 
 ---
 
@@ -77,8 +77,8 @@ This section outlines the critical business rules and invariants enforced within
 -   **Create Property**: Define a new generic product attribute (e.g., "Material", "Weight") specifying its `Name`, `Presentation`, `PropertyKind`, `Filterable` status, `DisplayOn` location, and `Position`.
 -   **Update Property**: Modify the definition of an existing property, including its name, presentation, kind, filterability, display settings, position, filter parameter, and metadata.
 -   **Delete Property**: Remove a property from the system, provided there are no associated `ProductProperty` entries.
--   **Determine Validation Rules**: Retrieve appropriate validation conditions (min/max length, regex) based on the property's `PropertyKind`.
--   **Generate UI Input Type**: Suggest the appropriate HTML input element type based on the property's `PropertyKind` for UI rendering.
+-   **Determine Validation Rules**: Utilize the <c>GetValidationConditionForKind</c> static method to retrieve appropriate validation constraints (minimum length, maximum length, and optional regular expression) based on the property's <c>PropertyKind</c>. This ensures that values assigned to products for this property adhere to type-specific rules.
+-   **Generate UI Input Type**: Employ the <c>GetMetaFieldType</c> method to suggest the appropriate HTML input element type based on the property's <c>PropertyKind</c> for dynamic UI rendering in admin panels or storefront forms.
 -   **Publish Domain Events**: Emit events for creation, update, and deletion of properties, as well as events to trigger updates on related products (`TouchAllProducts`, `EnsureProductPropertiesHaveFilterParams`) for cache invalidation or re-indexing.
 
 ---

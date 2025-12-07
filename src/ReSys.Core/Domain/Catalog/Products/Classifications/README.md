@@ -50,9 +50,9 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Catalog.Products.Classifications` bounded context.
 
--   A `Classification` must always be associated with a valid `ProductId` and `TaxonId`.
--   A specific `Product` cannot be linked to the same `Taxon` multiple times (ensuring uniqueness of classification).
--   `Position` values are always non-negative, ensuring valid display ordering.
+-   A <see cref="Classification"/> must always be associated with a valid <c>ProductId</c> and <c>TaxonId</c>. This is typically enforced during the creation of the <see cref="Classification"/> entity.
+-   A specific <c>Product</c> cannot be linked to the same <c>Taxon</c> multiple times. This uniqueness is usually enforced by the parent <see cref="Product"/> aggregate when <see cref="Product.AddClassification(Classification)"/> is called, or by unique constraints in the persistence layer.
+-   <c>Position</c> values for a <see cref="Classification"/> are always non-negative, ensuring valid display ordering within a taxon's product list. This is enforced during creation via <c>Math.Max(0, position)</c>.
 
 ---
 
@@ -66,8 +66,8 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create Classification**: Establish a new link between a product and a taxon, defining the product's position within that taxon.
--   **Delete Classification**: Remove a product's association with a specific taxon.
+-   **Create Classification**: Establish a new link between a product and a taxon using <see cref="Classification.Create(Guid, Guid, int)"/>. This method allows defining the product's position within that taxon's product list. The actual addition to a <see cref="Product"/> aggregate is done via <see cref="Product.AddClassification(Classification)"/>.
+-   **Delete Classification**: Signal the removal of a product's association with a specific taxon using <see cref="Classification.Delete()"/>. The actual removal from the product's collection is managed by <see cref="Product.RemoveClassification(Guid)"/> method in the parent <see cref="Product"/> aggregate.
 
 ---
 
