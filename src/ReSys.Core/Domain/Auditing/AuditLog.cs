@@ -2,7 +2,8 @@ using ErrorOr;
 
 using ReSys.Core.Common.Constants;
 using ReSys.Core.Common.Domain.Entities;
-using ReSys.Core.Domain.Auditing;
+
+namespace ReSys.Core.Domain.Auditing;
 
 /// <summary>
 /// Represents an immutable audit log entry, capturing significant events and changes within the application.

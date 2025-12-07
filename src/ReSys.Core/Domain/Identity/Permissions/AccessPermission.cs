@@ -375,14 +375,34 @@ public sealed class AccessPermission : AuditableEntity
         PermissionCategory category = PermissionCategory.Both,
         string? createdBy = null)
     {
-        (string Area, string Resource, string Action)? parsed = ParseAccessPermissionName(accessPermissionName: name);
-        if (parsed == null)
+        if (string.IsNullOrWhiteSpace(name))
+            return Errors.NameRequired;
+
+        string trimmedName = name.Trim();
+
+        // Basic length check for the full name
+        if (trimmedName.Length < Constraints.MinNameLength || trimmedName.Length > Constraints.MaxNameLength)
+            return Errors.NameTooLong;
+
+        string[] parts = trimmedName.Split(separator: '.');
+
+        // Must have at least 3 segments (area, resource, action)
+        if (parts.Length < Constraints.MinSegments)
             return Errors.InvalidFormat;
 
+        // First segment is area
+        string area = parts[0];
+
+        // Last segment is action
+        string action = parts[^1];
+
+        // Everything in between is resource (can be multi-part like "role.users")
+        string resource = string.Join(separator: ".", values: parts.Skip(count: 1).Take(count: parts.Length - 2));
+
         return Create(
-            area: parsed.Value.Area,
-            resource: parsed.Value.Resource,
-            action: parsed.Value.Action,
+            area: area,
+            resource: resource,
+            action: action,
             displayName: displayName,
             description: description,
             value: value,
@@ -564,69 +584,6 @@ public sealed class AccessPermission : AuditableEntity
         // Resource can contain dots, so validate each part
         string[] parts = resource.Split('.');
         return parts.Length > 0 && parts.All(IsValidSegment);
-    }
-
-    /// <summary>
-    /// Checks if a given string is a valid access permission name according to the defined format and constraints.
-    /// </summary>
-    /// <param name="accessPermissionName">The permission name string to validate (e.g., "admin.user.create").</param>
-    /// <returns>True if the permission name is valid, false otherwise.</returns>
-    public static bool IsValidAccessPermissionName(string accessPermissionName)
-    {
-        if (string.IsNullOrWhiteSpace(value: accessPermissionName))
-            return false;
-
-        string trimmed = accessPermissionName.Trim();
-        if (trimmed.Length < Constraints.MinNameLength || trimmed.Length > Constraints.MaxNameLength)
-            return false;
-
-        string[] parts = trimmed.Split(separator: '.');
-
-        // Must have at least 3 segments (area, resource, action)
-        if (parts.Length < Constraints.MinSegments)
-            return false;
-
-        // Validate all segments
-        foreach (string part in parts)
-        {
-            if (!IsValidSegment(part.ToLowerInvariant()))
-                return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Parses a valid access permission name string into its constituent parts: area, resource, and action.
-    /// </summary>
-    /// <param name="accessPermissionName">The permission name string to parse (e.g., "admin.user.create").</param>
-    /// <returns>
-    /// A nullable tuple containing the Area, Resource, and Action strings if parsing is successful and the name is valid;
-    /// otherwise, returns null.
-    /// </returns>
-    /// <remarks>
-    /// The resource segment can be multi-part (e.g., "role.users"), and this method correctly extracts it.
-    /// </remarks>
-    public static (string Area, string Resource, string Action)? ParseAccessPermissionName(string accessPermissionName)
-    {
-        if (!IsValidAccessPermissionName(accessPermissionName: accessPermissionName))
-            return null;
-
-        string[] parts = accessPermissionName.Trim().Split(separator: '.');
-
-        if (parts.Length < 3) // Should already be caught by IsValidAccessPermissionName, but as a safeguard
-            return null;
-
-        // First segment is area
-        string area = parts[0].ToLowerInvariant();
-
-        // Last segment is action
-        string action = parts[^1].ToLowerInvariant();
-
-        // Everything in between is resource (can be multi-part like "role.users")
-        string resource = string.Join(separator: ".", values: parts.Skip(count: 1).Take(count: parts.Length - 2)).ToLowerInvariant();
-
-        return (area, resource, action);
     }
 
     #endregion
