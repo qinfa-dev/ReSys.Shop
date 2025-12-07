@@ -1,12 +1,13 @@
 using ErrorOr;
 
+using ReSys.Core.Common.Constants;
 using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Orders.Shipments;
 using ReSys.Core.Domain.Stores.ShippingMethods;
 
-namespace ReSys.Core.Domain.Shipping;
+namespace ReSys.Core.Domain.ShippingMethods;
 
 /// <summary>
 /// Represents a shipping method available across the e-commerce platform.
@@ -244,6 +245,14 @@ public sealed class ShippingMethod : Aggregate, IHasUniqueName, IHasPosition, IH
         public static Error InUse => Error.Conflict(
             code: "ShippingMethod.InUse",
             description: "Cannot delete shipping method that is in use.");
+
+        public static Error NameRequired => CommonInput.Errors.Required(prefix: nameof(ShippingMethod), field: nameof(Name));
+        public static Error NameTooLong => CommonInput.Errors.TooLong(prefix: nameof(ShippingMethod), field: nameof(Name), maxLength: Constraints.NameMaxLength);
+        public static Error PresentationRequired => CommonInput.Errors.Required(prefix: nameof(ShippingMethod), field: nameof(Presentation));
+        public static Error BaseCostNegative => CommonInput.Errors.InvalidRange(prefix: nameof(ShippingMethod), field: nameof(BaseCost), min: 0m);
+        public static Error EstimatedDaysRangeInvalid => CommonInput.Errors.InvalidRange(prefix: nameof(ShippingMethod), field: "EstimatedDays");
+        public static Error PositionNegative => CommonInput.Errors.InvalidRange(prefix: nameof(ShippingMethod), field: nameof(Position), min: 0);
+        public static Error InvalidType => CommonInput.Errors.InvalidEnumValue<ShippingType>(prefix: nameof(ShippingMethod), field: nameof(Type));
     }
     #endregion
 
@@ -349,8 +358,8 @@ public sealed class ShippingMethod : Aggregate, IHasUniqueName, IHasPosition, IH
     #region Computed Properties
     public bool IsFreeShipping => Type == ShippingType.FreeShipping || BaseCost == 0;
     public bool IsExpressShipping => Type == ShippingType.Express || Type == ShippingType.Overnight;
-    public string EstimatedDelivery => EstimatedDaysMin.HasValue && EstimatedDaysMax.HasValue 
-        ? $"{EstimatedDaysMin}-{EstimatedDaysMax} days" 
+    public string EstimatedDelivery => EstimatedDaysMin.HasValue && EstimatedDaysMax.HasValue
+        ? $"{EstimatedDaysMin}-{EstimatedDaysMax} days"
         : "Standard delivery";
     #endregion
 
@@ -402,11 +411,57 @@ public sealed class ShippingMethod : Aggregate, IHasUniqueName, IHasPosition, IH
         bool active = true,
         int? estimatedDaysMin = null,
         int? estimatedDaysMax = null,
-        int position = 0,   
+        int position = 0,
         IDictionary<string, object?>? publicMetadata = null,
         IDictionary<string, object?>? privateMetadata = null,
         DisplayOn displayOn = DisplayOn.Both)
     {
+        List<Error> errors = new();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            errors.Add(Errors.NameRequired);
+        }
+        else if (name.Length > Constraints.NameMaxLength)
+        {
+            errors.Add(Errors.NameTooLong);
+        }
+
+        if (string.IsNullOrWhiteSpace(presentation))
+        {
+            errors.Add(Errors.PresentationRequired);
+        }
+
+        if (baseCost < 0)
+        {
+            errors.Add(Errors.BaseCostNegative);
+        }
+
+        if (estimatedDaysMin.HasValue && estimatedDaysMax.HasValue && estimatedDaysMin > estimatedDaysMax)
+        {
+            errors.Add(Errors.EstimatedDaysRangeInvalid);
+        }
+        else if (estimatedDaysMin < 0 || estimatedDaysMax < 0)
+        {
+            errors.Add(Errors.EstimatedDaysRangeInvalid); // Also for negative values
+        }
+
+        // Enum validation
+        if (!Enum.IsDefined(typeof(ShippingType), type))
+        {
+            errors.Add(Errors.InvalidType);
+        }
+
+        if (position < 0)
+        {
+            errors.Add(Errors.PositionNegative);
+        }
+
+        if (errors.Any())
+        {
+            return errors;
+        }
+
         (name, presentation) = HasParameterizableName.NormalizeParams(name: name, presentation: presentation);
         var shippingMethod = new ShippingMethod
         {
@@ -420,8 +475,8 @@ public sealed class ShippingMethod : Aggregate, IHasUniqueName, IHasPosition, IH
             EstimatedDaysMin = estimatedDaysMin,
             EstimatedDaysMax = estimatedDaysMax,
             Position = position,
-            PrivateMetadata = privateMetadata,
-            PublicMetadata = publicMetadata,
+            PrivateMetadata = privateMetadata ?? new Dictionary<string, object?>(),
+            PublicMetadata = publicMetadata ?? new Dictionary<string, object?>(),
             CreatedAt = DateTimeOffset.UtcNow,
             DisplayOn = displayOn
         };
@@ -480,12 +535,12 @@ public sealed class ShippingMethod : Aggregate, IHasUniqueName, IHasPosition, IH
     /// </code>
     /// </example>
     public ErrorOr<Updated> Update(
-        string? name = null, 
+        string? name = null,
         string? presentation = null,
-        string? description = null, 
-        decimal? baseCost = null, 
-        bool? active = null, 
-        int? estimatedDaysMin = null, 
+        string? description = null,
+        decimal? baseCost = null,
+        bool? active = null,
+        int? estimatedDaysMin = null,
         int? estimatedDaysMax = null,
         decimal? maxWeight = null,
         int? position = null,
@@ -493,18 +548,82 @@ public sealed class ShippingMethod : Aggregate, IHasUniqueName, IHasPosition, IH
         IDictionary<string, object?>? privateMetadata = null)
 
     {
+        List<Error> errors = new();
+
+        // Perform validation checks on raw input if provided
+        if (name is not null)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(Errors.NameRequired);
+            }
+            else if (name.Length > Constraints.NameMaxLength)
+            {
+                errors.Add(Errors.NameTooLong);
+            }
+        }
+
+        if (presentation is not null)
+        {
+            if (string.IsNullOrWhiteSpace(presentation))
+            {
+                errors.Add(Errors.PresentationRequired);
+            }
+        }
+
+        if (baseCost.HasValue && baseCost < 0)
+        {
+            errors.Add(Errors.BaseCostNegative);
+        }
+
+        if (estimatedDaysMin.HasValue && estimatedDaysMax.HasValue && estimatedDaysMin > estimatedDaysMax)
+        {
+            errors.Add(Errors.EstimatedDaysRangeInvalid);
+        }
+        else if ((estimatedDaysMin.HasValue && estimatedDaysMin < 0) || (estimatedDaysMax.HasValue && estimatedDaysMax < 0))
+        {
+            errors.Add(Errors.EstimatedDaysRangeInvalid); // Also for negative values
+        }
+
+        if (maxWeight.HasValue && maxWeight < 0)
+        {
+            errors.Add(CommonInput.Errors.InvalidRange(prefix: nameof(ShippingMethod), field: nameof(MaxWeight), min: 0m));
+        }
+
+        if (position.HasValue && position < 0)
+        {
+            errors.Add(Errors.PositionNegative);
+        }
+
+        if (errors.Any())
+        {
+            return errors;
+        }
+
         bool changed = false;
-        (name, presentation) = HasParameterizableName.NormalizeParams(
-            name: name ?? Name,
-            presentation: presentation ?? Presentation);
-        if (!string.IsNullOrEmpty(value: name) && name != Name) { Name = name.Trim(); changed = true; }
-        if (!string.IsNullOrEmpty(value: presentation) && presentation != Presentation) { Presentation = presentation.Trim(); changed = true; }
+
+        string currentName = Name;
+        string currentPresentation = Presentation;
+
+        // Normalize name and presentation only if they are actually provided
+        if (name is not null)
+        {
+            (name, _) = HasParameterizableName.NormalizeParams(name: name, presentation: string.Empty);
+            if (!string.IsNullOrEmpty(name) && name != currentName) { Name = name.Trim(); changed = true; }
+        }
+
+        if (presentation is not null)
+        {
+            (_, presentation) = HasParameterizableName.NormalizeParams(name: string.Empty, presentation: presentation);
+            if (!string.IsNullOrEmpty(presentation) && presentation != currentPresentation) { Presentation = presentation.Trim(); changed = true; }
+        }
+
         if (description != null && description != Description) { Description = description.Trim(); changed = true; }
         if (baseCost.HasValue && baseCost != BaseCost) { BaseCost = baseCost.Value; changed = true; }
         if (active.HasValue && active != Active) { Active = active.Value; changed = true; }
         if (estimatedDaysMin.HasValue && estimatedDaysMin != EstimatedDaysMin) { EstimatedDaysMin = estimatedDaysMin; changed = true; }
         if (estimatedDaysMax.HasValue && estimatedDaysMax != EstimatedDaysMax) { EstimatedDaysMax = estimatedDaysMax; changed = true; }
-        if (maxWeight.HasValue && maxWeight != MaxWeight) { MaxWeight = maxWeight; changed = true; }
+        if (maxWeight.HasValue && maxWeight != MaxWeight) { MaxWeight = maxWeight.Value; changed = true; }
         if (position.HasValue && position != Position) { Position = position.Value; changed = true; }
         if (publicMetadata != null && !PublicMetadata.MetadataEquals(dict2: publicMetadata))
         {
@@ -624,7 +743,7 @@ public sealed class ShippingMethod : Aggregate, IHasUniqueName, IHasPosition, IH
         /// </list>
         /// </remarks>
         public sealed record Created(Guid ShippingMethodId, string Name) : DomainEvent;
-        
+
         /// <summary>
         /// Raised when an existing shipping method's properties are updated.
         /// </summary>
@@ -638,7 +757,7 @@ public sealed class ShippingMethod : Aggregate, IHasUniqueName, IHasPosition, IH
         /// </list>
         /// </remarks>
         public sealed record Updated(Guid ShippingMethodId) : DomainEvent;
-        
+
         /// <summary>
         /// Raised when a shipping method is deleted from the system.
         /// </summary>

@@ -5,7 +5,7 @@ using ReSys.Core.Common.Constants;
 using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Domain.Constants;
 
-namespace ReSys.Core.Domain.Shipping;
+namespace ReSys.Core.Domain.ShippingMethods;
 
 /// <summary>
 /// Configures the Entity Framework Core database mapping for the <see cref="ShippingMethod"/> aggregate root.
@@ -140,11 +140,6 @@ public sealed class ShippingMethodConfiguration : IEntityTypeConfiguration<Shipp
             .WithOne(navigationExpression: ssm => ssm.ShippingMethod)
             .HasForeignKey(foreignKeyExpression: ssm => ssm.ShippingMethodId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
-        builder.HasMany(navigationExpression: sm => sm.Shipments)
-            .WithOne(navigationExpression: s => s.ShippingMethod)
-            .HasForeignKey(foreignKeyExpression: s => s.ShippingMethodId)
-            .OnDelete(deleteBehavior: DeleteBehavior.Restrict);
         #endregion
     }
 }
