@@ -7,39 +7,31 @@ using ReSys.Core.Domain.Promotions.Promotions;
 namespace ReSys.Core.Domain.Orders.Adjustments;
 
 /// <summary>
-/// Represents a financial adjustment at the order level (not line-item specific).
-/// Typically used for order-wide discounts, taxes, or fees.
+/// Represents a financial adjustment applied to an order. The adjustment can be scoped to the entire order,
+/// a specific line item, or a shipment. This entity consolidates all adjustments into a single model.
 /// </summary>
 /// <remarks>
 /// KEY PATTERN:
-/// OrderAdjustment is an owned entity of Order; accessed only through Order.Adjustments collection.
+/// OrderAdjustment is an owned entity of the Order aggregate and is accessed only through the Order.Adjustments collection.
+/// This consolidation simplifies promotion application, tax calculation, and totals computation.
 /// 
-/// PURPOSE:
-/// Tracks financial adjustments applied to the entire order rather than specific items.
-/// Examples:
-/// • Order-level promotion discount (e.g., "$10 off orders over $100")
-/// • Shipping discount
-/// • Gift card credit
-/// • Service fee
-/// • Tax calculations
-/// 
-/// ADJUSTMENT VALUES:
-/// • Negative values: Discounts, credits (reduce total)
-/// • Positive values: Taxes, fees, surcharges (increase total)
-/// • Amount stored in cents (long) for precision
-/// 
-/// PROMOTION TRACKING:
-/// • PromotionId: Links adjustment to promotion that created it
-/// • IsPromotion: Computed property to identify promotion-related adjustments
-/// • Used to distinguish promotion adjustments from tax/fee adjustments
-/// • Promotions cleared when new promotion applied; non-promotion adjustments preserved
-/// 
-/// CALCULATION IMPACT:
-/// Order.AdjustmentTotalCents = SUM(OrderAdjustment.AmountCents) + SUM(LineItem.Adjustments.Sum(a => a.AmountCents))
-/// Order.TotalCents = ItemTotalCents + ShipmentTotalCents + AdjustmentTotalCents
+/// ADJUSTMENT SCOPES:
+/// • Order: An adjustment applied to the entire order (e.g., "$10 off orders over $100").
+/// • LineItem: An adjustment applied to a specific line item (e.g., "20% off this product"). `LineItemId` must be set.
+/// • Shipping: An adjustment applied to the shipping cost (e.g., "Free shipping promotion").
+///
+/// FINANCIAL & PROMOTION IMPACT:
+/// The financial and promotion tracking semantics remain the same, but are now unified. All calculations
+/// are performed on the single `Order.Adjustments` collection, filtering by `Scope` where necessary.
 /// </remarks>
 public sealed class OrderAdjustment : AuditableEntity<Guid>
 {
+    /// <summary>
+    /// Defines the scope of the adjustment to determine if it applies to the
+    /// entire order, a specific line item, or shipping.
+    /// </summary>
+    public enum AdjustmentScope { Order, LineItem, Shipping }
+
     #region Constraints
     /// <summary>Defines validation limits for OrderAdjustment.</summary>
     public static class Constraints
@@ -64,6 +56,9 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
         
         /// <summary>Triggered when description exceeds maximum length.</summary>
         public static Error DescriptionTooLong => CommonInput.Errors.TooLong(prefix: nameof(OrderAdjustment), field: nameof(Description), maxLength: Constraints.DescriptionMaxLength);
+
+        /// <summary>Triggered when a line item-scoped adjustment is missing a LineItemId.</summary>
+        public static Error LineItemIdRequiredForLineItemScope => Error.Validation(code: "OrderAdjustment.LineItemIdRequired", description: "A LineItemId is required for adjustments with a 'LineItem' scope.");
     }
     #endregion
 
@@ -71,6 +66,17 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
     /// <summary>Foreign key reference to the parent Order.</summary>
     public Guid OrderId { get; set; }
     
+    /// <summary>
+    /// Foreign key reference to the LineItem this adjustment applies to.
+    /// This is only set when the `Scope` is `LineItem`.
+    /// </summary>
+    public Guid? LineItemId { get; set; }
+
+    /// <summary>
+    /// The scope of this adjustment (Order, LineItem, or Shipping).
+    /// </summary>
+    public AdjustmentScope Scope { get; set; }
+
     /// <summary>
     /// Foreign key reference to the Promotion that created this adjustment (nullable).
     /// Set only if this adjustment comes from a promotion; null for manual adjustments (tax, fee).
@@ -117,32 +123,17 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
     /// <summary>
     /// Creates a new order-level adjustment.
     /// </summary>
-    /// <remarks>
-    /// Validates description is provided and within length limits.
-    /// Does not validate amount (no range restrictions other than type limits).
-    /// 
-    /// Typical usage:
-    /// <code>
-    /// // Create promotion adjustment
-    /// var adjustment = OrderAdjustment.Create(
-    ///     orderId: order.Id,
-    ///     amountCents: -1000,  // $10.00 discount
-    ///     description: "10% promotion discount",
-    ///     promotionId: promo.Id);
-    /// 
-    /// // Create tax adjustment
-    /// var tax = OrderAdjustment.Create(
-    ///     orderId: order.Id,
-    ///     amountCents: 800,  // $8.00 tax
-    ///     description: "Sales tax (8.0%)");
-    /// 
-    /// if (adjustment.IsError) return Problem(adjustment.FirstError);
-    /// </code>
-    /// </remarks>
-    public static ErrorOr<OrderAdjustment> Create(Guid orderId, long amountCents, string description, Guid? promotionId = null)
+    public static ErrorOr<OrderAdjustment> Create(
+        Guid orderId, 
+        long amountCents, 
+        string description, 
+        AdjustmentScope scope,
+        Guid? lineItemId = null,
+        Guid? promotionId = null)
     {
         if (string.IsNullOrWhiteSpace(value: description)) return Errors.DescriptionRequired;
         if (description.Length > Constraints.DescriptionMaxLength) return Errors.DescriptionTooLong;
+        if (scope == AdjustmentScope.LineItem && !lineItemId.HasValue) return Errors.LineItemIdRequiredForLineItemScope;
 
         return new OrderAdjustment
         {
@@ -150,6 +141,8 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
             OrderId = orderId,
             AmountCents = amountCents,
             Description = description,
+            Scope = scope,
+            LineItemId = lineItemId,
             PromotionId = promotionId,
             CreatedAt = DateTimeOffset.UtcNow
         };

@@ -1,27 +1,36 @@
-﻿using ErrorOr;
-
+using ErrorOr;
 using ReSys.Core.Common.Constants;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Inventories.Locations;
-using ReSys.Core.Domain.Shipping;
+using System.Collections.Generic;
 
 namespace ReSys.Core.Domain.Orders.Shipments;
 
 /// <summary>
-/// Represents a shipment - an order's fulfillment package.
-/// Tracks the lifecycle from pending through delivery.
-/// Associates with a specific warehouse (StockLocation) for multi-warehouse fulfillment.
+/// Represents a shipment, now encompassing the entire fulfillment lifecycle from warehouse operations to customer delivery.
+/// This aggregate is aligned with the Spree Commerce model, serving as a single source of truth for shipment state.
 /// </summary>
 public sealed class Shipment : Aggregate
 {
-    public enum ShipmentState { Pending = 0, Ready = 1, Shipped = 2, Delivered = 3, Canceled = 4 }
+    public enum ShipmentState
+    {
+        Pending,      // Waiting to process (backorder, unpaid, or just created)
+        Ready,        // Can be shipped (stock available, order paid) - ← Replaces "Allocated"
+        Picked,       // Items picked from shelves
+        Packed,       // Items in box
+        ReadyToShip,  // On dock, ready for carrier
+        Shipped,      // With carrier
+        Delivered,    // Customer received
+        Canceled      // Order or shipment canceled
+    }
 
     #region Constraints
     public static class Constraints
     {
         public const int NumberMaxLength = 50;
         public const int TrackingNumberMaxLength = 100;
+        public const int PackageIdMaxLength = 255;
     }
     #endregion
 
@@ -40,19 +49,27 @@ public sealed class Shipment : Aggregate
 
     #region Properties
     public Guid OrderId { get; set; }
-    public Guid ShippingMethodId { get; set; }
-    public Guid? StockLocationId { get; set; }
+    public Guid StockLocationId { get; set; }
     public string Number { get; set; } = string.Empty;
     public ShipmentState State { get; set; } = ShipmentState.Pending;
     public string? TrackingNumber { get; set; }
+
+    // Warehouse Workflow Timestamps
+    public DateTimeOffset? AllocatedAt { get; set; }
+    public DateTimeOffset? PickingStartedAt { get; set; }
+    public DateTimeOffset? PickedAt { get; set; }
+    public DateTimeOffset? PackedAt { get; set; }
+    public DateTimeOffset? ReadyToShipAt { get; set; }
     public DateTimeOffset? ShippedAt { get; set; }
     public DateTimeOffset? DeliveredAt { get; set; }
+    public string? PackageId { get; set; }
     #endregion
 
     #region Relationships
     public Order Order { get; set; } = null!;
-    public ShippingMethod? ShippingMethod { get; set; }
-    public StockLocation? StockLocation { get; set; }
+    public StockLocation StockLocation { get; set; } = null!;
+    public ICollection<InventoryUnit> InventoryUnits { get; set; } = new List<InventoryUnit>();
+    public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
     #endregion
 
     #region Computed Properties
@@ -69,33 +86,31 @@ public sealed class Shipment : Aggregate
 
     #region Factory Methods
     /// <summary>
-    /// Creates a new shipment for an order.
-    /// Optionally associates with a warehouse for fulfillment.
+    /// Creates a new shipment for an order and associates it with a warehouse for fulfillment.
     /// </summary>
-    public static ErrorOr<Shipment> Create(Guid orderId, Guid shippingMethodId, Guid? stockLocationId = null)
+    public static ErrorOr<Shipment> Create(Guid orderId, Guid stockLocationId)
     {
         if (orderId == Guid.Empty)
             return Error.Validation(code: "Shipment.InvalidOrder", description: "Order reference is required.");
-
-        if (shippingMethodId == Guid.Empty)
-            return Error.Validation(code: "Shipment.InvalidShippingMethod", description: "Shipping method is required.");
+        
+        if (stockLocationId == Guid.Empty)
+            return Errors.InvalidStockLocation;
 
         var number = GenerateShipmentNumber();
-        if (number.Length > Constraints.NumberMaxLength) 
+        if (number.Length > Constraints.NumberMaxLength)
             return Errors.NumberTooLong;
 
         var shipment = new Shipment
         {
             Id = Guid.NewGuid(),
             OrderId = orderId,
-            ShippingMethodId = shippingMethodId,
             StockLocationId = stockLocationId,
             Number = number,
             State = ShipmentState.Pending,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        shipment.AddDomainEvent(domainEvent: new Events.ShipmentCreated(
+        shipment.AddDomainEvent(new Events.Created(
             ShipmentId: shipment.Id,
             OrderId: orderId,
             StockLocationId: stockLocationId));
@@ -104,85 +119,91 @@ public sealed class Shipment : Aggregate
     }
     #endregion
 
-    #region Business Logic - Warehouse Assignment
+    #region Business Logic - State Transitions
 
     /// <summary>
-    /// Assigns a warehouse (stock location) to this shipment.
-    /// Must be done before marking as ready or shipping.
+    /// Allocates inventory for this shipment.
+    /// Verifies all inventory units are on-hand (not backordered) before transitioning to Ready state.
     /// </summary>
-    public ErrorOr<Shipment> AssignStockLocation(Guid stockLocationId)
+    public ErrorOr<Shipment> AllocateInventory()
     {
-        if (stockLocationId == Guid.Empty)
-            return Errors.InvalidStockLocation;
-
         if (State != ShipmentState.Pending)
-            return Errors.CannotAssignLocationAfterReady;
+            return Error.Validation(code: "Shipment.InvalidStateForAllocation", description: "Shipment must be in Pending state.");
 
-        StockLocationId = stockLocationId;
+        if (!InventoryUnits.Any())
+            return Error.Validation(code: "Shipment.NoInventoryUnits", description: "Shipment has no inventory units.");
+
+        // Check if all units are on-hand (not backordered)
+        var backordered = InventoryUnits
+            .Where(u => u.State == InventoryUnit.InventoryUnitState.Backordered)
+            .ToList();
+
+        if (backordered.Any())
+            return Error.Validation(
+                code: "Shipment.BackorderedItems",
+                description: $"{backordered.Count} items are backordered and cannot be shipped.");
+
+        State = ShipmentState.Ready;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(domainEvent: new Events.ShipmentStockLocationAssigned(
+        AddDomainEvent(new Events.Ready(
             ShipmentId: Id,
             OrderId: OrderId,
-            StockLocationId: stockLocationId));
+            StockLocationId: StockLocationId));
 
         return this;
     }
 
-    #endregion
-
-    #region Business Logic - State Transitions
-
     /// <summary>
     /// Marks the shipment as ready for pickup/handoff.
-    /// Warehouse location must be assigned before this.
     /// </summary>
     public ErrorOr<Shipment> Ready()
     {
         if (State != ShipmentState.Pending)
             return Error.Validation(code: "Shipment.NotPending", description: "Shipment must be pending to mark as ready.");
 
-        if (!StockLocationId.HasValue || StockLocationId == Guid.Empty)
-            return Errors.StockLocationRequired;
-
         State = ShipmentState.Ready;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(domainEvent: new Events.ShipmentReady(
+        AddDomainEvent(new Events.Ready(
             ShipmentId: Id,
             OrderId: OrderId,
-            StockLocationId: StockLocationId.Value));
+            StockLocationId: StockLocationId));
 
         return this;
     }
 
     /// <summary>
     /// Ships the shipment and records the tracking number.
-    /// Warehouse location must be assigned before shipping.
+    /// Updates all inventory units to Shipped state.
     /// </summary>
     public ErrorOr<Shipment> Ship(string? trackingNumber = null)
     {
-        if (State == ShipmentState.Shipped) 
+        if (State == ShipmentState.Shipped)
             return this; // Idempotent
 
         if (State == ShipmentState.Canceled)
             return Error.Validation(code: "Shipment.AlreadyCanceled", description: "Cannot ship canceled shipment.");
-
-        if (!StockLocationId.HasValue || StockLocationId == Guid.Empty)
-            return Errors.StockLocationRequired;
-
+        
         if (trackingNumber != null && trackingNumber.Length > Constraints.TrackingNumberMaxLength)
             return Errors.TrackingNumberTooLong;
+
+        // Transition all inventory units to Shipped state
+        foreach (var unit in InventoryUnits)
+        {
+            var result = unit.TransitionToShipped();
+            if (result.IsError) return result.FirstError;
+        }
 
         State = ShipmentState.Shipped;
         ShippedAt = DateTimeOffset.UtcNow;
         TrackingNumber = trackingNumber;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(domainEvent: new Events.ShipmentShipped(
+        AddDomainEvent(new Events.Shipped(
             ShipmentId: Id,
             OrderId: OrderId,
-            StockLocationId: StockLocationId.Value,
+            StockLocationId: StockLocationId,
             TrackingNumber: trackingNumber));
 
         return this;
@@ -190,21 +211,20 @@ public sealed class Shipment : Aggregate
 
     /// <summary>
     /// Marks the shipment as delivered to customer.
-    /// Must be shipped first.
     /// </summary>
     public ErrorOr<Shipment> Deliver()
     {
-        if (State != ShipmentState.Shipped)
-            return Error.Validation(code: "Shipment.NotShipped", description: "Shipment must be shipped before delivery.");
-
         if (State == ShipmentState.Delivered)
             return this; // Idempotent
+
+        if (State != ShipmentState.Shipped)
+            return Error.Validation(code: "Shipment.NotShipped", description: "Shipment must be shipped before delivery.");
 
         State = ShipmentState.Delivered;
         DeliveredAt = DateTimeOffset.UtcNow;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(domainEvent: new Events.ShipmentDelivered(
+        AddDomainEvent(new Events.Delivered(
             ShipmentId: Id,
             OrderId: OrderId,
             StockLocationId: StockLocationId));
@@ -214,7 +234,6 @@ public sealed class Shipment : Aggregate
 
     /// <summary>
     /// Cancels the shipment.
-    /// Cannot cancel if already shipped.
     /// </summary>
     public ErrorOr<Shipment> Cancel()
     {
@@ -227,7 +246,7 @@ public sealed class Shipment : Aggregate
         State = ShipmentState.Canceled;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(domainEvent: new Events.ShipmentCanceled(
+        AddDomainEvent(new Events.Canceled(
             ShipmentId: Id,
             OrderId: OrderId,
             StockLocationId: StockLocationId));
@@ -244,7 +263,7 @@ public sealed class Shipment : Aggregate
     /// </summary>
     public ErrorOr<Shipment> UpdateTrackingNumber(string trackingNumber)
     {
-        if (string.IsNullOrWhiteSpace(value: trackingNumber))
+        if (string.IsNullOrWhiteSpace(trackingNumber))
             return Error.Validation(code: "Shipment.TrackingNumberRequired",
                 description: "Tracking number is required.");
 
@@ -254,7 +273,7 @@ public sealed class Shipment : Aggregate
         TrackingNumber = trackingNumber;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(domainEvent: new Events.ShipmentTrackingUpdated(
+        AddDomainEvent(new Events.TrackingUpdated(
             ShipmentId: Id,
             OrderId: OrderId,
             TrackingNumber: trackingNumber,
@@ -266,19 +285,18 @@ public sealed class Shipment : Aggregate
     #endregion
 
     #region Helpers
-    private static string GenerateShipmentNumber() => $"S{DateTimeOffset.UtcNow:yyyyMMdd}{Random.Shared.Next(minValue: 1000, maxValue: 9999)}";
+    private static string GenerateShipmentNumber() => $"S{DateTimeOffset.UtcNow:yyyyMMdd}{Random.Shared.Next(1000, 9999)}";
     #endregion
 
     #region Events
     public static class Events
     {
-        public sealed record ShipmentCreated(Guid ShipmentId, Guid OrderId, Guid? StockLocationId) : DomainEvent;
-        public sealed record ShipmentReady(Guid ShipmentId, Guid OrderId, Guid StockLocationId) : DomainEvent;
-        public sealed record ShipmentStockLocationAssigned(Guid ShipmentId, Guid OrderId, Guid StockLocationId) : DomainEvent;
-        public sealed record ShipmentShipped(Guid ShipmentId, Guid OrderId, Guid StockLocationId, string? TrackingNumber) : DomainEvent;
-        public sealed record ShipmentDelivered(Guid ShipmentId, Guid OrderId, Guid? StockLocationId) : DomainEvent;
-        public sealed record ShipmentCanceled(Guid ShipmentId, Guid OrderId, Guid? StockLocationId) : DomainEvent;
-        public sealed record ShipmentTrackingUpdated(Guid ShipmentId, Guid OrderId, string TrackingNumber, Guid? StockLocationId) : DomainEvent;
+        public sealed record Created(Guid ShipmentId, Guid OrderId, Guid StockLocationId) : DomainEvent;
+        public sealed record Ready(Guid ShipmentId, Guid OrderId, Guid StockLocationId) : DomainEvent;
+        public sealed record Shipped(Guid ShipmentId, Guid OrderId, Guid StockLocationId, string? TrackingNumber) : DomainEvent;
+        public sealed record Delivered(Guid ShipmentId, Guid OrderId, Guid StockLocationId) : DomainEvent;
+        public sealed record Canceled(Guid ShipmentId, Guid OrderId, Guid StockLocationId) : DomainEvent;
+        public sealed record TrackingUpdated(Guid ShipmentId, Guid OrderId, string TrackingNumber, Guid StockLocationId) : DomainEvent;
     }
     #endregion
 }

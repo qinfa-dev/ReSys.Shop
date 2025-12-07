@@ -3,7 +3,7 @@
 using ReSys.Core.Common.Constants;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Domain.Catalog.Products.Variants;
-using ReSys.Core.Domain.Orders.Adjustments;
+using ReSys.Core.Domain.Orders.Shipments;
 
 namespace ReSys.Core.Domain.Orders.LineItems;
 
@@ -117,6 +117,9 @@ public class LineItem : AuditableEntity<Guid>
         
         /// <summary>Triggered when captured SKU exceeds maximum length.</summary>
         public static Error CapturedSkuTooLong => CommonInput.Errors.TooLong(prefix: nameof(LineItem), field: nameof(CapturedSku), maxLength: Constraints.CapturedSkuMaxLength);
+        /// <summary>Triggered when a variant is not priced in the requested currency.</summary>                   
+        public static Error VariantNotPriced(string variantName, Guid variantId, string currency) =>
+            Error.Validation(code: "LineItem.VariantNotPriced", description: $"Variant '{variantName}' (ID: {variantId}) is  not priced for currency '{currency}'.");
     }
     #endregion
 
@@ -171,7 +174,7 @@ public class LineItem : AuditableEntity<Guid>
     #region Relationships
     public Order Order { get; set; } = null!;
     public Variant Variant { get; set; } = null!;
-    public ICollection<LineItemAdjustment> Adjustments { get; set; } = new List<LineItemAdjustment>();
+    public ICollection<InventoryUnit> InventoryUnits { get; set; } = new List<InventoryUnit>();
     #endregion
 
     #region Computed Properties
@@ -185,24 +188,23 @@ public class LineItem : AuditableEntity<Guid>
     /// <summary>
     /// Subtotal converted to decimal currency value (SubtotalCents ÷ 100).
     /// </summary>
-    public virtual decimal Subtotal => SubtotalCents / 100m;
+    public decimal Subtotal => SubtotalCents / 100m;
     
     /// <summary>
     /// Unit price converted to decimal currency value (PriceCents ÷ 100).
     /// This is the price per single unit.
     /// </summary>
-    public virtual decimal UnitPrice => PriceCents / 100m;
+    public decimal UnitPrice => PriceCents / 100m;
     
     /// <summary>
-    /// Total cost after adjustments (SubtotalCents + sum of all LineItemAdjustment amounts).
-    /// Includes discounts (negative) and any fees/taxes (positive).
-    /// Formula: SubtotalCents + Adjustments.Sum(a => a.AmountCents)
+    /// Total cost of the line item before any order-level adjustments.
+    /// In the new model, this is the same as the subtotal.
     /// </summary>
-    public long TotalCents => SubtotalCents + Adjustments.Sum(selector: a => a.AmountCents);
+    public long TotalCents => SubtotalCents;
     
     /// <summary>
     /// Total cost converted to decimal currency value (TotalCents ÷ 100).
-    /// Final amount for this line item after all adjustments.
+    /// Final amount for this line item before order-level adjustments.
     /// </summary>
     public decimal Total => TotalCents / 100m;
     #endregion
@@ -248,8 +250,12 @@ public class LineItem : AuditableEntity<Guid>
         if (string.IsNullOrWhiteSpace(value: currency)) return Errors.CurrencyRequired;
         if (currency.Length > Constraints.CurrencyMaxLength) return Errors.CurrencyTooLong;
 
-        var priceInCurrency = variant.PriceIn(currency: currency) ?? 0;
-        var priceCents = (long)(priceInCurrency * 100);
+        var priceInCurrency = variant.PriceIn(currency: currency);
+        if (priceInCurrency is null)
+        {
+            return Errors.VariantNotPriced(variantName: variant.DescriptiveName, variantId: variant.Id, currency: currency);
+        }
+        var priceCents = (long)(priceInCurrency.Value * 100);
 
         if (priceCents < Constraints.PriceCentsMinValue) return Errors.InvalidPriceCents;
 
@@ -260,7 +266,7 @@ public class LineItem : AuditableEntity<Guid>
         var capturedSku = variant.Sku;
         if (capturedSku is { Length: > Constraints.CapturedSkuMaxLength }) return Errors.CapturedSkuTooLong;
 
-        return new LineItem
+        var lineItem = new LineItem
         {
             Id = Guid.NewGuid(),
             OrderId = orderId,
@@ -272,6 +278,14 @@ public class LineItem : AuditableEntity<Guid>
             CreatedAt = DateTimeOffset.UtcNow,
             Currency = currency
         };
+
+        // var inventoryUnitResult = InventoryUnit.Create(lineItem.VariantId, lineItem.OrderId, lineItem.Id, lineItem.Quantity);
+        // if (inventoryUnitResult.IsError)
+        //     return inventoryUnitResult.Errors;
+        
+        // lineItem.InventoryUnits.Add(inventoryUnitResult.Value);
+
+        return lineItem;
     }
     #endregion
 

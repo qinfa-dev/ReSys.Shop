@@ -86,10 +86,7 @@ public sealed class LineItemConfiguration : IEntityTypeConfiguration<LineItem>
             .HasForeignKey(foreignKeyExpression: li => li.VariantId)
             .OnDelete(deleteBehavior: DeleteBehavior.Restrict); // Restrict to prevent deleting variant if line items exist
 
-        builder.HasMany(navigationExpression: li => li.Adjustments)
-            .WithOne(navigationExpression: lia => lia.LineItem)
-            .HasForeignKey(foreignKeyExpression: lia => lia.LineItemId)
-            .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+
         #endregion
 
         #region Indexes
@@ -105,6 +102,7 @@ public sealed class LineItemConfiguration : IEntityTypeConfiguration<LineItem>
         builder.Ignore(propertyExpression: li => li.UnitPrice);
         builder.Ignore(propertyExpression: li => li.TotalCents);
         builder.Ignore(propertyExpression: li => li.Total);
+        builder.Ignore(propertyExpression: li => li.InventoryUnits);
         #endregion
     }
 }

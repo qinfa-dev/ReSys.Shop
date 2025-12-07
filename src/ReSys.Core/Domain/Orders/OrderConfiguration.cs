@@ -101,9 +101,9 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired(required: false)
             .HasComment(comment: "ShippingMethodId: Foreign key to the associated ShippingMethod.");
 
-        builder.Property(propertyExpression: o => o.FulfillmentLocationId)
-            .IsRequired(required: false)
-            .HasComment(comment: "FulfillmentLocationId: Foreign key to the warehouse (StockLocation) for order fulfillment.");
+        builder.Property(e => e.RowVersion)
+            .IsRowVersion()
+            .HasComment(comment: "RowVersion: Used for optimistic concurrency control.");
 
         builder.Property(propertyExpression: o => o.PromoCode)
             .ConfigureInputOptional(maxLength: Order.Constraints.PromoCodeMaxLength)
@@ -112,6 +112,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         // Apply common configurations using extension methods.
         builder.ConfigureMetadata();
         builder.ConfigureAuditable();
+
         #endregion
 
         #region Relationships
@@ -132,12 +133,6 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasForeignKey(foreignKeyExpression: o => o.PromotionId)
             .IsRequired(required: false)
             .OnDelete(deleteBehavior: DeleteBehavior.SetNull); // Promotion can be deleted, but order remains
-
-        builder.HasOne(navigationExpression: o => o.FulfillmentLocation)
-            .WithMany()
-            .HasForeignKey(foreignKeyExpression: o => o.FulfillmentLocationId)
-            .IsRequired(required: false)
-            .OnDelete(deleteBehavior: DeleteBehavior.SetNull); // Warehouse can be deleted, but order record remains
 
         builder.HasMany(navigationExpression: o => o.LineItems)
             .WithOne(navigationExpression: li => li.Order)
@@ -166,7 +161,6 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(indexExpression: o => o.UserId);
         builder.HasIndex(indexExpression: o => o.PromotionId);
         builder.HasIndex(indexExpression: o => o.ShippingMethodId);
-        builder.HasIndex(indexExpression: o => o.FulfillmentLocationId);
         builder.HasIndex(indexExpression: o => o.Number).IsUnique();
         builder.HasIndex(indexExpression: o => o.State);
         builder.HasIndex(indexExpression: o => o.CompletedAt);
