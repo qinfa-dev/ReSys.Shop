@@ -41,7 +41,7 @@ public sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
 
         #region Relationships
         // Configure relationships for the ApplicationUserRole entity.
-        builder.HasOne(navigationExpression: ur => ur.ApplicationUser)
+        builder.HasOne(navigationExpression: ur => ur.User)
             .WithMany(navigationExpression: u => u.UserRoles)
             .HasForeignKey(foreignKeyExpression: ur => ur.UserId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);

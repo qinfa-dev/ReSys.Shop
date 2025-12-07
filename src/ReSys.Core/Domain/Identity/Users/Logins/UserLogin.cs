@@ -3,5 +3,5 @@
 namespace ReSys.Core.Domain.Identity.Users.Logins;
 public class UserLogin : IdentityUserLogin<string>
 {
-    public virtual ApplicationUser ApplicationUser { get; set; } = null!;
+    public virtual User User { get; set; } = null!;
 }

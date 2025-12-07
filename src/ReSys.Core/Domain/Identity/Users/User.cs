@@ -21,7 +21,7 @@ namespace ReSys.Core.Domain.Identity.Users;
 ﻿/// User aggregate root - manages user identity, authentication, and profile
 ﻿/// Inherits from IdentityUser for ASP.NET Core Identity integration
 ﻿/// </summary>
-public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHasAuditable
+public class User : IdentityUser, IHasVersion, IHasDomainEvents, IHasAuditable
 {
     #region Constraints
 
@@ -41,37 +41,37 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
 
     public static class Errors
     {
-        public static Error NotFound(string credential) => Error.NotFound(code: $"{nameof(ApplicationUser)}.NotFound",
+        public static Error NotFound(string credential) => Error.NotFound(code: $"{nameof(User)}.NotFound",
             description: $"User with credential '{credential}' was not found.");
         public static Error UserNameAlreadyExists(string userName) => Error.Conflict(
-            code: $"{nameof(ApplicationUser)}.UserNameAlreadyExists",
+            code: $"{nameof(User)}.UserNameAlreadyExists",
             description: $"Username '{userName}' already exists.");
         public static Error EmailAlreadyExists(string email) => Error.Conflict(
-            code: $"{nameof(ApplicationUser)}.EmailAlreadyExists",
+            code: $"{nameof(User)}.EmailAlreadyExists",
             description: $"Email '{email}' already exists.");
-        public static Error EmailNotConfirmed => Error.Validation(code: $"{nameof(ApplicationUser)}.EmailNotConfirmed",
+        public static Error EmailNotConfirmed => Error.Validation(code: $"{nameof(User)}.EmailNotConfirmed",
             description: "Email address is not confirmed.");
 
         public static Error PhoneNumberAlreadyExists(string phoneNumber) => Error.Conflict(
-            code: $"{nameof(ApplicationUser)}.PhoneNumberAlreadyExists",
+            code: $"{nameof(User)}.PhoneNumberAlreadyExists",
             description: $"Phone number '{phoneNumber}' already exists.");
 
         public static Error InvalidCredentials => Error.Validation(
-            code: $"{nameof(ApplicationUser)}.InvalidCredentials",
+            code: $"{nameof(User)}.InvalidCredentials",
             description: "Invalid email or password.");
-        public static Error LockedOut => Error.Validation(code: $"{nameof(ApplicationUser)}.LockedOut",
+        public static Error LockedOut => Error.Validation(code: $"{nameof(User)}.LockedOut",
             description: "Account is locked out.");
 
-        public static Error InvalidToken => Error.Validation(code: $"{nameof(ApplicationUser)}.InvalidToken",
+        public static Error InvalidToken => Error.Validation(code: $"{nameof(User)}.InvalidToken",
             description: "Invalid or expired token.");
 
-        public static Error HasActiveTokens => Error.Validation(code: $"{nameof(ApplicationUser)}.HasActiveTokens",
+        public static Error HasActiveTokens => Error.Validation(code: $"{nameof(User)}.HasActiveTokens",
             description: "Cannot delete user with active refresh tokens.");
-        public static Error HasActiveRoles => Error.Validation(code: $"{nameof(ApplicationUser)}.HasActiveRoles",
+        public static Error HasActiveRoles => Error.Validation(code: $"{nameof(User)}.HasActiveRoles",
             description: "Cannot delete user with assigned roles.");
 
         public static Error Unauthorized =>
-            Error.Unauthorized(code: $"{nameof(ApplicationUser)}.Unauthorized",
+            Error.Unauthorized(code: $"{nameof(User)}.Unauthorized",
                 description: "User is not authorized to access this resource.");
     }
 
@@ -124,7 +124,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
 
     #region Factory Methods
 
-    public static ErrorOr<ApplicationUser> Create(
+    public static ErrorOr<User> Create(
        string? email,
        string? userName = null,
        string? firstName = null,
@@ -139,7 +139,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
 
         string effectiveUserName = string.IsNullOrWhiteSpace(value: userName) ? trimmedEmail.Split(separator: "@").First() : userName.Trim();
 
-        ApplicationUser applicationUser = new()
+        User user = new()
         {
             Email = trimmedEmail,
             NormalizedEmail = trimmedEmail.ToUpperInvariant(),
@@ -158,18 +158,18 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        applicationUser.AddDomainEvent(domainEvent: new Events.UserCreated(
-            UserId: applicationUser.Id,
-            Email: applicationUser.Email,
-            UserName: applicationUser.UserName));
-        return applicationUser;
+        user.AddDomainEvent(domainEvent: new Events.UserCreated(
+            UserId: user.Id,
+            Email: user.Email,
+            UserName: user.UserName));
+        return user;
     }
 
     #endregion
 
     #region Business Logic
 
-    public ErrorOr<ApplicationUser> Update(
+    public ErrorOr<User> Update(
        string? email = null,
        string? userName = null,
        string? firstName = null,
@@ -243,7 +243,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
         return this;
     }
 
-    public ErrorOr<ApplicationUser> UpdateProfile(
+    public ErrorOr<User> UpdateProfile(
         string? firstName = null,
         string? lastName = null,
         DateTimeOffset? dateOfBirth = null,
@@ -287,7 +287,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
         return this;
     }
 
-    public ErrorOr<ApplicationUser> UpdateEmail(string email)
+    public ErrorOr<User> UpdateEmail(string email)
     {
         string trimmedEmail = email.Trim();
         Email = trimmedEmail;
@@ -301,7 +301,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
         return this;
     }
 
-    public ErrorOr<ApplicationUser> UpdatePhoneNumber(string phoneNumber)
+    public ErrorOr<User> UpdatePhoneNumber(string phoneNumber)
     {
         string trimmedPhone = phoneNumber.Trim();
         if (PhoneNumber == trimmedPhone)
@@ -317,7 +317,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
         return this;
     }
 
-    public ErrorOr<ApplicationUser> ConfirmEmail()
+    public ErrorOr<User> ConfirmEmail()
     {
         if (EmailConfirmed)
             return this;
@@ -329,7 +329,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
         return this;
     }
 
-    public ErrorOr<ApplicationUser> ConfirmPhoneNumber()
+    public ErrorOr<User> ConfirmPhoneNumber()
     {
         if (PhoneNumberConfirmed)
             return this;
@@ -356,7 +356,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
             IpAddress: ipAddress));
     }
 
-    public ErrorOr<ApplicationUser> LockAccount(DateTimeOffset? lockoutEnd = null)
+    public ErrorOr<User> LockAccount(DateTimeOffset? lockoutEnd = null)
     {
         LockoutEnabled = true;
         LockoutEnd = lockoutEnd ?? DateTimeOffset.UtcNow.AddYears(years: 100);
@@ -368,7 +368,7 @@ public class ApplicationUser : IdentityUser, IHasVersion, IHasDomainEvents, IHas
         return this;
     }
 
-    public ErrorOr<ApplicationUser> UnlockAccount()
+    public ErrorOr<User> UnlockAccount()
     {
         LockoutEnd = null;
         AccessFailedCount = 0;

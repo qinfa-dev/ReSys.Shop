@@ -73,7 +73,7 @@ public sealed class UserRole : IdentityUserRole<string>, IHasAssignable, IHasDom
 
     #region Relationships
     public Role Role { get; set; } = null!;
-    public ApplicationUser ApplicationUser { get; set; } = null!;
+    public User User { get; set; } = null!;
 
     #endregion
 
@@ -99,22 +99,22 @@ public sealed class UserRole : IdentityUserRole<string>, IHasAssignable, IHasDom
 
     #region Business Logic
 
-    public ErrorOr<UserRole> Assign(ApplicationUser applicationUser, Role role, string? assignedBy = null)
+    public ErrorOr<UserRole> Assign(User user, Role role, string? assignedBy = null)
     {
         // Check constraints
-        if (applicationUser.UserRoles.Count >= Constraints.MaxRolePerUser)
+        if (user.UserRoles.Count >= Constraints.MaxRolePerUser)
             return Errors.MaxRolesExceeded;
         if (role.UserRoles.Count >= Constraints.MaxUsersPerRole)
             return Errors.MaxUsersExceeded;
-        if (applicationUser.UserRoles.Any(predicate: ur => ur.RoleId == role.Id))
+        if (user.UserRoles.Any(predicate: ur => ur.RoleId == role.Id))
             return Errors.AlreadyAssigned(roleName: role.Name ?? "Unknown");
 
-        UserId = applicationUser.Id;
+        UserId = user.Id;
         RoleId = role.Id;
-        ApplicationUser = applicationUser;
+        User = user;
         Role = role;
 
-       this.MarkAsAssigned(assignedTo: applicationUser.Id,
+       this.MarkAsAssigned(assignedTo: user.Id,
             assignedBy: assignedBy);
 
         AddDomainEvent(domainEvent: new Events.Assigned(UserId: UserId,

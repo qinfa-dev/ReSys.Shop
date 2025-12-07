@@ -70,7 +70,7 @@ public sealed class RefreshToken : AuditableEntity<Guid>, IHasAssignable
 
     #region Relationships
 
-    public ApplicationUser ApplicationUser { get; set; } = null!;
+    public User User { get; set; } = null!;
 
     #endregion
 
@@ -84,7 +84,7 @@ public sealed class RefreshToken : AuditableEntity<Guid>, IHasAssignable
     #region Factory Methods
 
     public static ErrorOr<RefreshToken> Create(
-        ApplicationUser applicationUser,
+        User user,
         string token,
         TimeSpan lifetime,
         string ipAddress,
@@ -99,17 +99,17 @@ public sealed class RefreshToken : AuditableEntity<Guid>, IHasAssignable
             RefreshToken refreshToken = new()
             {
                 Id = Guid.NewGuid(),
-                UserId = applicationUser.Id,
+                UserId = user.Id,
                 TokenHash = Hash(rawToken: rawToken),
                 CreatedAt = now,
                 CreatedBy = assignedBy,
                 CreatedByIp = ipAddress.Trim(),
                 ExpiresAt = now.Add(timeSpan: lifetime),
-                ApplicationUser = applicationUser,
+                User = user,
                 TokenFamily = tokenFamily ?? Guid.NewGuid().ToString() // Generate new family if not provided
             };
 
-            refreshToken.MarkAsAssigned(assignedTo: applicationUser.Id, assignedBy: assignedBy);
+            refreshToken.MarkAsAssigned(assignedTo: user.Id, assignedBy: assignedBy);
 
             return refreshToken;
         }

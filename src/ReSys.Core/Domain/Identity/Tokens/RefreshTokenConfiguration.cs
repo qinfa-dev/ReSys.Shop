@@ -74,7 +74,7 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
 
         #region Relationships
         // Configure the one-to-many relationship between ApplicationUser and RefreshToken.
-        builder.HasOne(navigationExpression: e => e.ApplicationUser)
+        builder.HasOne(navigationExpression: e => e.User)
             .WithMany(navigationExpression: u => u.RefreshTokens)
             .HasForeignKey(foreignKeyExpression: e => e.UserId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade); // When a user is deleted, their refresh tokens are also deleted.

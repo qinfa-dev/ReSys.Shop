@@ -57,7 +57,7 @@ public sealed class UserAddress : Aggregate<Guid>, IAddress
     #region Relationships
 
     public string UserId { get; set; } = null!;
-    public ApplicationUser ApplicationUser { get; set; } = null!;
+    public User User { get; set; } = null!;
 
     public Guid CountryId { get; set; }
     public Country? Country { get; set; } = null!;

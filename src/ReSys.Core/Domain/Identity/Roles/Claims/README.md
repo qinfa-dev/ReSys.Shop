@@ -14,11 +14,11 @@ This domain manages the assignment of claims to application roles within the ide
 
 This section defines the key terms and concepts used within the `Identity.Roles.Claims` bounded context.
 
--   **Role Claim**: A specific key-value pair of information that is assigned to a `Role`. Represented by the `RoleClaim` entity.
+-   **Role Claim**: A specific key-value pair of information that is assigned to a <see cref="Role"/>. Represented by the <see cref="RoleClaim"/> entity.
 -   **Role**: The application role to which the claim is assigned. (Referenced from `Identity.Roles` Bounded Context).
--   **Claim Type**: The key or name of the claim (e.g., "permission", "country", "department").
--   **Claim Value**: The value associated with the `Claim Type` (e.g., "admin.product.create", "USA", "Sales").
--   **Assigned At / By / To**: Auditing fields tracking when, by whom, and to what the claim was assigned.
+-   **Claim Type**: The key or name of the claim (e.g., "permission", "country", "department"). Validated against <see cref="RoleClaim.Constraints.ClaimTypePattern"/> and length constraints.
+-   **Claim Value**: The value associated with the <c>Claim Type</c> (e.g., "admin.product.create", "USA", "Sales"). Validated against length constraints.
+-   **Assigned At / By / To**: Auditing fields tracking when, by whom, and to what the claim was assigned, derived from the <see cref="IHasAssignable"/> concern.
 
 ---
 
@@ -32,14 +32,12 @@ This domain is composed of the following core building blocks:
 
 ### Entities (not part of an Aggregate Root, if any)
 
--   **`RoleClaim`**: This is the central entity of this bounded context. It represents a single claim associated with a role and inherits from `IdentityRoleClaim<string>` for ASP.NET Core Identity integration. It implements `IHasAssignable` for auditing purposes.
-    -   **Value Objects**: None explicitly defined as separate classes. Properties like `ClaimType`, `ClaimValue`, and the `IAssignable` properties are intrinsic attributes of the `RoleClaim` entity.
+-   **`RoleClaim`**: This is the central entity of this bounded context. It represents a single claim associated with a role and inherits from <see cref="IdentityRoleClaim{TKey}"/> for ASP.NET Core Identity integration. It implements <see cref="IHasAssignable"/> for auditing purposes.
+    -   **Value Objects**: None explicitly defined as separate classes. Properties like <c>ClaimType</c>, <c>ClaimValue</c> (from <see cref="IdentityRoleClaim{TKey}"/>), and the <see cref="IHasAssignable"/> properties (<c>AssignedAt</c>, <c>AssignedBy</c>, <c>AssignedTo</c>) are intrinsic attributes of the <see cref="RoleClaim"/> entity.
 
 ### Value Objects (standalone, if any)
 
 -   None.
-
----
 
 ## ⚙️ Domain Services (if any)
 

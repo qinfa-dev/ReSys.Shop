@@ -8,15 +8,15 @@ using ReSys.Core.Domain.Constants;
 namespace ReSys.Core.Domain.Identity.Users;
 
 /// <summary>
-/// Configures the database mapping for the <see cref="ApplicationUser"/> entity.
+/// Configures the database mapping for the <see cref="User"/> entity.
 /// </summary>
-public sealed class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
+public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
     /// <summary>
-    /// Configures the entity of type <see cref="ApplicationUser"/>.
+    /// Configures the entity of type <see cref="User"/>.
     /// </summary>
     /// <param name="builder">The builder to be used to configure the entity type.</param>
-    public void Configure(EntityTypeBuilder<ApplicationUser> builder)
+    public void Configure(EntityTypeBuilder<User> builder)
     {
         // Set the table name for the ApplicationUser entity.
         builder.ToTable(name: Schema.Users);
@@ -147,37 +147,37 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<ApplicationUser
 
         // Configure the one-to-many relationship between User and its Claims.
         builder.HasMany(navigationExpression: e => e.Claims)
-            .WithOne(navigationExpression: e => e.ApplicationUser)
+            .WithOne(navigationExpression: e => e.User)
             .HasForeignKey(foreignKeyExpression: uc => uc.UserId)
             .IsRequired();
 
         // Configure the one-to-many relationship between User and its Logins.
         builder.HasMany(navigationExpression: e => e.UserLogins)
-            .WithOne(navigationExpression: e => e.ApplicationUser)
+            .WithOne(navigationExpression: e => e.User)
             .HasForeignKey(foreignKeyExpression: ul => ul.UserId)
             .IsRequired();
 
         // Configure the one-to-many relationship between User and its Tokens.
         builder.HasMany(navigationExpression: e => e.UserTokens)
-            .WithOne(navigationExpression: e => e.ApplicationUser)
+            .WithOne(navigationExpression: e => e.User)
             .HasForeignKey(foreignKeyExpression: ut => ut.UserId)
             .IsRequired();
 
         // Configure the many-to-many relationship between Users and Roles through the ApplicationUserRole join table.
         builder.HasMany(navigationExpression: e => e.UserRoles)
-            .WithOne(navigationExpression: e => e.ApplicationUser)
+            .WithOne(navigationExpression: e => e.User)
             .HasForeignKey(foreignKeyExpression: ur => ur.UserId)
             .IsRequired();
 
         // Configure the one-to-many relationship for RefreshTokens, with cascade delete.
         builder.HasMany(navigationExpression: u => u.RefreshTokens)
-            .WithOne(navigationExpression: rt => rt.ApplicationUser)
+            .WithOne(navigationExpression: rt => rt.User)
             .HasForeignKey(foreignKeyExpression: rt => rt.UserId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade); // When a user is deleted, their refresh tokens are also deleted.
 
         // Configure the one-to-many relationship for UserAddresses, with cascade delete.
         builder.HasMany(navigationExpression: u => u.UserAddresses)
-            .WithOne(navigationExpression: ua => ua.ApplicationUser)
+            .WithOne(navigationExpression: ua => ua.User)
             .HasForeignKey(foreignKeyExpression: ua => ua.UserId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade); // When a user is deleted, their address associations are also deleted.
 

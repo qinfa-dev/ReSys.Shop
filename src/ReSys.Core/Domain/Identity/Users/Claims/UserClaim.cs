@@ -59,7 +59,7 @@ public class UserClaim : IdentityUserClaim<string>, IHasAssignable
 
     #region Relationships
 
-    public ApplicationUser ApplicationUser { get; set; } = null!;
+    public User User { get; set; } = null!;
 
     #endregion
 
@@ -87,22 +87,22 @@ public class UserClaim : IdentityUserClaim<string>, IHasAssignable
 
     #region Business Logic
 
-    public ErrorOr<UserClaim> Assign(ApplicationUser applicationUser, string claimType, string? claimValue = null, string? assignedBy = null)
+    public ErrorOr<UserClaim> Assign(User user, string claimType, string? claimValue = null, string? assignedBy = null)
     {
         string trimmedClaimType = claimType.Trim();
 
         // Check constraints
-        if (applicationUser.Claims.Count >= Constraints.MaxClaimsPerUser)
+        if (user.Claims.Count >= Constraints.MaxClaimsPerUser)
             return Errors.MaxClaimsExceeded;
-        if (applicationUser.Claims.Any(predicate: uc => uc.ClaimType == trimmedClaimType))
+        if (user.Claims.Any(predicate: uc => uc.ClaimType == trimmedClaimType))
             return Errors.AlreadyAssigned(claimType: trimmedClaimType);
 
-        UserId = applicationUser.Id;
+        UserId = user.Id;
         ClaimType = trimmedClaimType;
         ClaimValue = claimValue?.Trim();
-        ApplicationUser = applicationUser;
+        User = user;
 
-        this.MarkAsAssigned(assignedTo: applicationUser.Id,
+        this.MarkAsAssigned(assignedTo: user.Id,
             assignedBy: assignedBy);
 
         return this;

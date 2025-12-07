@@ -89,7 +89,7 @@ public sealed class UserAddressConfiguration : IEntityTypeConfiguration<UserAddr
 
         #region Relationships
         // Configure relationships for the UserAddress entity.
-        builder.HasOne(navigationExpression: ua => ua.ApplicationUser)
+        builder.HasOne(navigationExpression: ua => ua.User)
             .WithMany(navigationExpression: u => u.UserAddresses)
             .HasForeignKey(foreignKeyExpression: ua => ua.UserId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
