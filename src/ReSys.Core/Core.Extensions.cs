@@ -12,11 +12,10 @@ using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
+using ReSys.Core.Common.Constants;
 using ReSys.Core.Feature.Common.Behaviors;
 
 using Serilog;
-
-using SharedKernel.Logging;
 
 namespace ReSys.Core;
 

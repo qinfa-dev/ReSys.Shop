@@ -11,7 +11,7 @@ using ReSys.Core.Domain.Location.Countries;
 using ReSys.Core.Domain.Location.States;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Payments;
-using ReSys.Core.Domain.Shipping;
+using ReSys.Core.Domain.ShippingMethods;
 using ReSys.Core.Domain.Stores.PaymentMethods;
 using ReSys.Core.Domain.Stores.Products;
 using ReSys.Core.Domain.Stores.ShippingMethods;
@@ -174,7 +174,7 @@ public sealed class Store : Aggregate,
         /// Used for subdomain routing or programmatic reference.
         /// Example: "FASHION_OUTLET" = 15 chars
         /// </summary>
-        public const int CodeMaxLength = 50;
+        public const int CodeMaxLength = 255;
 
         /// <summary>
         /// Maximum length for email addresses (mail-from and support).
@@ -566,14 +566,13 @@ public sealed class Store : Aggregate,
     /// </summary>
     private static string GenerateStoreCode(string name)
     {
-        var code = name
+        var codeChars = name
             .ToUpperInvariant()
             .Replace(" ", "_")
             .Replace("-", "_")
-            .Take(Constraints.CodeMaxLength)
-            .ToString();
+            .Take(Constraints.CodeMaxLength);
         
-        return code ?? name.ToUpperInvariant().Substring(0, Math.Min(10, Constraints.CodeMaxLength));
+        return new string(codeChars.ToArray());
     }
 
     /// <summary>
@@ -741,28 +740,30 @@ public sealed class Store : Aggregate,
         IDictionary<string, object?>? publicMetadata = null,
         IDictionary<string, object?>? privateMetadata = null)
     {
-        bool changed = false;
+        bool changed = false; // Added this line
+        // Create a list to collect errors
+        var errors = new List<Error>();
 
         (name, presentation) = HasParameterizableName.NormalizeParams(name, presentation);
 
         if (!string.IsNullOrWhiteSpace(name) && name.Trim() != Name)
         {
-            if (name.Length > Constraints.NameMaxLength) return Errors.NameTooLong;
-            Name = name.Trim();
+            if (name.Length > Constraints.NameMaxLength) errors.Add(Errors.NameTooLong);
+            else Name = name.Trim();
             changed = true;
         }
 
         if (!string.IsNullOrWhiteSpace(presentation) && presentation.Trim() != Presentation)
         {
-            if (presentation.Length > Constraints.PresentationMaxLength) return Errors.PresentationTooLong;
-            Presentation = presentation.Trim();
+            if (presentation.Length > Constraints.PresentationMaxLength) errors.Add(Errors.PresentationTooLong);
+            else Presentation = presentation.Trim();
             changed = true;
         }
 
         if (!string.IsNullOrWhiteSpace(url) && url.Trim().ToLowerInvariant() != Url)
         {
-            if (url.Length > Constraints.UrlMaxLength) return Errors.UrlTooLong;
-            Url = url.Trim().ToLowerInvariant();
+            if (url.Length > Constraints.UrlMaxLength) errors.Add(Errors.UrlTooLong);
+            else Url = url.Trim().ToLowerInvariant();
             changed = true;
         }
 
@@ -826,13 +827,20 @@ public sealed class Store : Aggregate,
             changed = true;
         }
 
-        if (!string.IsNullOrWhiteSpace(defaultCurrency) &&
-            Constraints.ValidCurrencies.Contains(defaultCurrency.ToUpperInvariant()) &&
-            defaultCurrency.ToUpperInvariant() != DefaultCurrency)
+        // --- Currency validation fix ---
+        if (!string.IsNullOrWhiteSpace(defaultCurrency))
         {
-            DefaultCurrency = defaultCurrency.ToUpperInvariant();
-            changed = true;
+            if (!Constraints.ValidCurrencies.Contains(defaultCurrency.ToUpperInvariant()))
+            {
+                errors.Add(Errors.InvalidCurrency);
+            }
+            else if (defaultCurrency.ToUpperInvariant() != DefaultCurrency)
+            {
+                DefaultCurrency = defaultCurrency.ToUpperInvariant();
+                changed = true;
+            }
         }
+        // --- End Currency validation fix ---
 
         if (publicMetadata is not null && !PublicMetadata.MetadataEquals(publicMetadata))
         {
@@ -845,6 +853,8 @@ public sealed class Store : Aggregate,
             PrivateMetadata = new Dictionary<string, object?>(privateMetadata);
             changed = true;
         }
+        
+        if (errors.Any()) return errors;
 
         if (changed)
         {
@@ -1133,11 +1143,18 @@ public sealed class Store : Aggregate,
         var link = StoreProducts.FirstOrDefault(sp => sp.ProductId == productId);
         if (link is null) return Errors.ProductNotInStore;
 
-        var updateResult = link.Update(visible, featured);
+        var initialVisible = link.Visible;
+        var initialFeatured = link.Featured;
+
+        var updateResult = link.Update(visible, featured); // This updates link's properties
         if (updateResult.IsError) return updateResult.FirstError;
 
-        UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.ProductSettingsUpdated(Id, productId));
+        // Only raise event if actual settings changed
+        if (link.Visible != initialVisible || link.Featured != initialFeatured)
+        {
+            UpdatedAt = DateTimeOffset.UtcNow;
+            AddDomainEvent(new Events.ProductSettingsUpdated(Id, productId));
+        }
         return this;
     }
 
@@ -1184,11 +1201,17 @@ public sealed class Store : Aggregate,
         var link = StoreStockLocations.FirstOrDefault(sl => sl.StockLocationId == stockLocationId);
         if (link is null) return Errors.StockLocationNotFound;
 
+        var initialPriority = link.Priority;
+
         var updateResult = link.UpdatePriority(priority);
         if (updateResult.IsError) return updateResult.FirstError;
 
-        UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.StockLocationPriorityUpdated(Id, stockLocationId, priority));
+        // Only raise event if actual settings changed
+        if (link.Priority != initialPriority)
+        {
+            UpdatedAt = DateTimeOffset.UtcNow;
+            AddDomainEvent(new Events.StockLocationPriorityUpdated(Id, stockLocationId, priority));
+        }
         return this;
     }
 
@@ -1238,11 +1261,18 @@ public sealed class Store : Aggregate,
         var link = StoreShippingMethods.FirstOrDefault(sm => sm.ShippingMethodId == shippingMethodId);
         if (link is null) return Errors.ShippingMethodNotFound;
 
+        var initialAvailable = link.Available;
+        var initialStoreBaseCost = link.StoreBaseCost;
+
         var updateResult = link.Update(available, storeBaseCost);
         if (updateResult.IsError) return updateResult.FirstError;
 
-        UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.ShippingMethodSettingsUpdated(Id, shippingMethodId));
+        // Only raise event if actual settings changed
+        if (link.Available != initialAvailable || link.StoreBaseCost != initialStoreBaseCost)
+        {
+            UpdatedAt = DateTimeOffset.UtcNow;
+            AddDomainEvent(new Events.ShippingMethodSettingsUpdated(Id, shippingMethodId));
+        }
         return this;
     }
 

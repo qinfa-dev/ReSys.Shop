@@ -1,7 +1,7 @@
 using ErrorOr;
 
 using ReSys.Core.Common.Domain.Entities;
-using ReSys.Core.Domain.Shipping;
+using ReSys.Core.Domain.ShippingMethods;
 
 namespace ReSys.Core.Domain.Stores.ShippingMethods;
 
