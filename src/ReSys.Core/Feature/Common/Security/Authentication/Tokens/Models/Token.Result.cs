@@ -1,4 +1,4 @@
-﻿namespace ReSys.Core.Feature.Common.Security.Authentication.Contexts.Tokens.Models;
+﻿namespace ReSys.Core.Feature.Common.Security.Authentication.Tokens.Models;
 public record TokenResult
 {
     public string Token { get; init; } = string.Empty;

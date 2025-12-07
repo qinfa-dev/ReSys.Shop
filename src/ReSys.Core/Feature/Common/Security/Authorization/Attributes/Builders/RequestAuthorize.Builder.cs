@@ -1,4 +1,6 @@
-namespace ReSys.Core.Feature.Common.Security.Authorization.Attributes;
+using ReSys.Core.Feature.Common.Security.Authorization.Attributes.Models;
+
+namespace ReSys.Core.Feature.Common.Security.Authorization.Attributes.Builders;
 
 /// <summary>
 /// Builder for creating authorization configurations in a fluent way.

@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace ReSys.Core.Feature.Common.Security.Authentication.Contexts.HttpContext;
+namespace ReSys.Core.Feature.Common.Security.Authentication.Contexts.Extensions;
 
 public static class ClaimsPrincipalExtensions
 {

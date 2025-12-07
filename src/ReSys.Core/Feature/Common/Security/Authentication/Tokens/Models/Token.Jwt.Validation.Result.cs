@@ -2,7 +2,7 @@ using System.Security.Claims;
 
 using Microsoft.IdentityModel.Tokens;
 
-namespace ReSys.Core.Feature.Common.Security.Authentication.Contexts.Tokens.Jwt;
+namespace ReSys.Core.Feature.Common.Security.Authentication.Tokens.Models;
 
 /// <summary>
 /// Result of JWT token validation operation.

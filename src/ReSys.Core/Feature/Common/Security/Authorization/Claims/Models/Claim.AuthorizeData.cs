@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ReSys.Core.Feature.Common.Security.Authorization.Providers;
+namespace ReSys.Core.Feature.Common.Security.Authorization.Claims.Models;
 
-public record UserAuthorizationData(
+public record ClaimAuthorizeData(
     [property: JsonPropertyName(name: "user_id")] string UserId,
     [property: JsonPropertyName(name: "user_name")] string UserName,
     [property: JsonPropertyName(name: "email")] string Email,

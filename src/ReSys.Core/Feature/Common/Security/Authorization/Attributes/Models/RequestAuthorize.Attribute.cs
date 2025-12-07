@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 
-using ReSys.Core.Feature.Common.Security.Authorization.Claims;
+using ReSys.Core.Feature.Common.Security.Authorization.Claims.Constants;
 
-namespace ReSys.Core.Feature.Common.Security.Authorization.Attributes;
+namespace ReSys.Core.Feature.Common.Security.Authorization.Attributes.Models;
 
 /// <summary>
 /// Custom authorization attribute that supports permissions, roles, and policies.

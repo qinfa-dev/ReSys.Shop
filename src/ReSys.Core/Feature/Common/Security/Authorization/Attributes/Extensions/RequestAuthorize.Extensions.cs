@@ -3,8 +3,9 @@
 using Microsoft.AspNetCore.Builder;
 
 using ReSys.Core.Domain.Identity.Permissions;
+using ReSys.Core.Feature.Common.Security.Authorization.Attributes.Models;
 
-namespace ReSys.Core.Feature.Common.Security.Authorization.Attributes;
+namespace ReSys.Core.Feature.Common.Security.Authorization.Attributes.Extensions;
 
 /// <summary>
 /// Extension methods for easier authorization configuration on endpoints.

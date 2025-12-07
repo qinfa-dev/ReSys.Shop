@@ -1,6 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ReSys.Core.Feature.Common.Security.Authentication.Externals;
+using ReSys.Core.Feature.Common.Security.Authentication.Externals.Extensions;
+
+namespace ReSys.Core.Feature.Common.Security.Authentication.Externals.Models;
 
 /// <summary>
 /// Represents normalized user information obtained from an external identity provider
@@ -10,7 +12,7 @@ namespace ReSys.Core.Feature.Common.Security.Authentication.Externals;
 /// This model is used to unify external identity payloads into a common shape for user provisioning,
 /// profile synchronization, and claims mapping across multiple providers.
 /// </remarks>
-public record ExternalUserInfo
+public record ExternalUserTransfer
 {
     /// <summary>
     /// Gets the unique identifier of the user from the external provider
@@ -73,25 +75,25 @@ public record ExternalUserInfo
                     FirstName,
                     LastName
                 }.Where(predicate: s => !string.IsNullOrWhiteSpace(value: s)))
-        .Trim()
-        .IfEmpty(fallback: Email);
+            .Trim()
+            .IfEmpty(fallback: Email);
 
     /// <summary>
-    /// Creates a validated instance of <see cref="ExternalUserInfo"/>.
+    /// Creates a validated instance of <see cref="providerName"/>.
     /// </summary>
-    /// <param name="providerName">The name of the external identity provider (e.g., "Google").</param>
-    /// <param name="providerId">The unique identifier of the user from the external provider.</param>
-    /// <param name="email">The email address associated with the external account.</param>
-    /// <param name="firstName">Optional first name of the external user.</param>
-    /// <param name="lastName">Optional last name of the external user.</param>
-    /// <param name="profilePictureUrl">Optional profile or avatar URL of the external user.</param>
-    /// <param name="emailVerified">Whether the external provider verified the email address.</param>
+    /// <param name="providerId">The name of the external identity provider (e.g., "Google").</param>
+    /// <param name="email">The unique identifier of the user from the external provider.</param>
+    /// <param name="firstName">The email address associated with the external account.</param>
+    /// <param name="lastName">Optional first name of the external user.</param>
+    /// <param name="profilePictureUrl">Optional last name of the external user.</param>
+    /// <param name="emailVerified">Optional profile or avatar URL of the external user.</param>
+    /// <param name="additionalClaims">Whether the external provider verified the email address.</param>
     /// <param name="additionalClaims">Optional additional claims returned by the external provider.</param>
-    /// <returns>A validated and fully initialized instance of <see cref="ExternalUserInfo"/>.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="providerName"/>, <paramref name="providerId"/>, or <paramref name="email"/> are null or whitespace.
+    /// <returns>A validated and fully initialized instance of <see cref="providerName"/>.</returns>
+    /// <exception cref="providerId">
+    /// Thrown when <paramref name="email"/>, <paramref name="providerId"/>, or <paramref name="email"/> are null or whitespace.
     /// </exception>
-    public static ExternalUserInfo Create(
+    public static ExternalUserTransfer Create(
         string providerName,
         string providerId,
         string email,
@@ -111,7 +113,7 @@ public record ExternalUserInfo
             throw new ArgumentException(message: "Email is required.",
                 paramName: nameof(email));
 
-        return new ExternalUserInfo
+        return new ExternalUserTransfer
         {
             ProviderName = providerName,
             ProviderId = providerId,
@@ -123,19 +125,4 @@ public record ExternalUserInfo
             AdditionalClaims = additionalClaims ?? new Dictionary<string, string>()
         };
     }
-}
-
-internal static class StringExtensions
-{
-    /// <summary>
-    /// Returns the specified <paramref name="fallback"/> string if the current <paramref name="value"/> is
-    /// <see langword="null"/>, empty, or consists only of white-space characters.
-    /// </summary>
-    /// <param name="value">The string to evaluate.</param>
-    /// <param name="fallback">The value to return if <paramref name="value"/> is null or empty.</param>
-    /// <returns>
-    /// <paramref name="value"/> if it contains non-whitespace characters; otherwise, <paramref name="fallback"/>.
-    /// </returns>
-    public static string IfEmpty(this string? value, string fallback) =>
-        string.IsNullOrWhiteSpace(value: value) ? fallback : value;
 }

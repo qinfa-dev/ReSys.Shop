@@ -1,8 +1,8 @@
 ﻿using ErrorOr;
 
-using ReSys.Core.Feature.Common.Security.Authentication.Contexts.Tokens.Models;
+using ReSys.Core.Feature.Common.Security.Authentication.Tokens.Models;
 
-namespace ReSys.Core.Feature.Common.Security.Authentication.Contexts.Tokens.RefreshToken;
+namespace ReSys.Core.Feature.Common.Security.Authentication.Tokens.Interfaces;
 
 /// <summary>
 /// Service for managing refresh tokens including generation, validation, rotation and revocation.

@@ -4,9 +4,9 @@ using System.Security.Claims;
 using ErrorOr;
 
 using ReSys.Core.Domain.Identity.Users;
-using ReSys.Core.Feature.Common.Security.Authentication.Contexts.Tokens.Models;
+using ReSys.Core.Feature.Common.Security.Authentication.Tokens.Models;
 
-namespace ReSys.Core.Feature.Common.Security.Authentication.Contexts.Tokens.Jwt;
+namespace ReSys.Core.Feature.Common.Security.Authentication.Tokens.Interfaces;
 
 /// <summary>
 /// Service for managing JWT access tokens.
@@ -20,7 +20,7 @@ public interface IJwtTokenService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Generated access token result or error</returns>
     Task<ErrorOr<TokenResult>> GenerateAccessTokenAsync(
-        ApplicationUser? applicationUser,
+        User? applicationUser,
         CancellationToken cancellationToken = default);
 
     /// <summary>

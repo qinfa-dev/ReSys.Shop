@@ -1,4 +1,4 @@
-﻿namespace ReSys.Core.Feature.Common.Security.Authorization.Claims;
+﻿namespace ReSys.Core.Feature.Common.Security.Authorization.Claims.Constants;
 
 public static class CustomClaim
 {
