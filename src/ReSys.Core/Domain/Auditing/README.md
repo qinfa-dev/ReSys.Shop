@@ -14,15 +14,15 @@ This domain is responsible for creating and managing audit logs, which record si
 
 This section defines the key terms and concepts used within the `Auditing` bounded context.
 
--   **Audit Log**: A record of an event that occurs within the system, detailing the action performed, the entity affected, and contextual information about the user and request. Represented by the `AuditLog` aggregate.
+-   **Audit Log**: A record of an event that occurs within the system, detailing the action performed, the entity affected, and contextual information about the user and request. Represented by the <see cref="AuditLog"/> entity.
 -   **Entity ID**: The unique identifier of the business entity that was the subject of the audit action.
 -   **Entity Name**: The name or type of the business entity that was audited.
--   **Action**: A predefined verb describing the operation performed (e.g., "Created", "Updated", "OrderPlaced"). Defined by `AuditAction`.
+-   **Action**: A predefined verb describing the operation performed (e.g., "Created", "Updated", "OrderPlaced"). Defined by the static class <see cref="AuditAction"/>.
 -   **Timestamp**: The exact date and time when the audit event occurred.
--   **User Context**: Information about the user who initiated the action, including `UserId`, `UserName`, and `UserEmail`.
--   **Change Tracking**: Details about the data that was modified, including `OldValues`, `NewValues`, and `ChangedProperties` (often stored as JSON).
--   **Request Context**: Information about the request environment, such as `IpAddress`, `UserAgent`, and `RequestId`.
--   **Severity**: The criticality level of the audit log entry (e.g., `Information`, `Warning`, `Error`, `Critical`). Defined by `AuditSeverity`.
+-   **User Context**: Information about the user who initiated the action, including <c>UserId</c>, <c>UserName</c>, and <c>UserEmail</c>.
+-   **Change Tracking**: Details about the data that was modified, including <c>OldValues</c>, <c>NewValues</c>, and <c>ChangedProperties</c> (often stored as JSON).
+-   **Request Context**: Information about the request environment, such as <c>IpAddress</c>, <c>UserAgent</c>, and <c>RequestId</c>.
+-   **Severity**: The criticality level of the audit log entry (e.g., <see cref="AuditSeverity.Information"/>, <see cref="AuditSeverity.Warning"/>, <see cref="AuditSeverity.Error"/>, <see cref="AuditSeverity.Critical"/>). Defined by the <see cref="AuditSeverity"/> enumeration.
 -   **Reason**: An optional explanation for why the action was performed.
 
 ---
@@ -34,8 +34,8 @@ This domain is composed of the following core building blocks:
 ### Aggregates
 
 -   **`AuditLog`**: This is the Aggregate Root. It encapsulates all information related to a single audit event and is responsible for its creation and ensuring its data integrity.
-    -   **Entities**: None directly owned by `AuditLog`.
-    -   **Value Objects**: None explicitly defined as separate classes. Properties like `EntityId`, `EntityName`, `Action`, `Timestamp`, `UserId`, `UserName`, `OldValues`, `NewValues`, `ChangedProperties`, `IpAddress`, `UserAgent`, `RequestId`, `Reason`, `AdditionalData`, and `Severity` are intrinsic attributes of the `AuditLog` aggregate.
+    -   **Entities**: None directly owned by <see cref="AuditLog"/>.
+    -   **Value Objects**: None explicitly defined as separate classes. Properties like <c>EntityId</c>, <c>EntityName</c>, <c>Action</c>, <c>Timestamp</c>, <c>UserId</c>, <c>UserName</c>, <c>OldValues</c>, <c>NewValues</c>, <c>ChangedProperties</c>, <c>IpAddress</c>, <c>UserAgent</c>, <c>RequestId</c>, <c>Reason</c>, <c>AdditionalData</c>, and <c>Severity</c> are intrinsic attributes of the <see cref="AuditLog"/> aggregate.
 
 ### Entities (not part of an Aggregate Root, if any)
 
@@ -43,8 +43,8 @@ This domain is composed of the following core building blocks:
 
 ### Value Objects (standalone, if any)
 
--   **`AuditAction`**: A static class providing a comprehensive list of standardized action names (e.g., `Created`, `OrderPlaced`, `PaymentCaptured`) to ensure consistency across audit logs.
--   **`AuditSeverity`**: An enumeration defining the levels of criticality for audit log entries (`Information`, `Warning`, `Error`, `Critical`).
+-   **<see cref="AuditAction"/>**: A static class providing a comprehensive list of standardized action names (e.g., <c>Created</c>, <c>OrderPlaced</c>, <c>PaymentCaptured</c>) to ensure consistency across audit logs. While not a traditional "value object" in the class sense, its constants serve as distinct, descriptive values in the domain.
+-   **<see cref="AuditSeverity"/>**: An enumeration defining the levels of criticality for audit log entries (<c>Information</c>, <c>Warning</c>, <c>Error</c>, <c>Critical</c>).
 
 ---
 
@@ -58,11 +58,11 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Auditing` bounded context.
 
--   An `AuditLog` entry must always have an `EntityId`, `EntityName`, and `Action`.
--   `EntityName` and `Action` must adhere to defined maximum length constraints (`AuditLog.Constraints.EntityNameMaxLength`, `AuditLog.Constraints.ActionMaxLength`).
--   The `EntityId` cannot be an empty GUID.
--   The `Timestamp` of an `AuditLog` entry is automatically set to `DateTimeOffset.UtcNow` upon creation.
--   Metadata fields like `OldValues`, `NewValues`, `ChangedProperties`, and `AdditionalData` are often stored as JSONB to accommodate flexible schema changes and detailed change tracking.
+-   An <see cref="AuditLog"/> entry must always have an <c>EntityId</c>, <c>EntityName</c>, and <c>Action</c>. These fields are validated as required by the <see cref="AuditLog.Create"/> method.
+-   <c>EntityName</c> and <c>Action</c> must adhere to defined maximum length constraints (<see cref="AuditLog.Constraints.EntityNameMaxLength"/>, <see cref="AuditLog.Constraints.ActionMaxLength"/>), validated during creation.
+-   The <c>EntityId</c> cannot be an empty <see cref="Guid"/>.
+-   The <c>Timestamp</c> of an <see cref="AuditLog"/> entry is automatically set to <c>DateTimeOffset.UtcNow</c> upon creation, ensuring an accurate record of when the event occurred.
+-   Metadata fields like <c>OldValues</c>, <c>NewValues</c>, <c>ChangedProperties</c>, and <c>AdditionalData</c> are designed to be flexible, often stored as JSONB to accommodate varying data structures for detailed change tracking.
 
 ---
 
@@ -75,22 +75,22 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create Audit Log Entry**: Generate a new `AuditLog` record to capture a significant event, providing details about the affected entity, the action, and relevant context.
--   **Track Entity Changes**: Record `OldValues`, `NewValues`, and `ChangedProperties` to provide a granular view of data modifications.
--   **Capture User and Request Context**: Store `UserId`, `UserName`, `IpAddress`, and `UserAgent` to identify who performed the action and from where.
--   **Categorize Audit Events**: Assign a `Severity` level to audit entries for easier filtering and analysis.
+-   **Create Audit Log Entry**: Generate a new <see cref="AuditLog"/> record using <see cref="AuditLog.Create(Guid, string, string, string?, string?, string?, string?, string?, string?, string?, AuditSeverity)"/> to capture a significant event, providing details about the affected entity, the action, and relevant context. This method performs initial validation and sets the timestamp.
+-   **Track Entity Changes**: Record <c>OldValues</c>, <c>NewValues</c>, and <c>ChangedProperties</c> (typically JSON serialized) to provide a granular view of data modifications over time.
+-   **Capture User and Request Context**: Store <c>UserId</c>, <c>UserName</c>, <c>IpAddress</c>, and <c>UserAgent</c> to identify who performed the action and from where.
+-   **Categorize Audit Events**: Assign a <see cref="AuditSeverity"/> level to audit entries for easier filtering and analysis, allowing for quick identification of critical events.
 
 ---
 
 ## 📝 Usage Example
 
-Here is an example of how to create an `AuditLog` entry within an application service or domain event handler when a `Product`'s name is updated. This demonstrates capturing the change, the user context, and persisting the log.
+Here is an example of how to create an <see cref="AuditLog"/> entry within an application service or domain event handler when a <see cref="Product"/>'s name is updated. This demonstrates capturing the change, the user context, and persisting the log.
 
 ```csharp
 // Using System.Text.Json for serialization
 using System.Text.Json;
 
-// ... within an Application Service or Domain Event Handler
+// ... within an an Application Service or Domain Event Handler
 
 public async Task UpdateProductNameAsync(Guid productId, string newName, string userId, string userEmail)
 {
@@ -106,18 +106,19 @@ public async Task UpdateProductNameAsync(Guid productId, string newName, string 
     var oldValues = new { Name = product.Name };
 
     // 3. Perform the update
-    product.Update(name: newName);
+    // Assuming product.Update(name: newName) is a method on the Product aggregate
+    product.Update(name: newName); // This would internally update product.Name
 
     // 4. Capture the state after the change
     var newValues = new { Name = product.Name };
 
     // 5. Create the AuditLog entry
-    var auditLogEntry = AuditLog.Create(
+    var auditLogEntryResult = AuditLog.Create(
         entityId: product.Id,
         entityName: nameof(Product),
         action: AuditAction.Updated,
         userId: userId,
-        userEmail: userEmail, // Pass user's email
+        userName: userEmail, // Assuming userEmail can be used as userName for logging purposes
         oldValues: JsonSerializer.Serialize(oldValues),
         newValues: JsonSerializer.Serialize(newValues),
         changedProperties: JsonSerializer.Serialize(new[] { "Name" }),
@@ -125,22 +126,26 @@ public async Task UpdateProductNameAsync(Guid productId, string newName, string 
         severity: AuditSeverity.Information
     );
 
-    // 6. Persist the audit log and the updated entity
-    if (!auditLogEntry.IsError)
+    // Handle potential errors during audit log creation
+    if (auditLogEntryResult.IsError)
     {
-        await _auditLogRepository.AddAsync(auditLogEntry.Value);
+        // Log the error for audit log creation failure, but don't prevent product update
+        _logger.LogError($"Failed to create audit log for Product update: {auditLogEntryResult.FirstError.Description}");
+    }
+    else
+    {
+        await _auditLogRepository.AddAsync(auditLogEntryResult.Value);
     }
     
-    await _productRepository.UpdateAsync(product);
-
-    // This assumes a Unit of Work pattern to save all changes
-    await _unitOfWork.SaveChangesAsync();
+    // This assumes an explicit update method for product in the repository
     await _productRepository.UpdateAsync(product);
 
     // This assumes a Unit of Work pattern to save all changes
     await _unitOfWork.SaveChangesAsync();
 }
 ```
+
+---
 
 ---
 

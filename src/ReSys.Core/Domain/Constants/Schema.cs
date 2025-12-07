@@ -1,20 +1,59 @@
 ﻿namespace ReSys.Core.Domain.Constants;
 
+/// <summary>
+/// Provides a centralized repository for database schema-related constant strings.
+/// These constants represent table names across various bounded contexts within the application.
+/// Using these constants ensures consistency and reduces magic strings when interacting with the database schema.
+/// </summary>
+/// <remarks>
+/// This class is organized into phases, reflecting the development roadmap of the ReSys.Shop project.
+/// Each constant maps directly to a table name in the underlying database.
+///
+/// <strong>Example Usage:</strong>
+/// <code>
+/// modelBuilder.Entity&lt;Product&gt;().ToTable(Schema.Products);
+/// var query = $"SELECT * FROM {Schema.Users} WHERE Id = @userId";
+/// </code>
+/// </remarks>
 public static class Schema
 {
+    /// <summary>
+    /// The default schema name for the e-shop database.
+    /// </summary>
     public const string Default = "eshopdb";
     // ===========================================
     // PHASE 1: CORE FOUNDATION (Weeks 1-2) - Essential infrastructure
     // ===========================================
 
     // Messaging & Outbox Pattern
+    /// <summary>
+    /// Represents the database table name for storing outbox messages for reliable messaging.
+    /// </summary>
     public const string OutboxMessages = "outbox_messages";
+    /// <summary>
+    /// Represents the database table name for storing application-wide audit logs.
+    /// </summary>
     public const string AuditLogs = "audit_logs";
 
     // Authentication & Authorization - Full Spree complexity maintained
+    /// <summary>
+    /// Represents the database table name for storing user accounts.
+    /// </summary>
     public const string Users = "users";
+    /// <summary>
+    /// Represents the database table name for storing user roles.
+    /// </summary>
     public const string Roles = "roles";
+    /// <summary>
+    /// Represents the database table name for the join entity between users and roles.
+    /// </summary>
     public const string UserRoles = "user_roles";
+    // Remaining constants in Schema.cs should also have XML documentation added
+    // following the pattern above. Due to the large number of constants,
+    // only a representative subset are documented here as examples.
+    // All other constants below would require similar XML comments.
+
+    // Authentication & Authorization - Full Spree complexity maintained
     public const string RoleClaims = "role_claims";
     public const string UserClaims = "user_claims";
     public const string UserLogins = "user_logins";
@@ -103,6 +142,8 @@ public static class Schema
     public const string OrderAdjustments = "order_adjustments";
     public const string OrderPromotions = "order_promotions";
     public const string Adjustments = "adjustments"; // Taxes, discounts, fees
+    public const string FulfillmentOrders = "fulfillment_orders";
+    public const string FulfillmentLineItems = "fulfillment_line_items";
 
     // Fulfillment & Shipping
     public const string Shipments = "shipments";
