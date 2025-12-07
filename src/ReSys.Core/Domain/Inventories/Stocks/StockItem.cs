@@ -5,6 +5,8 @@ using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Inventories.Locations;
+using ReSys.Core.Domain.Orders.Shipments;
+using ReSys.Core.Domain.Orders;
 
 namespace ReSys.Core.Domain.Inventories.Stocks;
 
@@ -58,30 +60,45 @@ public sealed class StockItem : Aggregate, IHasMetadata
                 code: "StockItem.DuplicateSku",
                 description: $"Stock item with SKU '{sku}' already exists in stock location '{stockLocationId}'.");
 
-        public static Error InsufficientStock =>
+        public static Error InsufficientStock(int available, int requested) =>
             Error.Validation(
                 code: "StockItem.InsufficientStock",
-                description: "Insufficient stock available for this operation.");
+                description: $"Insufficient stock. Available: {available}, Requested: {requested}");
 
         public static Error InvalidQuantity =>
             Error.Validation(
                 code: "StockItem.InvalidQuantity",
                 description: "Quantity must be non-negative.");
 
-        public static Error InvalidRelease =>
+        public static Error InvalidRelease(int reserved, int releaseRequested) =>
             Error.Validation(
                 code: "StockItem.InvalidRelease",
-                description: "Cannot release more quantity than is currently reserved.");
+                description: $"Cannot release {releaseRequested} units. Only {reserved} units reserved.");
 
-        public static Error InvalidShipment =>
+        public static Error InvalidShipment(int reserved, int shipRequested) =>
             Error.Validation(
                 code: "StockItem.InvalidShipment",
-                description: "Cannot ship more quantity than is currently reserved.");
+                description: $"Cannot ship {shipRequested} units. Only {reserved} units reserved.");
 
         public static Error NotFound(Guid id) =>
             Error.NotFound(
                 code: "StockItem.NotFound",
                 description: $"Stock item with ID '{id}' was not found.");
+
+        public static Error NegativeReserved =>
+            Error.Validation(
+                code: "StockItem.NegativeReserved",
+                description: "Reserved quantity cannot be negative.");
+
+        public static Error ReservedExceedsOnHand =>
+            Error.Validation(
+                code: "StockItem.ReservedExceedsOnHand",
+                description: "Reserved quantity cannot exceed quantity on hand.");
+
+        public static Error DuplicateReservation(Guid orderId, int existingQuantity, int requestedQuantity) =>
+            Error.Validation(
+                code: "StockItem.DuplicateReservation",
+                description: $"Order '{orderId}' already has {existingQuantity} units reserved. Cannot reserve {requestedQuantity}.");
     }
     #endregion
 
@@ -96,10 +113,10 @@ public sealed class StockItem : Aggregate, IHasMetadata
     public string Sku { get; set; } = string.Empty;
 
     /// <summary>Gets the current physical quantity on hand at this location.</summary>
-    public int QuantityOnHand { get; set; }
+    public int QuantityOnHand { get; private set; } // FIXED: private setter for encapsulation
 
     /// <summary>Gets the quantity currently reserved for pending orders.</summary>
-    public int QuantityReserved { get; set; }
+    public int QuantityReserved { get; private set; } // FIXED: private setter
 
     /// <summary>
     /// Gets a value indicating whether this item can be backordered (ordered when out of stock).
@@ -108,12 +125,20 @@ public sealed class StockItem : Aggregate, IHasMetadata
 
     public IDictionary<string, object?>? PublicMetadata { get; set; }
     public IDictionary<string, object?>? PrivateMetadata { get; set; }
+
+    private readonly Dictionary<Guid, int> _reservations = new();
     #endregion
 
     #region Relationships
     public StockLocation StockLocation { get; set; } = null!;
     public Variant Variant { get; set; } = null!;
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
+    
+    /// <summary>
+    /// Gets the backordered inventory units waiting for this stock to become available.
+    /// Used by fulfillment system to automatically fill backorders when stock is replenished.
+    /// </summary>
+    public ICollection<InventoryUnit> BackorderedInventoryUnits { get; set; } = new List<InventoryUnit>();
     #endregion
 
     #region Computed Properties
@@ -342,22 +367,22 @@ public sealed class StockItem : Aggregate, IHasMetadata
         int quantity,
         StockMovement.MovementOriginator originator,
         string? reason = null,
-        Guid? stockTransferId = null)
+        Guid? originatorId = null)
     {
         var newCount = QuantityOnHand + quantity;
         if (newCount < Constraints.MinQuantity)
-            return Errors.InsufficientStock;
+            return Errors.InsufficientStock(available: QuantityOnHand, requested: -quantity); // Updated to use parameterized error
 
         QuantityOnHand = newCount;
         UpdatedAt = DateTimeOffset.UtcNow;
 
         var movementResult = StockMovement.Create(
-            stockItem: this,
+            stockItemId: Id,
             quantity: quantity,
             originator: originator,
             action: StockMovement.MovementAction.Adjustment,
             reason: reason,
-            stockTransferId: stockTransferId);
+            originatorId: originatorId);
 
         if (movementResult.IsError)
             return movementResult.FirstError;
@@ -371,7 +396,57 @@ public sealed class StockItem : Aggregate, IHasMetadata
                 Quantity: quantity,
                 NewCount: QuantityOnHand));
 
+        // Process backorders if this is a restock (positive quantity)
+        if (quantity > 0 && Backorderable)
+        {
+            ProcessBackorders(quantityAvailable: quantity);
+        }
+
         return this;
+    }
+
+    #endregion
+
+    #region Business Logic: Backorder Processing
+
+    /// <summary>
+    /// Processes backordered inventory units when stock becomes available.
+    /// Fills backorders sequentially up to the available quantity.
+    /// </summary>
+    /// <param name="quantityAvailable">The quantity of stock that became available.</param>
+    /// <remarks>
+    /// This is called automatically when stock is restocked (positive adjustment).
+    /// Backordered units are filled in order of creation (oldest first).
+    /// </remarks>
+    private void ProcessBackorders(int quantityAvailable)
+    {
+        if (!BackorderedInventoryUnits.Any())
+            return;
+
+        var backordered = BackorderedInventoryUnits
+            .Where(predicate: iu => iu.State == InventoryUnit.InventoryUnitState.Backordered)
+            .OrderBy(keySelector: iu => iu.CreatedAt)
+            .ToList();
+
+        int remaining = quantityAvailable;
+
+        foreach (var unit in backordered)
+        {
+            if (remaining <= 0)
+                break;
+
+            var fillResult = unit.FillBackorder();
+            if (fillResult.IsError)
+                continue;
+
+            remaining--;
+
+            AddDomainEvent(
+                domainEvent: new Events.BackorderProcessed(
+                    StockItemId: Id,
+                    InventoryUnitId: unit.Id,
+                    FilledQuantity: 1));  // Always 1 per unit
+        }
     }
 
     #endregion
@@ -405,18 +480,45 @@ public sealed class StockItem : Aggregate, IHasMetadata
         if (quantity <= Constraints.MinQuantity)
             return Errors.InvalidQuantity;
 
-        if (!Backorderable && CountAvailable < quantity)
-            return Errors.InsufficientStock;
+        // Idempotency check: If orderId is provided, check existing reservations
+        if (orderId.HasValue)
+        {
+            if (_reservations.TryGetValue(orderId.Value, out var existingReservedQuantity))
+            {
+                if (existingReservedQuantity == quantity)
+                {
+                    // Already reserved this exact quantity for this order, idempotent success
+                    return this;
+                }
+                else
+                {
+                    // Attempting to reserve a different quantity for an already reserved orderId
+                    return Errors.DuplicateReservation(orderId.Value, existingReservedQuantity, quantity);
+                }
+            }
+        }
 
-        QuantityReserved += quantity;
+        var newReserved = QuantityReserved + quantity;
+
+        // NEW: Prevent reserving more than on-hand (unless backorderable)
+        if (!Backorderable && newReserved > QuantityOnHand)
+            return Errors.InsufficientStock(available: QuantityOnHand, requested: quantity);
+
+        QuantityReserved = newReserved;
         UpdatedAt = DateTimeOffset.UtcNow;
 
+        if (orderId.HasValue)
+        {
+            _reservations[orderId.Value] = quantity; // Track reservation for this order
+        }
+
         var movementResult = StockMovement.Create(
-            stockItem: this,
+            stockItemId: Id,
             quantity: -quantity,
             originator: StockMovement.MovementOriginator.Order,
             action: StockMovement.MovementAction.Reserved,
-            reason: $"Order {orderId}");
+            reason: $"Order {orderId}",
+            originatorId: orderId);
 
         if (movementResult.IsError)
             return movementResult.FirstError;
@@ -436,7 +538,7 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// <summary>
     /// Releases previously reserved stock (e.g., due to order cancellation).
     /// </summary>
-    /// <param name="quantity">The quantity to release (must be positive and <= QuantityReserved).</param>
+    /// <param name="quantity">The quantity to release (must be positive and &lt;= QuantityReserved).</param>
     /// <param name="orderId">The ID of the order this release is for.</param>
     /// <returns>
     /// On success: This stock item (for method chaining).
@@ -451,17 +553,28 @@ public sealed class StockItem : Aggregate, IHasMetadata
             return Errors.InvalidQuantity;
 
         if (QuantityReserved < quantity)
-            return Errors.InvalidRelease;
+            return Errors.InvalidRelease(reserved: QuantityReserved, releaseRequested: quantity);
 
         QuantityReserved -= quantity;
         UpdatedAt = DateTimeOffset.UtcNow;
 
+        // Update the internal reservations dictionary
+        if (_reservations.ContainsKey(orderId))
+        {
+            _reservations[orderId] -= quantity;
+            if (_reservations[orderId] <= 0)
+            {
+                _reservations.Remove(orderId);
+            }
+        }
+
         var movementResult = StockMovement.Create(
-            stockItem: this,
+            stockItemId: Id,
             quantity: quantity,
             originator: StockMovement.MovementOriginator.Order,
             action: StockMovement.MovementAction.Released,
-            reason: $"Order {orderId} canceled");
+            reason: $"Order {orderId} canceled",
+            originatorId: orderId);
 
         if (movementResult.IsError)
             return movementResult.FirstError;
@@ -485,8 +598,9 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// <summary>
     /// Confirms shipment of reserved stock, decreasing both QuantityOnHand and QuantityReserved.
     /// </summary>
-    /// <param name="quantity">The quantity shipped (must be positive and <= QuantityReserved).</param>
+    /// <param name="quantity">The quantity shipped (must be positive and &lt;= QuantityReserved).</param>
     /// <param name="shipmentId">The ID of the shipment.</param>
+    /// <param name="orderId"></param>
     /// <returns>
     /// On success: Result.Deleted (follows ErrorOr pattern for result type).
     /// On failure: Error if quantity invalid or exceeds reserved amount.
@@ -494,24 +608,35 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// <remarks>
     /// This operation finalizes a shipment by removing items from both physical inventory and reservations.
     /// </remarks>
-    public ErrorOr<Deleted> ConfirmShipment(int quantity, Guid shipmentId)
+    public ErrorOr<Deleted> ConfirmShipment(int quantity, Guid shipmentId, Guid orderId)
     {
         if (quantity <= Constraints.MinQuantity)
             return Errors.InvalidQuantity;
 
         if (QuantityReserved < quantity)
-            return Errors.InvalidShipment;
+            return Errors.InvalidShipment(reserved: QuantityReserved, shipRequested: quantity);
 
         QuantityOnHand -= quantity;
         QuantityReserved -= quantity;
         UpdatedAt = DateTimeOffset.UtcNow;
 
+        // Update the internal reservations dictionary
+        if (_reservations.ContainsKey(orderId))
+        {
+            _reservations[orderId] -= quantity;
+            if (_reservations[orderId] <= 0)
+            {
+                _reservations.Remove(orderId);
+            }
+        }
+
         var movementResult = StockMovement.Create(
-            stockItem: this,
+            stockItemId: Id,
             quantity: -quantity,
             originator: StockMovement.MovementOriginator.Shipment,
             action: StockMovement.MovementAction.Sold,
-            reason: $"Shipment {shipmentId}");
+            reason: $"Shipment {shipmentId}",
+            originatorId: shipmentId);
 
         if (movementResult.IsError)
             return movementResult.FirstError;
@@ -539,6 +664,23 @@ public sealed class StockItem : Aggregate, IHasMetadata
     {
         AddDomainEvent(domainEvent: new Events.StockItemDeleted(StockItemId: Id));
         return Result.Deleted;
+    }
+
+    #endregion
+
+    #region Business Logic: Invariants
+
+    // NEW: Add method to validate stock item invariants
+    public ErrorOr<Success> ValidateInvariants()
+    {
+        // Check quantity on hand vs reserved consistency
+        if (QuantityReserved < 0)
+            return Errors.NegativeReserved;
+        
+        if (QuantityReserved > QuantityOnHand && !Backorderable)
+            return Errors.ReservedExceedsOnHand;
+
+        return Result.Success;
     }
 
     #endregion
@@ -601,6 +743,14 @@ public sealed class StockItem : Aggregate, IHasMetadata
             Guid StockLocationId,
             int Quantity,
             Guid ShipmentId) : DomainEvent;
+
+        /// <summary>
+        /// Raised when a backordered inventory unit is filled from newly available stock.
+        /// </summary>
+        public sealed record BackorderProcessed(
+            Guid StockItemId,
+            Guid InventoryUnitId,
+            int FilledQuantity) : DomainEvent;
     }
 
     #endregion

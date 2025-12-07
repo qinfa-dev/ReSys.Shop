@@ -42,13 +42,19 @@ This domain is composed of the following core building blocks:
     -   **Entities**: `StockItem` (owned by `StockLocation`). Represents the inventory of a specific product variant at this location.
     -   **Value Objects**: None explicitly defined as separate classes. Properties like `Name`, `Presentation`, `Active`, `Default`, address components (`Address1`, `City`, `Zipcode`), `Phone`, `Company`, `PublicMetadata`, and `PrivateMetadata` act as intrinsic attributes.
 
--   **`StockItem`**: This is also an Aggregate Root. It represents the inventory of a specific product `Variant` at a `StockLocation`. It manages its own quantities (`QuantityOnHand`, `QuantityReserved`) and records all `StockMovement`s affecting it. It ensures that stock levels remain consistent.
+-   **`StockItem`**: This is also an Aggregate Root. It represents the inventory of a specific product `Variant` at a `StockLocation`. It manages its own quantities (`QuantityOnHand`, `QuantityReserved`) and records all `StockMovement`s affecting it. It ensures that stock levels remain consistent. It also manages backordered `InventoryUnit`s, automatically filling them when stock is replenished.
     -   **Entities**: `StockMovement` (owned by `StockItem`). A historical record of changes to the `StockItem`'s quantities.
+    -   **Related Aggregates**: `InventoryUnit` (order fulfillment tracking in Orders domain)
     -   **Value Objects**: None explicitly defined as separate classes. Properties like `Sku`, `QuantityOnHand`, `QuantityReserved`, `Backorderable`, `PublicMetadata`, and `PrivateMetadata` act as intrinsic attributes.
 
 -   **`StockTransfer`**: This is an Aggregate Root. It orchestrates the complex process of moving stock between `StockLocation`s or receiving stock from external vendors. It ensures that all necessary `StockMovement`s are correctly recorded at the affected `StockItem`s.
     -   **Entities**: `StockMovement` (orchestrated by `StockTransfer` but ultimately owned by `StockItem`).
     -   **Value Objects**: None explicitly defined as separate classes. Properties like `Number` (generated), and `Reference` act as intrinsic attributes.
+
+-   **`InventoryUnit`** (from `Orders.Orders` boundary, tracked here for fulfillment): Represents a trackable unit of inventory associated with an order line item. It progresses through fulfillment states: `OnHand` → `Shipped` → optionally `Returned`. One line item with quantity N creates N inventory units for granular tracking.
+    -   **Related Entities**: Links to `Variant`, `Order`, `LineItem`, `Shipment`, `StockLocation`
+    -   **Related Domain**: Orders, Returns
+    -   **Purpose**: Enables unit-level fulfillment tracking and return processing
 
 ### Entities (not part of an Aggregate Root, if any)
 
@@ -61,7 +67,7 @@ This domain is composed of the following core building blocks:
 ### Value Objects (standalone, if any)
 
 -   **`Config`**: A static class providing global configuration settings for the inventory domain, such as `TrackInventoryLevels`.
--   **`NumberGenerator`**: A static utility class responsible for generating unique, sequential reference numbers for various inventory transactions (e.g., stock transfer numbers).
+-   **<see cref="NumberGenerator"/>**: A static utility class responsible for generating unique, sequential reference numbers for various inventory transactions (e.g., stock transfer numbers) in the format <c>{PREFIX}{YYMMDD}{COUNTER}</c>.
 
 ---
 
@@ -75,17 +81,17 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Inventories` bounded context.
 
--   `QuantityOnHand` and `QuantityReserved` for any `StockItem` must always be non-negative.
--   The `CountAvailable` for a `StockItem` cannot be negative unless the item is `Backorderable`.
--   It is not possible to reserve more quantity than `CountAvailable` for non-backorderable items.
--   It is not possible to release more quantity than `QuantityReserved`.
--   It is not possible to confirm shipment of more quantity than `QuantityReserved`.
--   A `StockLocation` cannot be deleted if it has any associated `StockItem`s. (Enforced by `StockLocation.Delete()`)
--   For a `StockTransfer`, the `SourceLocation` and `DestinationLocation` cannot be the same.
--   A `StockTransfer` must involve at least one product `Variant` with a positive transfer quantity.
--   A `StockMovement` must always have a non-zero quantity.
--   `StockItem`s can be marked as `Backorderable`, allowing orders even when out of physical stock.
--   The global `Config.TrackInventoryLevels` setting dictates whether inventory tracking is active across the system.
+-   <c>CountAvailable</c> for a <see cref="StockItem"/> cannot be negative unless the item is <c>Backorderable</c>. This is validated by <see cref="StockLocation.ValidateInvariants()"/>.
+-   It is not possible to reserve more quantity than <c>CountAvailable</c> for non-backorderable items. Enforced by <see cref="StockItem.Reserve(int, StockMovement.MovementOriginator, Guid?)"/>.
+-   It is not possible to release more quantity than <c>QuantityReserved</c>. Enforced by <see cref="StockItem.Release(int, StockMovement.MovementOriginator, Guid?)"/>.
+-   It is not possible to confirm shipment of more quantity than <c>QuantityReserved</c>. Enforced by <see cref="StockItem.ConfirmShipment(int, StockMovement.MovementOriginator, Guid?)"/>.
+-   When stock is replenished (positive adjustment), backordered <see cref="InventoryUnit"/>s are automatically filled in order of creation (FIFO). This behavior is orchestrated by the <see cref="StockItem.Adjust(int, StockMovement.MovementOriginator, string?, Guid?)"/> method.
+-   A <see cref="StockLocation"/> cannot be deleted if it has any associated <see cref="StockItem"/>s. (Enforced by <see cref="StockLocation.Delete(bool, bool, bool)"/>, returning <see cref="StockLocation.Errors.HasStockItems"/> or <see cref="StockLocation.Errors.HasReservedStock"/>).
+-   For a <see cref="StockTransfer"/>, the <c>SourceLocation</c> and <c>DestinationLocation</c> cannot be the same. Enforced by <see cref="StockTransfer.Create(Guid, Guid?, string?)"/> and <see cref="StockTransfer.Update(Guid, Guid?, string?)"/> methods, returning <see cref="StockTransfer.Errors.SourceEqualsDestination"/>.
+-   A <see cref="StockTransfer"/> must involve at least one product <c>Variant</c> with a positive transfer quantity. Enforced by <see cref="StockTransfer.Transfer(StockLocation, StockLocation, IReadOnlyDictionary{Variant, int}?)"/> and <see cref="StockTransfer.Receive(StockLocation, IReadOnlyDictionary{Variant, int}?)"/>, returning <see cref="StockTransfer.Errors.NoVariants"/> or <see cref="StockTransfer.Errors.InvalidQuantity"/>.
+-   A <see cref="StockMovement"/> must always have a non-zero quantity.
+-   <see cref="StockItem"/>s can be marked as <c>Backorderable</c>, allowing orders even when out of physical stock. Backordered orders are tracked via <c>InventoryUnit</c> state transitions.
+-   The global <c>Config.TrackInventoryLevels</c> setting dictates whether inventory tracking is active across the system.
 
 ---
 
@@ -102,15 +108,15 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create and Manage Stock Locations**: Define new `StockLocation`s, update their details (name, address, active status), and link/unlink them to `Store`s.
--   **Create and Manage Stock Items**: Establish `StockItem`s for product `Variant`s at specific `StockLocation`s, setting initial quantities and backorderability.
--   **Adjust Stock Levels**: Modify the `QuantityOnHand` of a `StockItem` due to reasons like damage, loss, or recount, recording a `StockMovement`.
--   **Reserve Stock**: Allocate `StockItem`s for pending orders, decreasing `Count Available` and increasing `Quantity Reserved`.
--   **Release Reserved Stock**: Free up `Quantity Reserved` (e.g., due to order cancellation), increasing `Count Available`.
--   **Confirm Shipment**: Decrement both `QuantityOnHand` and `QuantityReserved` upon product shipment.
--   **Transfer Stock**: Orchestrate the movement of stock between two `StockLocation`s, ensuring corresponding `StockMovement`s are recorded at both ends.
--   **Receive Stock**: Record the receipt of new stock from suppliers into a `StockLocation`.
--   **Generate Unique Numbers**: Provide unique reference numbers for inventory transactions.
+-   **Create and Manage Stock Locations**: Define new <see cref="StockLocation"/>s, update their details (name, address, active status), link/unlink them to <see cref="Store"/>s, and mark them as default.
+-   **Create and Manage Stock Items**: Establish <see cref="StockItem"/>s for product <c>Variant</c>s at specific <see cref="StockLocation"/>s, setting initial quantities and backorderability. (Managed by the <see cref="StockItem"/> aggregate).
+-   **Adjust Stock Levels**: Modify the <c>QuantityOnHand</c> of a <see cref="StockItem"/> using <see cref="StockItem.Adjust(int, StockMovement.MovementOriginator, string?, Guid?)"/> (e.g., due to damage, loss, or recount), recording a <see cref="StockMovement"/>.
+-   **Reserve Stock**: Allocate <see cref="StockItem"/>s for pending orders using <see cref="StockItem.Reserve(int, StockMovement.MovementOriginator, Guid?)"/>, decreasing <c>Count Available</c> and increasing <c>Quantity Reserved</c>.
+-   **Release Reserved Stock**: Free up <c>Quantity Reserved</c> using <see cref="StockItem.Release(int, StockMovement.MovementOriginator, Guid?)"/> (e.g., due to order cancellation), increasing <c>Count Available</c>.
+-   **Confirm Shipment**: Decrement both <c>QuantityOnHand</c> and <c>QuantityReserved</c> upon product shipment using <see cref="StockItem.ConfirmShipment(int, StockMovement.MovementOriginator, Guid?)"/>.
+-   **Transfer Stock**: Orchestrate the movement of stock between two <see cref="StockLocation"/>s using <see cref="StockTransfer.Transfer(StockLocation, StockLocation, IReadOnlyDictionary{Variant, int}?)"/>, ensuring corresponding <see cref="StockMovement"/>s are recorded at both ends.
+-   **Receive Stock**: Record the receipt of new <c>Variant</c> quantities into a <c>DestinationLocation</c> from external sources using <see cref="StockTransfer.Receive(StockLocation, IReadOnlyDictionary{Variant, int}?)"/>.
+-   **Generate Unique Numbers**: Provide unique reference numbers for inventory transactions using <see cref="NumberGenerator.Generate(string)"/>.
 -   **Publish Domain Events**: Emit domain events for stock item changes, stock location changes, and stock transfers, enabling a decoupled architecture.
 
 ---

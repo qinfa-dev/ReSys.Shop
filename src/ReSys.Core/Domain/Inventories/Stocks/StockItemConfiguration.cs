@@ -34,6 +34,10 @@ public sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
             .ValueGeneratedNever()
             .HasComment(comment: "Id: Unique identifier for the stock item. Value generated never.");
 
+        builder.Property(e => e.RowVersion)
+            .IsRowVersion()
+            .HasComment(comment: "RowVersion: Used for optimistic concurrency control.");
+
         builder.Property(propertyExpression: si => si.StockLocationId)
             .IsRequired()
             .HasComment(comment: "StockLocationId: Foreign key to the associated StockLocation.");
@@ -60,6 +64,7 @@ public sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
         // Apply common configurations using extension methods.
         builder.ConfigureAuditable();
         builder.ConfigureMetadata();
+
         #endregion
 
         #region Relationships
@@ -78,6 +83,12 @@ public sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
             .WithOne(navigationExpression: sm => sm.StockItem)
             .HasForeignKey(foreignKeyExpression: sm => sm.StockItemId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+
+        builder.HasMany(navigationExpression: si => si.BackorderedInventoryUnits)
+            .WithOne()
+            .HasForeignKey(e => e.StockLocationId)
+            .IsRequired(false)
+            .OnDelete(deleteBehavior: DeleteBehavior.NoAction);
         #endregion
 
         #region Indexes

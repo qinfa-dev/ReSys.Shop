@@ -4,88 +4,131 @@ using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Inventories.Stocks;
+using ReSys.Core.Domain.Orders;
 
 namespace ReSys.Core.Domain.Inventories.Locations;
 
 /// <summary>
-/// Orchestrates the movement of stock between two locations or receipt of stock from external vendors.
-/// Manages the complex process of validating inventory and creating corresponding movement records.
+/// Represents and orchestrates the movement of stock, either between two <see cref="StockLocation"/>s
+/// (a transfer) or from an external vendor into a <see cref="StockLocation"/> (a receipt).
+/// This aggregate manages the complex process of validating inventory, executing movements,
+/// and recording corresponding stock movement history.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <b>Responsibility:</b>
-/// Coordinates stock transfers between locations and receipts from suppliers, ensuring that
-/// all affected StockItems are properly updated and movement history is maintained.
+/// Coordinates stock transfers and receipts, ensuring that all affected <see cref="StockItem"/>s
+/// are properly updated and comprehensive movement history is maintained. It acts as a central
+/// orchestrator for complex inventory changes involving multiple locations and items.
 /// </para>
-/// 
+///
 /// <para>
 /// <b>Supported Operations:</b>
 /// <list type="bullet">
-/// <item><b>Transfer:</b> Move stock from one location to another (requires source and destination)</item>
-/// <item><b>Receive:</b> Receive new stock from an external supplier (only requires destination)</item>
+/// <item><b>Transfer:</b> Moves stock from a <c>SourceLocation</c> to a <c>DestinationLocation</c>.</item>
+/// <item><b>Receive:</b> Records the receipt of new stock from an external supplier into a <c>DestinationLocation</c> (no source).</item>
 /// </list>
 /// </para>
-/// 
+///
 /// <para>
 /// <b>Process Flow:</b>
 /// <list type="number">
-/// <item>Create transfer or receive request with variants and quantities</item>
-/// <item>Validate quantities are positive and stock is available (for transfers)</item>
-/// <item>Execute unstock from source (for transfers) or restock to destination (for both)</item>
-/// <item>Record movement history with transfer reference</item>
-/// <item>Publish domain events for audit trail</item>
+/// <item>Creation of a transfer or receipt request specifying variants and quantities.</item>
+/// <item>Pre-validation to ensure quantities are positive and stock is available (for transfers).</item>
+/// <item>Execution of <see cref="StockLocation.Unstock(Variant?, int, StockMovement.MovementOriginator, Guid?)"/> from the source (for transfers)
+/// or <see cref="StockLocation.Restock(Variant, int, StockMovement.MovementOriginator, Guid?)"/> to the destination (for both transfers and receipts).</item>
+/// <item>Recording of movement history with a transfer reference.</item>
+/// <item>Publishing of domain events for audit trail and integration with other systems.</item>
 /// </list>
 /// </para>
-/// 
+///
 /// <para>
 /// <b>Error Handling:</b>
-/// Accumulates all errors and returns them together, allowing callers to see all issues
-/// before attempting a partial retry.
+/// The `Transfer` and `Receive` methods accumulate all validation and execution errors, returning them
+/// together. This allows callers to identify all issues before attempting a retry or corrective action,
+/// and facilitates transactional rollback at the application service level.
 /// </para>
 /// </remarks>
 public sealed class StockTransfer : Aggregate
 {
     #region Constraints
+    /// <summary>
+    /// Defines constraints and constant values specific to <see cref="StockTransfer"/> properties.
+    /// These constraints ensure the validity of transfer-related data.
+    /// </summary>
     public static class Constraints
     {
+        /// <summary>Maximum allowed length for the auto-generated transfer <see cref="StockTransfer.Number"/>.</summary>
         public const int NumberMaxLength = 50;
+        /// <summary>Maximum allowed length for an optional <see cref="StockTransfer.Reference"/> code.</summary>
         public const int ReferenceMaxLength = 255;
     }
     #endregion
 
     #region Errors
+    /// <summary>
+    /// Defines domain error scenarios specific to <see cref="StockTransfer"/> operations.
+    /// These errors are returned via the <see cref="ErrorOr"/> pattern for robust error handling.
+    /// </summary>
     public static class Errors
     {
+        /// <summary>
+        /// Error indicating that no variants with positive quantities were specified for the transfer or receipt.
+        /// </summary>
         public static Error NoVariants =>
             Error.Validation(
                 code: "StockTransfer.NoVariants",
                 description: "At least one variant with positive quantity must be specified.");
 
+        /// <summary>
+        /// Error indicating that the source and destination locations specified for a transfer are the same.
+        /// </summary>
         public static Error SourceEqualsDestination =>
             Error.Validation(
                 code: "StockTransfer.SourceEqualsDestination",
                 description: "Source and destination locations cannot be the same.");
 
+        /// <summary>
+        /// Error indicating that there is insufficient stock of a variant at the source location for a transfer.
+        /// </summary>
+        /// <param name="variantId">The unique identifier of the variant with insufficient stock.</param>
+        /// <param name="available">The quantity currently available at the source location.</param>
+        /// <param name="requested">The quantity requested for transfer.</param>
         public static Error InsufficientStock(Guid variantId, int available, int requested) =>
             Error.Validation(
                 code: "StockTransfer.InsufficientStock",
                 description: $"Variant {variantId}: Only {available} units available, but {requested} units requested.");
 
+        /// <summary>
+        /// Error indicating that a specified variant could not be found.
+        /// </summary>
+        /// <param name="variantId">The unique identifier of the variant that was not found.</param>
         public static Error VariantNotFound(Guid variantId) =>
             Error.NotFound(
                 code: "StockTransfer.VariantNotFound",
                 description: $"Variant with ID '{variantId}' was not found.");
 
+        /// <summary>
+        /// Error indicating that a specified stock location could not be found.
+        /// </summary>
+        /// <param name="locationId">The unique identifier of the stock location that was not found.</param>
         public static Error StockLocationNotFound(Guid locationId) =>
             Error.NotFound(
                 code: "StockTransfer.StockLocationNotFound",
                 description: $"Stock location with ID '{locationId}' was not found.");
 
+        /// <summary>
+        /// Error indicating that a requested stock transfer record could not be found.
+        /// </summary>
+        /// <param name="id">The unique identifier of the stock transfer that was not found.</param>
         public static Error NotFound(Guid id) =>
             Error.NotFound(
                 code: "StockTransfer.NotFound",
                 description: $"Stock transfer with ID '{id}' was not found.");
 
+        /// <summary>
+        /// Error indicating that a quantity specified for a stock transfer or receipt is invalid (e.g., non-positive).
+        /// </summary>
         public static Error InvalidQuantity =>
             Error.Validation(
                 code: "StockTransfer.InvalidQuantity",
@@ -257,48 +300,73 @@ public sealed class StockTransfer : Aggregate
         if (destinationLocation.Id != DestinationLocationId)
             return Errors.StockLocationNotFound(locationId: destinationLocation.Id);
 
-        var errors = new List<Error>();
+        // PHASE 1: VALIDATE ALL OPERATIONS (no mutations)
+        var validationErrors = new List<Error>();
+        var stockItemsToProcess = new List<(Variant variant, int quantity, StockItem sourceItem)>();
 
         foreach (var (variant, quantity) in variantsByQuantity)
         {
             // Validate quantity
             if (quantity <= 0)
             {
-                errors.Add(item: Error.Validation(
+                validationErrors.Add(item: Error.Validation(
                     code: "StockTransfer.InvalidQuantity",
                     description: $"Transfer quantity for variant {variant.Id} must be positive."));
                 continue;
             }
 
-            // Get or create stock item at source
+            // Get or create stock item at source (validation phase)
             var sourceStockItemResult = sourceLocation.StockItemOrCreate(variant: variant);
             if (sourceStockItemResult.IsError)
             {
-                errors.Add(item: sourceStockItemResult.FirstError);
+                validationErrors.Add(item: sourceStockItemResult.FirstError);
                 continue;
             }
 
             var sourceStockItem = sourceStockItemResult.Value;
 
             // Check sufficient stock in source (unless backorderable)
-            if (!sourceStockItem.Backorderable && sourceStockItem.QuantityOnHand < quantity)
+            if (!sourceStockItem.Backorderable && sourceStockItem.CountAvailable < quantity)
             {
-                errors.Add(item: Errors.InsufficientStock(
+                validationErrors.Add(item: Errors.InsufficientStock(
                     variantId: variant.Id,
-                    available: sourceStockItem.QuantityOnHand,
+                    available: sourceStockItem.CountAvailable,
                     requested: quantity));
                 continue;
             }
 
+            // Validate destination can receive (create stock item if needed)
+            var destStockItemResult = destinationLocation.StockItemOrCreate(variant: variant);
+            if (destStockItemResult.IsError)
+            {
+                validationErrors.Add(item: destStockItemResult.FirstError);
+                continue;
+            }
+
+            stockItemsToProcess.Add((variant, quantity, sourceStockItem));
+        }
+
+        // Return all errors if any validation failed
+        if (validationErrors.Any())
+            return validationErrors;
+
+        // PHASE 2: EXECUTE ALL OPERATIONS (all validated, now mutate)
+        // NOTE: Caller must wrap this in a database transaction!
+        var executionErrors = new List<Error>();
+
+        foreach (var (variant, quantity, sourceStockItem) in stockItemsToProcess)
+        {
             // Unstock from source
             var unstockResult = sourceLocation.Unstock(
                 variant: variant,
                 quantity: quantity,
                 originator: StockMovement.MovementOriginator.StockTransfer,
-                stockTransferId: Id);
+                originatorId: Id);
+
             if (unstockResult.IsError)
             {
-                errors.Add(item: unstockResult.FirstError);
+                executionErrors.Add(item: unstockResult.FirstError);
+                // CRITICAL: In production, this should trigger transaction rollback
                 continue;
             }
 
@@ -307,15 +375,25 @@ public sealed class StockTransfer : Aggregate
                 variant: variant,
                 quantity: quantity,
                 originator: StockMovement.MovementOriginator.StockTransfer,
-                stockTransferId: Id);
+                originatorId: Id);
+
             if (restockResult.IsError)
             {
-                errors.Add(item: restockResult.FirstError);
+                executionErrors.Add(item: restockResult.FirstError);
+                // CRITICAL: Transaction rollback needed here
+                continue;
             }
         }
 
-        if (errors.Any())
-            return errors;
+        if (executionErrors.Any())
+        {
+            // In a real system with proper transaction management,
+            // this would trigger a rollback of all stock changes
+            return Error.Failure(
+                code: "StockTransfer.PartialFailure",
+                description: "Transfer partially failed. Manual intervention may be required. " +
+                            "Errors: " + string.Join(", ", executionErrors.Select(e => e.Description)));
+        }
 
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(
@@ -369,34 +447,53 @@ public sealed class StockTransfer : Aggregate
         if (destinationLocation.Id != DestinationLocationId)
             return Errors.StockLocationNotFound(locationId: destinationLocation.Id);
 
-        var errors = new List<Error>();
+        // PHASE 1: VALIDATE
+        var validationErrors = new List<Error>();
+        var variantsToProcess = new List<(Variant variant, int quantity)>();
 
         foreach (var (variant, quantity) in variantsByQuantity)
         {
-            // Validate quantity
             if (quantity <= 0)
             {
-                errors.Add(item: Error.Validation(
+                validationErrors.Add(item: Error.Validation(
                     code: "StockTransfer.InvalidQuantity",
                     description: $"Receive quantity for variant {variant.Id} must be positive."));
                 continue;
             }
 
-            // Restock to destination with Supplier originator
+            // Validate destination can create stock item
+            var stockItemResult = destinationLocation.StockItemOrCreate(variant: variant);
+            if (stockItemResult.IsError)
+            {
+                validationErrors.Add(item: stockItemResult.FirstError);
+                continue;
+            }
+
+            variantsToProcess.Add((variant, quantity));
+        }
+
+        if (validationErrors.Any())
+            return validationErrors;
+
+        // PHASE 2: EXECUTE
+        var executionErrors = new List<Error>();
+
+        foreach (var (variant, quantity) in variantsToProcess)
+        {
             var restockResult = destinationLocation.Restock(
                 variant: variant,
                 quantity: quantity,
                 originator: StockMovement.MovementOriginator.Supplier,
-                stockTransferId: Id);
+                originatorId: Id);
 
             if (restockResult.IsError)
             {
-                errors.Add(item: restockResult.FirstError);
+                executionErrors.Add(item: restockResult.FirstError);
             }
         }
 
-        if (errors.Any())
-            return errors;
+        if (executionErrors.Any())
+            return executionErrors;
 
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(
