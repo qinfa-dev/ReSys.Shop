@@ -4,10 +4,10 @@ using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Orders.Payments;
-using ReSys.Core.Domain.Payments.PaymentSources;
+using ReSys.Core.Domain.PaymentMethods.PaymentSources;
 using ReSys.Core.Domain.Stores.PaymentMethods;
 
-namespace ReSys.Core.Domain.Payments;
+namespace ReSys.Core.Domain.PaymentMethods;
 
 /// <summary>
 /// Aggregate Root representing a payment method definition in the system.

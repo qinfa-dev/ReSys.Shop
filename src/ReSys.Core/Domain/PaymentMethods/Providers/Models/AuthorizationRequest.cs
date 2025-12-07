@@ -1,16 +1,16 @@
-namespace ReSys.Core.Domain.Payments.Providers.Models;
+using System.Collections.Generic;
 
-/// <summary>
-/// Request model for authorizing a payment via a gateway.
-/// </summary>
-public record GatewayAuthorizationRequest
+namespace ReSys.Core.Domain.PaymentMethods.Providers.Models;
+
+public record AuthorizationRequest
 {
-    public long Amount { get; init; }
+    public decimal Amount { get; init; } // Changed to decimal
     public string Currency { get; init; } = string.Empty;
     public string PaymentToken { get; init; } = string.Empty;
     public string OrderNumber { get; init; } = string.Empty;
     public string? CustomerEmail { get; init; }
     public GatewayAddress? BillingAddress { get; init; }
     public GatewayAddress? ShippingAddress { get; init; }
+    public string? IdempotencyKey { get; init; } // Added IdempotencyKey
     public Dictionary<string, string>? Metadata { get; init; }
 }

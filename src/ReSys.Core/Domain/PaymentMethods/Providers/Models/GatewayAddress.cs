@@ -1,4 +1,4 @@
-namespace ReSys.Core.Domain.Payments.Providers.Models;
+namespace ReSys.Core.Domain.PaymentMethods.Providers.Models;
 
 /// <summary>
 /// Represents an address structure for gateway requests.

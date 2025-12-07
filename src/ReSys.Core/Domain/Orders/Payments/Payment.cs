@@ -3,7 +3,7 @@
 using ReSys.Core.Common.Constants;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
-using ReSys.Core.Domain.Payments;
+using ReSys.Core.Domain.PaymentMethods;
 
 namespace ReSys.Core.Domain.Orders.Payments;
 

@@ -1,188 +1,176 @@
 # Payments.Providers Bounded Context
 
-This document describes the `Payments.Providers` bounded context, outlining its purpose, ubiquitous language, core components, and key behaviors.
+This document describes the `Payments.Providers` bounded context, outlining its purpose, ubiquitous language, core components, and key behaviors in the **new, refactored architecture**.
 
 ---
 
 ## 🎯 Purpose
 
-This domain defines a **unified interface** for integrating with external payment gateways (e.g., Stripe, PayPal, VNPay). It establishes a standardized contract for payment processing operations: initialization, authorization, capture, void, and refund. This promotes extensibility and allows new payment gateways to be added without altering core business logic.
+This domain defines a **unified and extensible interface** for integrating with external payment providers (e.g., Stripe, PayPal, VNPay). It establishes a standardized contract for payment processing operations (authorization, capture, void, and refund) and webhook handling. This promotes extensibility, reduces boilerplate, and allows new payment providers to be added without altering core business logic, while also separating provider configuration from concrete implementations.
 
 ---
 
 ## 🗣️ Ubiquitous Language
 
-- **Payment Gateway**: An external payment processing service (e.g., Stripe, PayPal, VNPay) accessed through the `IPaymentGateway` interface.
-- **Gateway ID**: A unique identifier for a payment gateway (e.g., "stripe", "paypal", "vnpay").
-- **Supported Types**: The list of `PaymentMethod.PaymentType` values that a gateway supports.
-- **Payment Request**: Request models (`GatewayAuthorizationRequest`, `GatewayCaptureRequest`, etc.) containing details for payment operations.
-- **Payment Result**: Result object (`PaymentResult`) summarizing the outcome of payment operations.
-- **Authorization**: Process of reserving funds without immediate transfer (authorize before capture).
-- **Capture**: Process of transferring authorized funds.
-- **Void**: Process of canceling an authorized payment before capture.
-- **Refund**: Process of returning captured funds to the customer.
-- **Initialization**: Configuring a gateway instance with `PaymentMethod`'s credentials and settings.
+-   **Payment Provider**: An external payment processing service (e.g., Stripe, PayPal, VNPay) accessed through the `IPaymentProvider` interface, encapsulating provider-specific logic.
+-   **Provider Options**: Strongly-typed configuration settings for a specific payment provider (e.g., `StripeProviderOptions`), passed to the provider's constructor.
+-   **Provider Name**: A unique identifier for a payment provider (e.g., "Stripe", "PayPal").
+-   **Payment Request**: Request models (`AuthorizationRequest`, `CaptureRequest`, etc.) containing standardized details for payment operations.
+-   **Provider Response**: Standardized result object (`ProviderResponse`) summarizing the outcome of payment operations, including a `PaymentStatus` enum.
+-   **Payment Status**: An enumeration (`PaymentStatus`) indicating the detailed state of a payment transaction (e.g., `Succeeded`, `Failed`, `Authorized`, `Captured`).
+-   **Idempotency Key**: A unique key included in requests to ensure that an operation is performed only once, even if called multiple times.
+-   **Authorization**: Process of reserving funds without immediate transfer (authorize before capture).
+-   **Capture**: Process of transferring authorized funds from an authorization.
+-   **Void**: Process of canceling an authorized payment before capture.
+-   **Refund**: Process of returning captured funds to the customer.
+-   **Webhook Event**: A notification from a payment provider about an asynchronous event (e.g., payment succeeded, charge refunded).
+-   **Webhook Handler**: A component (`IWebhookHandler`) responsible for processing webhook events from a specific provider.
+-   **Webhook Processor**: A central service (`WebhookProcessor`) that dispatches incoming webhook events to the correct `IWebhookHandler`.
 
 ---
 
-## 🏛️ Core Components
+## 🏛️ Core Components (Refactored Architecture)
 
 ### Interfaces
 
-#### `IPaymentGateway` - Main Gateway Contract
-Defines the canonical contract for all payment gateway implementations.
+#### `IPaymentProvider` - Main Provider Contract
+Defines the canonical contract for all payment provider implementations. This interface is decoupled from `PaymentMethod` entity configuration.
 
 **Methods:**
-- `Initialize(PaymentMethod, IPaymentCredentialEncryptor)` - Setup with credentials
-- `AuthorizeAsync(GatewayAuthorizationRequest)` - Authorize payment
-- `CaptureAsync(GatewayCaptureRequest)` - Capture authorized funds
-- `VoidAsync(GatewayVoidRequest)` - Cancel authorization
-- `RefundAsync(GatewayRefundRequest)` - Refund captured payment
+-   `AuthorizeAsync(AuthorizationRequest)` - Authorize payment
+-   `CaptureAsync(CaptureRequest)` - Capture authorized funds
+-   `VoidAsync(VoidRequest)` - Cancel authorization
+-   `RefundAsync(RefundRequest)` - Refund captured payment
 
-#### `IPaymentGatewayFactory` - Gateway Factory
-Factory for creating and retrieving gateway instances.
-
-**Methods:**
-- `GetGatewayAsync(PaymentMethod, CancellationToken)` - Get initialized gateway
-
-#### `IPaymentCredentialEncryptor` - Credential Management
-Service for encrypting and decrypting payment credentials.
+#### `IPaymentProviderFactory` - Provider Factory
+Factory for creating and retrieving configured `IPaymentProvider` instances.
 
 **Methods:**
-- `Encrypt(string)` - Encrypt plaintext credential
-- `Decrypt(string)` - Decrypt encrypted credential
+-   `GetProviderAsync(PaymentMethod, CancellationToken)` - Get initialized provider. The factory is responsible for extracting configuration from `PaymentMethod` and passing it to the provider's constructor.
 
-### Request/Response Models
+#### `IWebhookHandler` - Webhook Event Handler
+Defines the contract for handling webhook events from a specific payment provider.
 
-#### `GatewayAuthorizationRequest`
-Request for payment authorization.
-- `Amount`: Payment amount
-- `Currency`: ISO 4217 currency code
-- `PaymentToken`: Tokenized payment details
-- `OrderNumber`: Order reference
-- `CustomerEmail`: Customer email
-- `BillingAddress`: Billing address
-- `ShippingAddress`: Shipping address
-- `Metadata`: Additional data
+**Properties:**
+-   `ProviderName`: Unique name of the provider this handler supports.
 
-#### `GatewayCaptureRequest`
-Request for capturing authorized payment.
-- `TransactionId`: Authorization transaction ID
-- `Amount`: Amount to capture
-- `Currency`: Currency code
+**Methods:**
+-   `HandleWebhookAsync(WebhookEvent)`: Processes a generic webhook event.
 
-#### `GatewayVoidRequest`
-Request for voiding authorized payment.
-- `TransactionId`: Authorization transaction ID
+### Base Classes
 
-#### `GatewayRefundRequest`
-Request for refunding captured payment.
-- `TransactionId`: Capture transaction ID
-- `Amount`: Refund amount
-- `Currency`: Currency code
-- `Reason`: Refund reason (optional)
+#### `PaymentProviderBase<TProviderOptions>` - Common Provider Logic
+An abstract base class for payment provider implementations.
+-   Implements `IPaymentProvider`.
+-   Provides a constructor to receive `TProviderOptions` (strongly-typed configuration).
+-   Reduces boilerplate and provides a common foundation for concrete provider implementations.
 
-#### `GatewayAddress`
-Address for billing or shipping.
-- Standard address fields (FirstName, LastName, Company, AddressLine1, AddressLine2, City, State, PostalCode, Country, Phone)
+### Request/Response Models (New)
 
-#### `PaymentResult`
-Result of payment operation (standardized response from all gateways).
-- `TransactionId`: Gateway transaction ID
-- `Status`: Operation status
-- `Amount`: Processed amount
-- `Currency`: Currency code
-- `ProcessedAt`: Timestamp
-- `ErrorMessage`: Error details (if failed)
-- `ProviderData`: Gateway-specific data
+#### `AuthorizationRequest`
+Standardized request for payment authorization.
+-   `Amount`: Payment amount (`decimal`)
+-   `Currency`: ISO 4217 currency code
+-   `PaymentToken`: Tokenized payment details
+-   `OrderNumber`: Order reference
+-   `CustomerEmail`: Customer email
+-   `BillingAddress`: Billing address
+-   `ShippingAddress`: Shipping address
+-   `IdempotencyKey`: Unique key for idempotent requests
+-   `Metadata`: Additional data
 
----
+#### `CaptureRequest`
+Standardized request for capturing authorized payment.
+-   `TransactionId`: Authorization transaction ID
+-   `Amount`: Amount to capture (`decimal`)
+-   `Currency`: Currency code
+-   `IdempotencyKey`: Unique key for idempotent requests
 
-## 🔄 Payment Flows
+#### `VoidRequest`
+Standardized request for voiding authorized payment.
+-   `TransactionId`: Authorization transaction ID
+-   `IdempotencyKey`: Unique key for idempotent requests
 
-### Two-Step Payment (Authorize → Capture)
+#### `RefundRequest`
+Standardized request for refunding captured payment.
+-   `TransactionId`: Capture transaction ID
+-   `Amount`: Refund amount (`decimal`)
+-   `Currency`: Currency code
+-   `Reason`: Refund reason (optional)
+-   `IdempotencyKey`: Unique key for idempotent requests
 
-```
-1. Authorize: Reserve funds (holds payment)
-2. Review/Fulfill order
-3. Capture: Transfer funds
-```
+#### `ProviderResponse`
+Standardized result of any payment operation.
+-   `Status`: `PaymentStatus` enum (e.g., `Succeeded`, `Failed`, `Authorized`)
+-   `TransactionId`: Provider's transaction ID
+-   `ErrorCode`: Error code (if failed)
+-   `ErrorMessage`: Error details (if failed)
+-   `RawResponse`: Raw data from the provider (optional)
 
-### One-Step Payment (Direct Capture)
+#### `PaymentStatus` (Enum)
+Strongly-typed enumeration for payment transaction states: `Undefined`, `Succeeded`, `Failed`, `Pending`, `RequiresAction`, `Authorized`, `Captured`, `Voided`, `Refunded`, `PartiallyRefunded`.
 
-Some payment types support direct capture without authorization.
+#### `WebhookEvent`
+Generic model for incoming webhook data.
+-   `ProviderName`: Name of the provider sending the event.
+-   `EventType`: Type of the event (e.g., `charge.succeeded`).
+-   `EventId`: Unique ID of the event.
+-   `RawPayload`: Raw string payload.
+-   `CreatedAt`: Event timestamp.
+-   `Headers`: HTTP headers of the webhook request.
 
-### Refund
+### Services
 
-Return funds from captured payment to customer.
+#### `WebhookProcessor` - Centralized Webhook Dispatcher
+A service responsible for receiving raw webhook requests, constructing `WebhookEvent` objects, and dispatching them to the correct `IWebhookHandler` based on the `ProviderName`.
+-   Automatically resolves `IWebhookHandler` implementations from the DI container.
 
-### Void
+### Configuration Models
 
-Cancel authorized payment before capture.
+#### `ProviderOptions` (Abstract Base)
+Abstract base class for provider-specific configuration.
 
----
-
-## 🔐 Security Pattern
-
-**Credential Storage:**
-- Credentials stored encrypted in `PaymentMethod.PrivateMetadata`
-- Decrypted only during `Initialize()` call
-- Never logged or exposed
-
-**Encryption:**
-- Use `IPaymentCredentialEncryptor` for encrypt/decrypt
-- Implement with strong encryption (AES-256+)
-- Store keys separately from encrypted data
-
----
-
-## 🚀 Implementing a Gateway
-
-### Step 1: Implement `IPaymentGateway`
-
-```csharp
-public sealed class StripeGateway : IPaymentGateway
-{
-    private string? _apiKey;
-
-    public void Initialize(PaymentMethod paymentMethod, IPaymentCredentialEncryptor encryptor)
-    {
-        _apiKey = encryptor.Decrypt((string)paymentMethod.PrivateMetadata["api_key"]);
-    }
-
-    public async Task<ErrorOr<PaymentResult>> AuthorizeAsync(
-        GatewayAuthorizationRequest request, CancellationToken ct)
-    {
-        // Stripe-specific authorization
-    }
-
-    // Implement remaining methods...
-}
-```
-
-### Step 2: Register in Factory
-
-Implement `IPaymentGatewayFactory` with gateway registry.
-
-### Step 3: Configure PaymentMethod
-
-Store encrypted credentials in `PaymentMethod.PrivateMetadata`.
+#### `StripeProviderOptions` (Example)
+Concrete implementation of `ProviderOptions` for Stripe, including `PublishableKey` and other Stripe-specific settings.
 
 ---
 
-## 📝 Key Design Principles
+## 🚀 Implementing a New Payment Provider
 
-1. **Gateway-Agnostic**: Application code independent of gateway implementation
-2. **Initialization-Based**: Explicit initialize call before operations
-3. **ErrorOr Pattern**: Functional error handling
-4. **Secure by Default**: Credentials encrypted at rest
-5. **Extensible**: Add gateways without modifying core
+To add a new payment provider (e.g., "PayPal") to the system:
+
+### Step 1: Define `PayPalProviderOptions`
+Create a new class `PayPalProviderOptions` inheriting from `ProviderOptions` to hold PayPal-specific configuration (e.g., client ID, client secret).
+
+### Step 2: Implement `PayPalProvider`
+Create `PayPalProvider.cs` inheriting from `PaymentProviderBase<PayPalProviderOptions>` and implement the `IPaymentProvider` methods (`AuthorizeAsync`, `CaptureAsync`, etc.) by calling the PayPal API. The constructor will receive `PayPalProviderOptions`.
+
+### Step 3: Implement `PayPalWebhookHandler` (Optional)
+If PayPal provides webhooks, create `PayPalWebhookHandler.cs` implementing `IWebhookHandler` to process PayPal's webhook events.
+
+### Step 4: Register Components
+Register `PayPalProviderOptions`, `PayPalProvider`, `PayPalWebhookHandler` (if applicable), and map the provider type/name to its implementation in the Dependency Injection container. The `PaymentProviderFactory` will use this registration to resolve the correct provider.
+
+### Step 5: Update `PaymentMethod` Entity
+Ensure the `PaymentMethod` entity can store the necessary configuration (e.g., serialized `PayPalProviderOptions` or a reference to a configuration ID) and provider name ("PayPal").
+
+---
+
+## 📝 Key Design Principles (New Architecture)
+
+1.  **Provider-Agnostic Core**: Application logic remains independent of any specific payment provider.
+2.  **Decoupled Configuration**: Provider configurations are injected via constructors, removing the tight coupling with the `PaymentMethod` entity for initialization.
+3.  **Strongly-Typed Models**: Uses `decimal` for monetary values and enums for statuses, enhancing clarity and reducing errors.
+4.  **Idempotency Support**: Request models include `IdempotencyKey` to prevent duplicate transactions.
+5.  **Unified Webhook Processing**: A generic webhook system (`IWebhookHandler`, `WebhookProcessor`) standardizes the handling of asynchronous notifications from providers.
+6.  **Extensible**: Easily add new providers by implementing interfaces and inheriting from `PaymentProviderBase`.
+7.  **ErrorOr Pattern**: Functional error handling is maintained for all operations.
 
 ---
 
 ## 🔗 Related Contexts
 
-- **Payments.Core** - `PaymentMethod` aggregate
-- **Orders.Payments** - Payment records and lifecycle
-- **Stores** - Store-specific gateway activation
-- **Identity** - User authentication
+-   **Payments.Core** - `PaymentMethod` aggregate (stores provider name and encrypted settings)
+-   **Orders.Payments** - Payment records and lifecycle
+-   **Stores** - Store-specific provider activation
+-   **Identity** - User authentication

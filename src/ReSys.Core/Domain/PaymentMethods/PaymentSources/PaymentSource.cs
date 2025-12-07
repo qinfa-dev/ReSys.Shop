@@ -6,7 +6,7 @@ using ReSys.Core.Domain.Identity.Users;
 
 // Added for JsonSerializer
 
-namespace ReSys.Core.Domain.Payments.PaymentSources;
+namespace ReSys.Core.Domain.PaymentMethods.PaymentSources;
 
 /// <summary>
 /// Represents a stored payment source (e.g., saved credit card) for a user.

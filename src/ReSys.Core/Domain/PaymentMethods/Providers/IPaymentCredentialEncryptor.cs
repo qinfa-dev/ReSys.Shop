@@ -1,4 +1,4 @@
-namespace ReSys.Core.Domain.Payments.Providers;
+namespace ReSys.Core.Domain.PaymentMethods.Providers;
 
 /// <summary>
 /// Service for encrypting and decrypting payment provider credentials.
