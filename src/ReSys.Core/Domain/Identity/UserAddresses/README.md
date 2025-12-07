@@ -14,17 +14,17 @@ This domain manages the addresses associated with a user, providing a robust mec
 
 This section defines the key terms and concepts used within the `Identity.UserAddresses` bounded context.
 
--   **User Address**: A physical address (e.g., street, city, postal code) explicitly associated with a specific user, used for purposes such as shipping, billing, or contact. Represented by the `UserAddress` aggregate.
--   **Address Type**: An enumeration (`AddressType`) indicating the primary purpose or classification of the address (e.g., `Shipping`, `Billing`).
--   **Label**: A user-defined, human-readable identifier or nickname for an address (e.g., "Home", "Work", "My Office"), allowing users to easily distinguish between their saved addresses.
--   **Quick Checkout**: A boolean flag indicating if this address is designated as a preferred or default address for expedited checkout processes, streamlining the user experience.
--   **Is Default**: A boolean flag indicating if this is the user's primary or default address for its specific `AddressType`. A user might have a default shipping address and a default billing address.
--   **First Name / Last Name**: The name of the individual or recipient associated with the address.
--   **Address1 / Address2**: The primary and secondary lines for the street address.
--   **City**: The city component of the address.
--   **Zipcode**: The postal code or ZIP code of the address.
--   **Phone**: A contact phone number associated with the address.
--   **Company**: The company name associated with the address, if applicable.
+-   **User Address**: A physical address (e.g., street, city, postal code) explicitly associated with a specific user, used for purposes such as shipping, billing, or contact. Represented by the <see cref="UserAddress"/> aggregate.
+-   **Address Type**: An enumeration (<see cref="AddressType"/>) indicating the primary purpose or classification of the address (e.g., <c>Shipping</c>, <c>Billing</c>).
+-   **Label**: A user-defined, human-readable identifier or nickname for an address (e.g., "Home", "Work", "My Office"), allowing users to easily distinguish between their saved addresses. Its maximum length is defined by <see cref="UserAddress.UserAddressConstraints.LabelMaxLength"/>.
+-   **Quick Checkout**: A boolean flag indicating if this address is designated as a preferred or default address for expedited checkout processes, streamlining the user experience (<see cref="UserAddress.QuickCheckout"/>).
+-   **Is Default**: A boolean flag indicating if this is the user's primary or default address for its specific <see cref="AddressType"/>. A user might have a default shipping address and a default billing address (<see cref="UserAddress.IsDefault"/>).
+-   **First Name / Last Name**: The name of the individual or recipient associated with the address (<see cref="UserAddress.FirstName"/>, <see cref="UserAddress.LastName"/>).
+-   **Address1 / Address2**: The primary (<see cref="UserAddress.Address1"/>) and secondary (<see cref="UserAddress.Address2"/>) lines for the street address.
+-   **City**: The city component of the address (<see cref="UserAddress.City"/>).
+-   **Zipcode**: The postal code or ZIP code of the address (<see cref="UserAddress.Zipcode"/>).
+-   **Phone**: A contact phone number associated with the address (<see cref="UserAddress.Phone"/>).
+-   **Company**: The company name associated with the address, if applicable (<see cref="UserAddress.Company"/>).
 -   **Country**: The country where the address is located. (Referenced from `Location` Bounded Context).
 -   **State**: The state, province, or region where the address is located. (Referenced from `Location` Bounded Context).
 
@@ -39,20 +39,18 @@ This domain is composed of the following core building blocks:
 -   **`UserAddress`**: This is the Aggregate Root. It represents a single address belonging to a user and is responsible for managing its own properties, ensuring data integrity, and controlling its lifecycle (creation, update, deletion).
     -   **Entities**: None directly owned by `UserAddress`.
     -   **Value Objects**:
-        -   **`AddressType`**: An enumeration that categorizes user addresses as either `Shipping` or `Billing`, allowing for distinct handling and preferences.
-        -   Other properties like `FirstName`, `LastName`, `Label`, `QuickCheckout`, `IsDefault`, `Address1`, `Address2`, `City`, `Zipcode`, `Phone`, and `Company` are intrinsic attributes of the `UserAddress` aggregate.
+        -   **<see cref="AddressType"/>**: An enumeration that categorizes user addresses as either <c>Shipping</c> or <c>Billing</c>, allowing for distinct handling and preferences.
+        -   Other properties like <c>FirstName</c>, <c>LastName</c>, <c>Label</c>, <c>QuickCheckout</c>, <c>IsDefault</c>, <c>Address1</c>, <c>Address2</c>, <c>City</c>, <c>Zipcode</c>, <c>Phone</c>, and <c>Company</c> are intrinsic attributes of the <see cref="UserAddress"/> aggregate.
 
 ### Entities (not part of an Aggregate Root, if any)
 
--   `ApplicationUser` (from `Core.Domain.Identity.Users`): Referenced by `UserAddress` to establish ownership, but `ApplicationUser` is managed by its own aggregate.
--   `Country` (from `Core.Domain.Location`): Referenced by `UserAddress` to specify the country of the address, but `Country` is managed by its own aggregate.
--   `State` (from `Core.Domain.Location`): Referenced by `UserAddress` to specify the state/province of the address, but `State` is managed by its own aggregate.
+-   <see cref="ApplicationUser"/> (from `Core.Domain.Identity.Users`): Referenced by <see cref="UserAddress"/> to establish ownership, but <see cref="ApplicationUser"/> is managed by its own aggregate.
+-   <see cref="Country"/> (from `Core.Domain.Location`): Referenced by <see cref="UserAddress"/> to specify the country of the address, but <see cref="Country"/> is managed by its own aggregate.
+-   <see cref="State"/> (from `Core.Domain.Location`): Referenced by <see cref="UserAddress"/> to specify the state/province of the address, but <see cref="State"/> is managed by its own aggregate.
 
 ### Value Objects (standalone, if any)
 
--   None explicitly defined as standalone value objects beyond `AddressType` which is part of the `UserAddress` aggregate.
-
----
+-   None explicitly defined as standalone value objects beyond <see cref="AddressType"/> which is part of the <see cref="UserAddress"/> aggregate.
 
 ## ⚙️ Domain Services (if any)
 
@@ -64,11 +62,11 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Identity.UserAddresses` bounded context.
 
--   A `UserAddress` must always be associated with a valid `UserId` and `CountryId`, ensuring it belongs to a user and has a geographical context.
--   Essential address components such as `FirstName`, `LastName`, `Address1`, `City`, and `Zipcode` are required for a complete address.
--   The `Label` property has a maximum length constraint (`UserAddressConstraints.LabelMaxLength`) to ensure consistency and prevent excessive data.
--   `UserAddress` instances track their creation and update timestamps (`CreatedAt`, `UpdatedAt`), adhering to auditing requirements.
--   When a `UserAddress` is marked as `IsDefault`, the system (likely at the application service level) should ensure that only one address of a given `AddressType` is default for a user.
+-   A <see cref="UserAddress"/> must always be associated with a valid <c>UserId</c> and <c>CountryId</c>, ensuring it belongs to a user and has a geographical context.
+-   Essential address components such as <c>FirstName</c>, <c>LastName</c>, <c>Address1</c>, <c>City</c>, and <c>Zipcode</c> are typically required for a complete address.
+-   The <c>Label</c> property has a maximum length constraint (<see cref="UserAddress.UserAddressConstraints.LabelMaxLength"/>) to ensure consistency and prevent excessive data.
+-   <see cref="UserAddress"/> instances track their creation and update timestamps (<c>CreatedAt</c>, <c>UpdatedAt</c>), adhering to auditing requirements.
+-   When a <see cref="UserAddress"/> is marked as <c>IsDefault</c>, the system (likely at the application service level) should ensure that only one address of a given <see cref="AddressType"/> is default for a user, preventing multiple default addresses of the same type.
 
 ---
 
@@ -83,10 +81,10 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create User Address**: Instantiate a new `UserAddress` for a given user, providing all necessary address details, its `AddressType`, and initial preferences like `IsDefault` and `QuickCheckout`.
--   **Update User Address Details**: Modify any of the address components (e.g., `FirstName`, `Address1`, `City`, `CountryId`), `Label`, `QuickCheckout`, `IsDefault`, or `AddressType` of an existing `UserAddress`.
--   **Delete User Address**: Remove an `UserAddress` from the system.
--   **Publish Domain Events**: Emit domain events (`UserAddressCreated`, `UserAddressUpdated`, `UserAddressDeleted`) to signal significant state changes in the address's lifecycle, enabling a decoupled architecture where other parts of the system can react asynchronously (e.g., updating user profiles, order processing).
+-   **Create User Address**: Instantiate a new <see cref="UserAddress"/> for a given user using <see cref="UserAddress.Create(string, string, string, Guid, string, string, string, Guid?, string?, string?, string?, string?, bool, bool, AddressType)"/>, providing all necessary address details, its <see cref="AddressType"/>, and initial preferences like <c>IsDefault</c> and <c>QuickCheckout</c>.
+-   **Update User Address Details**: Modify any of the address components (e.g., <c>FirstName</c>, <c>Address1</c>, <c>City</c>, <c>CountryId</c>), <c>Label</c>, <c>QuickCheckout</c>, <c>IsDefault</c>, or <c>AddressType</c> of an existing <see cref="UserAddress"/> using <see cref="UserAddress.Update(string?, string?, string?, bool?, bool?, AddressType?, string?, string?, string?, string?, Guid?, Guid?, string?, string?)"/>.
+-   **Delete User Address**: Remove a <see cref="UserAddress"/> from the system using <see cref="UserAddress.Delete()"/>. This method adds a <see cref="UserAddress.Events.UserAddressDeleted"/> domain event.
+-   **Publish Domain Events**: <see cref="UserAddress"/> emits domain events (<see cref="UserAddress.Events.UserAddressCreated"/>, <see cref="UserAddress.Events.UserAddressUpdated"/>, <see cref="UserAddress.Events.UserAddressDeleted"/>) to signal significant state changes in the address's lifecycle, enabling a decoupled architecture where other parts of the system can react asynchronously (e.g., updating user profiles, order processing).
 
 ---
 

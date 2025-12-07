@@ -49,12 +49,12 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Identity.Roles.Claims` bounded context.
 
--   A `RoleClaim` must always be associated with a valid `RoleId`, `ClaimType`, and `ClaimValue`.
--   There is a maximum limit to the number of claims that can be assigned to a single role.
--   A specific `Claim Type` can only be assigned once to a role to prevent duplicates.
--   `Claim Type` and `Claim Value` must adhere to predefined length constraints.
--   `Claim Type` must follow a specific pattern (`Constraints.ClaimTypePattern`).
--   `RoleClaim` instances track their assignment details (`AssignedAt`, `AssignedBy`, `AssignedTo`), adhering to auditing requirements.
+-   A <see cref="RoleClaim"/> must always be associated with a valid <c>RoleId</c>, <c>ClaimType</c>, and <c>ClaimValue</c> (if applicable).
+-   There is a maximum limit (<see cref="RoleClaim.Constraints.MaxClaimsPerRole"/>) to the number of claims that can be assigned to a single role, enforced by <see cref="RoleClaim.Errors.MaxClaimsExceeded"/>.
+-   A specific <c>Claim Type</c> can only be assigned once to a role to prevent duplicates. Attempts to assign an already present claim type will result in <see cref="RoleClaim.Errors.AlreadyAssigned(string)"/>.
+-   <c>Claim Type</c> and <c>Claim Value</c> must adhere to predefined length constraints (<see cref="RoleClaim.Constraints.MinClaimTypeLength"/>, <see cref="RoleClaim.Constraints.MaxClaimTypeLength"/>, <see cref="RoleClaim.Constraints.MaxClaimValueLength"/>).
+-   <c>Claim Type</c> must follow a specific pattern (<see cref="RoleClaim.Constraints.ClaimTypePattern"/>).
+-   <see cref="RoleClaim"/> instances track their assignment details (<c>AssignedAt</c>, <c>AssignedBy</c>, <c>AssignedTo</c>), adhering to auditing requirements via the <see cref="IHasAssignable"/> concern.
 
 ---
 
@@ -68,9 +68,9 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create Role Claim**: Instantiate a new `RoleClaim` for a role, specifying its type and value.
--   **Assign Role Claim**: Associate a new claim with an `ApplicationRole`, subject to constraints like maximum claims per role and uniqueness.
--   **Remove Role Claim**: Disassociate an existing claim from an `ApplicationRole`.
+-   **Create Role Claim**: Instantiate a new <see cref="RoleClaim"/> using <see cref="RoleClaim.Create(string, string, string?, string?)"/> for a role, specifying its type and value. This method performs initial validation and assignment tracking.
+-   **Assign Role Claim**: Explicitly assign a <see cref="RoleClaim"/> to an <see cref="ApplicationRole"/> using <see cref="RoleClaim.Assign(Role?, string, string?, string?)"/>. This method enforces constraints like maximum claims per role (<see cref="RoleClaim.Constraints.MaxClaimsPerRole"/>) and uniqueness of claim types, returning appropriate errors (<see cref="RoleClaim.Errors.MaxClaimsExceeded"/>, <see cref="RoleClaim.Errors.AlreadyAssigned(string)"/>).
+-   **Remove Role Claim**: Disassociate an existing claim from an <see cref="ApplicationRole"/> using <see cref="RoleClaim.Remove()"/>. This method marks the claim as unassigned. The actual removal from the role's collection is typically handled by the parent <see cref="ApplicationRole"/> aggregate.
 
 ---
 

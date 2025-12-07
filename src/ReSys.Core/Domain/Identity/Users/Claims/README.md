@@ -14,11 +14,11 @@ This domain manages the assignment of claims to individual users within the iden
 
 This section defines the key terms and concepts used within the `Identity.Users.Claims` bounded context.
 
--   **User Claim**: A specific key-value pair of information that is assigned to a `User`. Represented by the `UserClaim` entity.
+-   **User Claim**: A specific key-value pair of information that is assigned to a <see cref="User"/>. Represented by the <see cref="UserClaim"/> entity.
 -   **User**: The application user to whom the claim is assigned. (Referenced from `Identity.Users` Bounded Context).
--   **Claim Type**: The key or name of the claim (e.g., "permission", "favorite_color", "department").
--   **Claim Value**: The value associated with the `Claim Type` (e.g., "catalog.product.view", "blue", "Marketing").
--   **Assigned At / By / To**: Auditing fields tracking when, by whom, and to what the claim was assigned.
+-   **Claim Type**: The key or name of the claim (e.g., "permission", "favorite_color", "department"). Validated against constraints like <see cref="UserClaim.Constraints.MinClaimTypeLength"/> and <see cref="UserClaim.Constraints.MaxClaimTypeLength"/>.
+-   **Claim Value**: The value associated with the <c>Claim Type</c> (e.g., "catalog.product.view", "blue", "Marketing"). Validated against constraints like <see cref="UserClaim.Constraints.MaxClaimValueLength"/>.
+-   **Assigned At / By / To**: Auditing fields tracking when, by whom, and to what the claim was assigned, derived from the <see cref="IHasAssignable"/> concern.
 
 ---
 
@@ -32,14 +32,12 @@ This domain is composed of the following core building blocks:
 
 ### Entities (not part of an Aggregate Root, if any)
 
--   **`UserClaim`**: This is the central entity of this bounded context. It represents a single claim associated with a user and inherits from `IdentityUserClaim<string>` for ASP.NET Core Identity integration. It implements `IHasAssignable` for auditing purposes.
-    -   **Value Objects**: None explicitly defined as separate classes. Properties like `ClaimType`, `ClaimValue`, and the `IAssignable` properties are intrinsic attributes of the `UserClaim` entity.
+-   **`UserClaim`**: This is the central entity of this bounded context. It represents a single claim associated with a user and inherits from <see cref="IdentityUserClaim{TKey}"/> for ASP.NET Core Identity integration. It implements <see cref="IHasAssignable"/> for auditing purposes.
+    -   **Value Objects**: None explicitly defined as separate classes. Properties like <c>ClaimType</c>, <c>ClaimValue</c> (from <see cref="IdentityUserClaim{TKey}"/>), and the <see cref="IHasAssignable"/> properties (<c>AssignedAt</c>, <c>AssignedBy</c>, <c>AssignedTo</c>) are intrinsic attributes of the <see cref="UserClaim"/> entity.
 
 ### Value Objects (standalone, if any)
 
 -   None.
-
----
 
 ## ⚙️ Domain Services (if any)
 
@@ -51,11 +49,11 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Identity.Users.Claims` bounded context.
 
--   A `UserClaim` must always be associated with a valid `UserId`, `ClaimType`, and `ClaimValue`.
--   There is a maximum limit to the number of claims that can be assigned to a single user.
--   A specific `Claim Type` can only be assigned once to a user to prevent duplicates.
--   `Claim Type` and `Claim Value` must adhere to predefined length constraints.
--   `UserClaim` instances track their assignment details (`AssignedAt`, `AssignedBy`, `AssignedTo`), adhering to auditing requirements.
+-   A <see cref="UserClaim"/> must always be associated with a valid <c>UserId</c>, <c>ClaimType</c>, and <c>ClaimValue</c> (if applicable).
+-   There is a maximum limit (<see cref="UserClaim.Constraints.MaxClaimsPerUser"/>) to the number of claims that can be assigned to a single user, enforced by <see cref="UserClaim.Errors.MaxClaimsExceeded"/>.
+-   A specific <c>Claim Type</c> can only be assigned once to a user to prevent duplicates. Attempts to assign an already present claim type will result in <see cref="UserClaim.Errors.AlreadyAssigned(string)"/>.
+-   <c>Claim Type</c> and <c>Claim Value</c> must adhere to predefined length constraints (<see cref="UserClaim.Constraints.MinClaimTypeLength"/>, <see cref="UserClaim.Constraints.MaxClaimTypeLength"/>, <see cref="UserClaim.Constraints.MaxClaimValueLength"/>).
+-   <see cref="UserClaim"/> instances track their assignment details (<c>AssignedAt</c>, <c>AssignedBy</c>, <c>AssignedTo</c>), adhering to auditing requirements via the <see cref="IHasAssignable"/> concern.
 
 ---
 
@@ -69,9 +67,9 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create User Claim**: Instantiate a new `UserClaim` for a user, specifying its type and value.
--   **Assign User Claim**: Associate a new claim with an `ApplicationUser`, subject to constraints like maximum claims per user and uniqueness.
--   **Remove User Claim**: Disassociate an existing claim from an `ApplicationUser`.
+-   **Create User Claim**: Instantiate a new <see cref="UserClaim"/> using <see cref="UserClaim.Create(string, string, string?, string?)"/> for a user, specifying its type and value. This method performs initial validation and assignment tracking.
+-   **Assign User Claim**: Explicitly assign a <see cref="UserClaim"/> to an <see cref="ApplicationUser"/> using <see cref="UserClaim.Assign(User, string, string?, string?)"/>. This method enforces constraints like maximum claims per user (<see cref="UserClaim.Constraints.MaxClaimsPerUser"/>) and uniqueness of claim types, returning appropriate errors (<see cref="UserClaim.Errors.MaxClaimsExceeded"/>, <see cref="UserClaim.Errors.AlreadyAssigned(string)"/>).
+-   **Remove User Claim**: Disassociate an existing claim from an <see cref="ApplicationUser"/> using <see cref="UserClaim.Remove()"/>. This method marks the claim as unassigned. The actual removal from the user's collection is typically handled by the parent <see cref="ApplicationUser"/> aggregate.
 
 ---
 

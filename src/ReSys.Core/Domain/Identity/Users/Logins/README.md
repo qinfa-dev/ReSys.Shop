@@ -14,11 +14,11 @@ This domain manages the association of external login providers (such as Google,
 
 This section defines the key terms and concepts used within the `Identity.Users.Logins` bounded context.
 
--   **User Login**: A record linking a user's account to an external authentication provider. Represented by the `UserLogin` entity.
+-   **User Login**: A record linking a user's account to an external authentication provider. Represented by the <see cref="UserLogin"/> entity.
 -   **User**: The application user who is linked to the external login. (Referenced from `Identity.Users` Bounded Context).
--   **Login Provider**: The name of the external service (e.g., "Google", "Facebook", "Microsoft Account") that authenticated the user.
--   **Provider Key**: A unique identifier for the user obtained from the external `Login Provider`. This key is specific to the external service.
--   **Provider Display Name**: A user-friendly name for the `Login Provider`, often shown in the UI.
+-   **Login Provider**: The name of the external service (e.g., "Google", "Facebook", "Microsoft Account") that authenticated the user (<see cref="IdentityUserLogin{TKey}.LoginProvider"/>).
+-   **Provider Key**: A unique identifier for the user obtained from the external <c>Login Provider</c> (<see cref="IdentityUserLogin{TKey}.ProviderKey"/>). This key is specific to the external service.
+-   **Provider Display Name**: A user-friendly name for the <c>Login Provider</c>, often shown in the UI (<see cref="IdentityUserLogin{TKey}.ProviderDisplayName"/>).
 
 ---
 
@@ -32,14 +32,12 @@ This domain is composed of the following core building blocks:
 
 ### Entities (not part of an Aggregate Root, if any)
 
--   **`UserLogin`**: This is the central entity of this bounded context. It represents a single external login associated with a user and inherits from `IdentityUserLogin<string>` for ASP.NET Core Identity integration.
-    -   **Value Objects**: None explicitly defined as separate classes. Properties like `LoginProvider`, `ProviderKey`, `ProviderDisplayName`, and `UserId` are intrinsic attributes of the `UserLogin` entity, inherited or directly managed.
+-   **`UserLogin`**: This is the central entity of this bounded context. It represents a single external login associated with a user and inherits from <see cref="IdentityUserLogin{TKey}"/> for ASP.NET Core Identity integration.
+    -   **Value Objects**: None explicitly defined as separate classes. Properties like <c>LoginProvider</c>, <c>ProviderKey</c>, <c>ProviderDisplayName</c>, and <c>UserId</c> (from <see cref="IdentityUserLogin{TKey}"/>) are intrinsic attributes of the <see cref="UserLogin"/> entity.
 
 ### Value Objects (standalone, if any)
 
 -   None.
-
----
 
 ## ⚙️ Domain Services (if any)
 
@@ -51,8 +49,8 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Identity.Users.Logins` bounded context.
 
--   A `UserLogin` must always be associated with a valid `UserId`.
--   The combination of `Login Provider` and `Provider Key` must be unique across all `UserLogin` entries, ensuring that a single external identity maps to a single user account.
+-   A <see cref="UserLogin"/> must always be associated with a valid <c>UserId</c> (<see cref="IdentityUserLogin{TKey}.UserId"/>).
+-   The combination of <c>Login Provider</c> (<see cref="IdentityUserLogin{TKey}.LoginProvider"/>) and <c>Provider Key</c> (<see cref="IdentityUserLogin{TKey}.ProviderKey"/>) must be unique across all <see cref="UserLogin"/> entries, ensuring that a single external identity maps to a single user account.
 
 ---
 
@@ -65,9 +63,9 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Add External Login**: Link an external authentication provider's credentials to an existing user account.
--   **Remove External Login**: Disassociate an external login from a user account.
--   **Retrieve User by External Login**: Find a user account based on their external login details.
+-   **Add External Login**: Link an external authentication provider's credentials to an existing user account. This is typically orchestrated by an application service that leverages ASP.NET Core Identity's <c>UserManager</c> and <c>SignInManager</c> to add a new <see cref="UserLogin"/> record.
+-   **Remove External Login**: Disassociate an external login from a user account. This is also typically managed by an application service interacting with ASP.NET Core Identity.
+-   **Retrieve User by External Login**: Find a user account based on their external login details (i.e., <c>LoginProvider</c> and <c>ProviderKey</c>). ASP.NET Core Identity provides mechanisms for this lookup.
 
 ---
 

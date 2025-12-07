@@ -14,11 +14,11 @@ This domain manages generic tokens associated with individual user accounts. The
 
 This section defines the key terms and concepts used within the `Identity.Users.Tokens` bounded context.
 
--   **User Token**: A temporary, secure credential associated with a user for specific, short-term purposes. Represented by the `UserToken` entity.
+-   **User Token**: A temporary, secure credential associated with a user for specific, short-term purposes. Represented by the <see cref="UserToken"/> entity.
 -   **User**: The application user to whom the token is issued. (Referenced from `Identity.Users` Bounded Context).
--   **Login Provider**: The authentication provider that issued the token. For internal tokens, this might be the application itself.
--   **Token Name**: A logical name for the token's purpose (e.g., "PasswordReset", "EmailConfirmation", "AuthenticatorKey").
--   **Token Value**: The actual cryptographic string of the token.
+-   **Login Provider**: The authentication provider that issued the token (<see cref="IdentityUserToken{TKey}.LoginProvider"/>). For internal tokens, this might be the application itself.
+-   **Token Name**: A logical name for the token's purpose (e.g., "PasswordReset", "EmailConfirmation", "AuthenticatorKey") (<see cref="IdentityUserToken{TKey}.Name"/>).
+-   **Token Value**: The actual cryptographic string of the token (<see cref="IdentityUserToken{TKey}.Value"/>).
 
 ---
 
@@ -32,14 +32,12 @@ This domain is composed of the following core building blocks:
 
 ### Entities (not part of an Aggregate Root, if any)
 
--   **`UserToken`**: This is the central entity of this bounded context. It represents a single generic token associated with a user and inherits from `IdentityUserToken<string>` for ASP.NET Core Identity integration.
-    -   **Value Objects**: None explicitly defined as separate classes. Properties like `UserId`, `LoginProvider`, `Name`, and `Value` are intrinsic attributes of the `UserToken` entity, inherited or directly managed.
+-   **`UserToken`**: This is the central entity of this bounded context. It represents a single generic token associated with a user and inherits from <see cref="IdentityUserToken{TKey}"/> for ASP.NET Core Identity integration.
+    -   **Value Objects**: None explicitly defined as separate classes. Properties like <c>UserId</c>, <c>LoginProvider</c>, <c>Name</c>, and <c>Value</c> (from <see cref="IdentityUserToken{TKey}"/>) are intrinsic attributes of the <see cref="UserToken"/> entity.
 
 ### Value Objects (standalone, if any)
 
 -   None.
-
----
 
 ## ⚙️ Domain Services (if any)
 
@@ -51,8 +49,8 @@ This domain is composed of the following core building blocks:
 
 This section outlines the critical business rules and invariants enforced within the `Identity.Users.Tokens` bounded context.
 
--   A `UserToken` must always be associated with a valid `UserId`.
--   The combination of `UserId`, `LoginProvider`, and `Name` must be unique for each `UserToken`, ensuring that only one token of a specific type from a specific provider exists for a user at a time.
+-   A <see cref="UserToken"/> must always be associated with a valid <c>UserId</c> (<see cref="IdentityUserToken{TKey}.UserId"/>).
+-   The combination of <c>UserId</c>, <c>LoginProvider</c> (<see cref="IdentityUserToken{TKey}.LoginProvider"/>), and <c>Name</c> (<see cref="IdentityUserToken{TKey}.Name"/>) must be unique for each <see cref="UserToken"/> entry. This ensures that only one token of a specific type from a specific provider exists for a user at a time.
 -   Tokens typically have an expiration or are single-use, although their lifecycle management (e.g., expiration, invalidation after use) is often handled by application services that interact with this entity.
 
 ---
@@ -66,9 +64,9 @@ This section outlines the critical business rules and invariants enforced within
 
 ## 🚀 Key Use Cases / Behaviors
 
--   **Create User Token**: Generate and store a new token for a user for a specific purpose (e.g., password reset).
--   **Retrieve User Token**: Find a token by its user, login provider, and name for validation.
--   **Remove User Token**: Delete a token after it has been used or has expired.
+-   **Create User Token**: Generate and store a new token for a user for a specific purpose (e.g., password reset, email confirmation). This is typically orchestrated by an application service that leverages ASP.NET Core Identity's <c>UserManager</c> to add a new <see cref="UserToken"/> record.
+-   **Retrieve User Token**: Find a token by its user, login provider, and name for validation. ASP.NET Core Identity provides mechanisms for this lookup via the <c>UserManager</c>.
+-   **Remove User Token**: Delete a token after it has been used or has expired. This is also typically managed by an application service interacting with ASP.NET Core Identity.
 
 ---
 
