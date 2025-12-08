@@ -15,7 +15,7 @@ internal static class SeedersServiceCollectionExtensions
     /// </summary>
     internal static void AddDataSeeders(this IServiceCollection services)
     {
-        services.AddTransient<IDataSeeder, IdentityDataSeeder>();
+            services.AddTransient<IDataSeeder, IdentityDataSeeder>();
         Log.Debug(messageTemplate: LogTemplates.ServiceRegistered,
             propertyValue0: nameof(IdentityDataSeeder),
             propertyValue1: "Transient");
@@ -25,7 +25,7 @@ internal static class SeedersServiceCollectionExtensions
             propertyValue0: nameof(LocationDataSeeder),
             propertyValue1: "Transient");
 
-        services.AddHostedService<SeederOrchestrator>();
+        //services.AddHostedService<SeederOrchestrator>();
         Log.Debug(messageTemplate: LogTemplates.ServiceRegistered,
             propertyValue0: nameof(SeederOrchestrator),
             propertyValue1: "Singleton");
