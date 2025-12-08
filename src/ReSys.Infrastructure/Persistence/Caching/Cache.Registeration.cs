@@ -7,10 +7,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using ReSys.Core.Feature.Common.Caching.Interfaces;
-using ReSys.Infrastructure.Caching.Options;
-using ReSys.Infrastructure.Caching.Services;
+using ReSys.Infrastructure.Persistence.Caching.Options;
+using ReSys.Infrastructure.Persistence.Caching.Services;
 
-namespace ReSys.Infrastructure.Caching;
+namespace ReSys.Infrastructure.Persistence.Caching;
 
 /// <summary>
 /// Registers caching infrastructure (InMemory or Redis) dynamically based on environment.

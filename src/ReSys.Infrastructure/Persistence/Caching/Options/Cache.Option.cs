@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 
-namespace ReSys.Infrastructure.Caching.Options;
+namespace ReSys.Infrastructure.Persistence.Caching.Options;
 
 /// <summary>
 /// Represents caching configuration for hybrid caching (local + distributed).

@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Options;
 
 using ReSys.Core.Feature.Common.Caching.Interfaces;
-using ReSys.Infrastructure.Caching.Options;
+using ReSys.Infrastructure.Persistence.Caching.Options;
 
-namespace ReSys.Infrastructure.Caching.Services;
+namespace ReSys.Infrastructure.Persistence.Caching.Services;
 
 /// <summary>
 /// Provides a high-performance caching service built on top of .NET 9 <see cref="HybridCache"/>.
