@@ -26,4 +26,9 @@
     <PackageReference Include="Serilog" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Feature\Accounts\" />
+    <Folder Include="Feature\Storefront\" />
+  </ItemGroup>
+
 </Project>

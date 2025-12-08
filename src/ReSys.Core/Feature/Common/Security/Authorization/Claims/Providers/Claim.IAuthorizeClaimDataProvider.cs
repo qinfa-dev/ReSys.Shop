@@ -2,8 +2,8 @@
 
 namespace ReSys.Core.Feature.Common.Security.Authorization.Claims.Providers;
 
-public interface IClaimAuthorizeDataProvider
+public interface IAuthorizeClaimDataProvider
 {
-    Task<ClaimAuthorizeData?> GetUserAuthorizationAsync(string userId);
+    Task<AuthorizeClaimData?> GetUserAuthorizationAsync(string userId);
     Task InvalidateUserAuthorizationAsync(string userId);
 }

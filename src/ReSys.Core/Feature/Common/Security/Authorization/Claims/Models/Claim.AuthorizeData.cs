@@ -2,7 +2,7 @@
 
 namespace ReSys.Core.Feature.Common.Security.Authorization.Claims.Models;
 
-public record ClaimAuthorizeData(
+public record AuthorizeClaimData(
     [property: JsonPropertyName(name: "user_id")] string UserId,
     [property: JsonPropertyName(name: "user_name")] string UserName,
     [property: JsonPropertyName(name: "email")] string Email,
