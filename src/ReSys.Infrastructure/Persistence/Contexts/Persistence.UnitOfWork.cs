@@ -9,7 +9,7 @@ using Serilog;
 
 using IsolationLevel = System.Data.IsolationLevel;
 
-namespace ReSys.Infrastructure.Persistence;
+namespace ReSys.Infrastructure.Persistence.Contexts;
 
 public sealed class UnitOfWork : IUnitOfWork
 {

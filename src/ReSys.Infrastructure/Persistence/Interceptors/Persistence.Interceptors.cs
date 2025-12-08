@@ -13,7 +13,7 @@ using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Auditing;
 using ReSys.Core.Feature.Common.Security.Authentication.Contexts.Interfaces;
 
-namespace ReSys.Infrastructure.Persistence;
+namespace ReSys.Infrastructure.Persistence.Interceptors;
 
 public static class PersistenceInterceptors
 {

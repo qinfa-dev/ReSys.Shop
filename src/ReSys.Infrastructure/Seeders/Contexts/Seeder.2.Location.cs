@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using ReSys.Core.Domain.Location.Countries;
 using ReSys.Core.Domain.Location.States;
-using ReSys.Infrastructure.Persistence;
+using ReSys.Infrastructure.Persistence.Contexts;
 
 using Serilog;
 

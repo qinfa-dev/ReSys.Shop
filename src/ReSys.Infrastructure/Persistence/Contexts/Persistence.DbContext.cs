@@ -14,7 +14,7 @@ using ReSys.Core.Domain.Identity.Users.Roles;
 using ReSys.Core.Domain.Identity.Users.Tokens;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Infrastructure.Persistence;
+namespace ReSys.Infrastructure.Persistence.Contexts;
 
 public sealed class ApplicationDbContext(
     DbContextOptions<ApplicationDbContext> options)

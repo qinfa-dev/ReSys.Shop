@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 
 using ReSys.Core.Common.Constants;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
+using ReSys.Infrastructure.Persistence.Contexts;
 
 using Serilog;
 
