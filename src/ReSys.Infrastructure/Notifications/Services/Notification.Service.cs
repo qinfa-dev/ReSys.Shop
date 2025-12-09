@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 using ReSys.Core.Feature.Common.Notification.Constants;
 using ReSys.Core.Feature.Common.Notification.Interfaces;
-using ReSys.Core.Feature.Common.Notification.Models;
 using ReSys.Core.Feature.Common.Notification.Models.Notification;
 
 namespace ReSys.Infrastructure.Notifications.Services;

@@ -10,7 +10,6 @@ using ReSys.Core.Domain.Identity.Permissions;
 using ReSys.Core.Domain.Identity.Roles;
 using ReSys.Core.Domain.Identity.Users;
 using ReSys.Core.Feature.Common.Security.Authorization.Claims.Constants;
-using ReSys.Core.Feature.Common.Security.Authorization.Permissions;
 using ReSys.Core.Feature.Common.Security.Authorization.Permissions.Constants;
 using ReSys.Core.Feature.Common.Security.Authorization.Roles;
 using ReSys.Infrastructure.Persistence.Contexts;
