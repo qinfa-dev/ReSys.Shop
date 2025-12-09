@@ -1,6 +1,10 @@
+using ReSys.API;
+using ReSys.Core;
+using ReSys.Infrastructure;
+
 using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
 
 builder.Host.UseSerilog();
 Log.Logger = new LoggerConfiguration()
@@ -8,20 +12,18 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
-builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services
+    .AddCore()
+    .AddInfrastructure(configuration: builder.Configuration, environment: builder.Environment);
+
+builder.Services.AddPresentation(configuration: builder.Configuration, builderEnvironment: builder.Environment);
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app
+    .UseCore()
+    .UseInfrastructure(appConfiguration: app.Configuration, environment: app.Environment);
 
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
+app.UsePresentation();
 
 await app.RunAsync();
