@@ -1,7 +1,5 @@
 using FluentAssertions;
 using ReSys.Core.Domain.Inventories;
-using System;
-using Xunit;
 
 namespace Core.UnitTests.Domain.Inventories;
 

@@ -1,15 +1,8 @@
 using FluentAssertions;
-using ReSys.Core.Common.Domain.Concerns;
+
 using ReSys.Core.Domain.Orders.Payments;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using ReSys.Core.Common.Extensions;
 using ReSys.Core.Domain.PaymentMethods;
-
-using Xunit;
 
 namespace Core.UnitTests.Domain.PaymentMethods;
 

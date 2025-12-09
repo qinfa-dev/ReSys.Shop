@@ -2,9 +2,6 @@ using FluentAssertions;
 using ReSys.Core.Domain.Promotions.Actions;
 using ReSys.Core.Domain.Promotions.Promotions;
 using ReSys.Core.Domain.Promotions.Rules;
-using System;
-using System.Linq;
-using Xunit;
 
 namespace Core.UnitTests.Domain.Promotions.Promotions;
 

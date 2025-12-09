@@ -2,15 +2,10 @@ using ErrorOr;
 using FluentAssertions;
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Variants;
-using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Inventories.Stocks; // Corrected namespace for StockItem
 using ReSys.Core.Domain.Orders; // For StockMovement
 using ReSys.Core.Domain.Orders.Shipments; // For InventoryUnit
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection; // For reflection
-using Xunit;
+// For reflection
 
 namespace Core.UnitTests.Domain.Inventories.Stocks;
 

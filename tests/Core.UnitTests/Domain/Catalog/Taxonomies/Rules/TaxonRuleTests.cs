@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
 using FluentAssertions;
-using Xunit;
-using ErrorOr;
-using ReSys.Core.Common.Constants;
+
 using ReSys.Core.Domain.Catalog.Taxonomies.Rules;
 
 using static ReSys.Core.Domain.Catalog.Taxonomies.Rules.TaxonRule; // For TaxonRule.Errors

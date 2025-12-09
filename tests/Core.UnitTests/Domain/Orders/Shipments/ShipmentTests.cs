@@ -1,9 +1,6 @@
 using FluentAssertions;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Domain.Orders.Shipments;
-using System;
-using System.Linq;
-using Xunit;
 
 namespace Core.UnitTests.Domain.Orders.Shipments;
 

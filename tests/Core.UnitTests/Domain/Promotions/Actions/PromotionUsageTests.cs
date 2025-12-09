@@ -1,9 +1,8 @@
 using FluentAssertions;
 using ReSys.Core.Domain.Promotions.Actions;
 using ReSys.Core.Domain.Promotions.Promotions;
-using ReSys.Core.Common.Extensions; // Added for GetPrivate extension method
+// Added for GetPrivate extension method
 using ReSys.Core.Common.Domain.Concerns; // Added for IHasMetadata
-using Xunit;
 
 namespace Core.UnitTests.Domain.Promotions.Actions;
 

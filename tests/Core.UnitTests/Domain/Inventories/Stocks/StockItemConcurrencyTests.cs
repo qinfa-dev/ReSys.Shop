@@ -1,12 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Xunit;
 using ReSys.Core.Domain.Inventories.Stocks;
 using FluentAssertions;
-using ErrorOr;
 
 namespace Core.UnitTests.Domain.Inventories.Stocks
 {

@@ -1,15 +1,13 @@
 using ErrorOr;
 using FluentAssertions;
-using NSubstitute;
+
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Inventories.Stocks;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Stores;
-using ReSys.Core.Domain.Stores.StockLocations;
-using System.Reflection;
-using Xunit;
+
 using Humanizer; // Added for .ToSlug() and .Humanize()
 using ReSys.Core.Common.Extensions; // Added for .ToSlug() and .Humanize()
 

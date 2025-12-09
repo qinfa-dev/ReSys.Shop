@@ -2,8 +2,6 @@ using FluentAssertions;
 
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Images;
-using ReSys.Core.Domain.Catalog.Products.Variants;
-using ReSys.Core.Domain.Catalog.Products.Classifications;
 
 using static ReSys.Core.Domain.Catalog.Products.Images.ProductImage;
 using static ReSys.Core.Domain.Catalog.Products.Product;

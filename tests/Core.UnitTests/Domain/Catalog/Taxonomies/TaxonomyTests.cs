@@ -4,7 +4,6 @@ using ErrorOr;
 
 using FluentAssertions;
 
-using ReSys.Core.Common.Constants;
 using ReSys.Core.Domain.Catalog.Taxonomies;
 
 using static ReSys.Core.Domain.Catalog.Taxonomies.Taxonomy; // For Taxonomy.Errors and Taxonomy.Events

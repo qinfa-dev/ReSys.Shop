@@ -4,7 +4,6 @@ using FluentAssertions;
 
 using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Extensions;
-using ReSys.Core.Domain.Orders.Shipments;
 using ReSys.Core.Domain.ShippingMethods;
 
 using static ReSys.Core.Domain.ShippingMethods.ShippingMethod;

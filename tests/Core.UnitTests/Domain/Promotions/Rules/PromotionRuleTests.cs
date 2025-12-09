@@ -1,7 +1,5 @@
 using FluentAssertions;
 using ReSys.Core.Domain.Promotions.Rules;
-using System;
-using Xunit;
 
 namespace Core.UnitTests.Domain.Promotions.Rules;
 

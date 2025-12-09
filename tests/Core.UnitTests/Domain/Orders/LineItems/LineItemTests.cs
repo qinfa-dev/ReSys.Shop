@@ -1,13 +1,9 @@
 using FluentAssertions;
-using NSubstitute;
+
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Orders.LineItems;
-using ReSys.Core.Common.Domain.Entities; // Added for Aggregate
-
-using System;
-using System.Linq;
-using Xunit;
+// Added for Aggregate
 
 namespace Core.UnitTests.Domain.Orders.LineItems;
 

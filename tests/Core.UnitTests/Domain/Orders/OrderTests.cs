@@ -7,7 +7,6 @@ using ReSys.Core.Domain.Identity.UserAddresses;
 using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Inventories.Stocks; // Added namespace for StockItem
 using ReSys.Core.Domain.Orders;
-using ReSys.Core.Domain.Orders.Shipments;
 using ReSys.Core.Domain.Orders.LineItems;
 using ReSys.Core.Domain.Promotions.Actions; // Corrected namespace
 using ReSys.Core.Domain.Promotions.Promotions;

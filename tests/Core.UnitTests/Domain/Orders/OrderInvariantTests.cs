@@ -1,16 +1,10 @@
-using ErrorOr;
 using FluentAssertions;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Orders.LineItems;
-using ReSys.Core.Domain.Orders.Payments;
-using ReSys.Core.Domain.Orders.Shipments;
-using ReSys.Core.Domain.Promotions.Promotions;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Catalog.Products;
-using System;
-using System.Linq;
-using Xunit;
-using NSubstitute; // For mocking Variant and Promotion
+
+// For mocking Variant and Promotion
 
 namespace Core.UnitTests.Domain.Orders;
 

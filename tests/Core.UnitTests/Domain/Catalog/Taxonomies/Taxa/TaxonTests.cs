@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using FluentAssertions;
-using Xunit;
+
 using ErrorOr;
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Common.Domain.Entities;
+
 using ReSys.Core.Common.Extensions;
 using ReSys.Core.Domain.Catalog.Taxonomies;
 using ReSys.Core.Domain.Catalog.Taxonomies.Taxa;
