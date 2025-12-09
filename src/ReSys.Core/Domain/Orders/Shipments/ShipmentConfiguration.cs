@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Domain.Constants;
-using ReSys.Core.Domain.Orders.Shipments;
 
 namespace ReSys.Core.Domain.Orders.Shipments;
 

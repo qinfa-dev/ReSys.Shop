@@ -1,8 +1,4 @@
-using System.Threading;
-using System.Threading.Tasks;
 using ErrorOr;
-using ReSys.Core.Domain.PaymentMethods.Providers.Models;
-using ReSys.Core.Domain.PaymentMethods.Providers.Webhooks;
 
 namespace ReSys.Core.Domain.PaymentMethods.Providers.Webhooks;
 

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace ReSys.Core.Domain.PaymentMethods.Providers.Models;
 
 public record ProviderResponse(

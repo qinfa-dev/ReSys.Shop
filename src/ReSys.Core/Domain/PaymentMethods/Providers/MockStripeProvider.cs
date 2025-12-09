@@ -1,8 +1,6 @@
 using ErrorOr;
 using Microsoft.Extensions.Logging;
 using ReSys.Core.Domain.PaymentMethods.Providers.Models;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ReSys.Core.Domain.PaymentMethods.Providers;
 

@@ -1,8 +1,3 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using ErrorOr;
-
 namespace ReSys.Core.Domain.PaymentMethods.Providers.Webhooks;
 
 /// <summary>

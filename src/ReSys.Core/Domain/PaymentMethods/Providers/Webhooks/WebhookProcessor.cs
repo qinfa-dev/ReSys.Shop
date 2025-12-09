@@ -1,10 +1,5 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
-using ReSys.Core.Domain.PaymentMethods.Providers.Webhooks;
 
 namespace ReSys.Core.Domain.PaymentMethods.Providers.Webhooks;
 

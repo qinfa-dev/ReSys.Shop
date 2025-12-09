@@ -1,6 +1,5 @@
 using ErrorOr;
-using System.Threading;
-using System.Threading.Tasks;
+
 using ReSys.Core.Domain.PaymentMethods.Providers.Models;
 
 namespace ReSys.Core.Domain.PaymentMethods.Providers;

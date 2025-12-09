@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using ReSys.Core.Domain.Orders.Shipments;
 
 namespace ReSys.Core.Domain.Orders.Shipments;
 

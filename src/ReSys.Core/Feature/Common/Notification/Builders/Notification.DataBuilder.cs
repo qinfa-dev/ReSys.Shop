@@ -1,7 +1,6 @@
 using ErrorOr;
 
 using ReSys.Core.Feature.Common.Notification.Constants;
-using ReSys.Core.Feature.Common.Notification.Models;
 using ReSys.Core.Feature.Common.Notification.Models.Emails;
 using ReSys.Core.Feature.Common.Notification.Models.Notification;
 using ReSys.Core.Feature.Common.Notification.Models.Sms;

@@ -3,7 +3,6 @@ using ReSys.Core.Common.Constants;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Inventories.Locations;
-using System.Collections.Generic;
 
 namespace ReSys.Core.Domain.Orders.Shipments;
 

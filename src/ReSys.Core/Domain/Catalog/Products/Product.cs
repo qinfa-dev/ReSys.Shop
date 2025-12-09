@@ -15,7 +15,6 @@ using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Catalog.Properties;
 using ReSys.Core.Domain.Catalog.Taxonomies;
 using ReSys.Core.Domain.Catalog.Taxonomies.Taxa;
-using ReSys.Core.Domain.Inventories.Stocks;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Stores;
 using ReSys.Core.Domain.Stores.Products;

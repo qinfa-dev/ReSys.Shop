@@ -7,7 +7,6 @@ using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Identity.UserAddresses;
 using ReSys.Core.Domain.Identity.Users;
-using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Orders.Adjustments;
 using ReSys.Core.Domain.Orders.LineItems;
 using ReSys.Core.Domain.Orders.Payments;
@@ -16,9 +15,6 @@ using ReSys.Core.Domain.Promotions.Calculations;
 using ReSys.Core.Domain.Promotions.Promotions;
 using ReSys.Core.Domain.ShippingMethods;
 using ReSys.Core.Domain.Stores;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 
 
 namespace ReSys.Core.Domain.Orders;

@@ -2,7 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ReSys.Core.Domain.Constants;
 using ReSys.Core.Common.Domain.Concerns;
-using ReSys.Core.Domain.Inventories.Stocks; // For StockItem
+
+// For StockItem
 
 namespace ReSys.Core.Domain.Orders;
 
