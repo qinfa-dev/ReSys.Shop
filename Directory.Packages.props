@@ -5,22 +5,12 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
-  </ItemGroup>
-  <!-- Aspire / OpenTelemetry -->
-  <ItemGroup>
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.5.0" />
-    <PackageVersion Include="FluentStorage.SFTP" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.9.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.5.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
-    <PackageVersion Include="Pgvector" Version="0.3.2" />
-    <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.15.1" />
-    <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
   </ItemGroup>
   <!-- API / Swagger -->
   <ItemGroup>
@@ -28,12 +18,17 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.11" />
     <PackageVersion Include="Microsoft.OpenApi" Version="1.6.23" />
     <PackageVersion Include="Microsoft.OpenApi.Models" Version="1.6.23" />
-    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
     <PackageVersion Include="Scalar.AspNetCore.Microsoft" Version="2.11.1" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Filters" Version="9.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="9.0.0" />
+  </ItemGroup>
+  <!-- ASP.NET Core Base -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.0" />
   </ItemGroup>
   <!-- Authentication / Authorization -->
   <ItemGroup>
@@ -59,6 +54,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.11.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.11.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.11.0" />
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
   </ItemGroup>
   <!-- Database / ORM -->
   <ItemGroup>
@@ -70,7 +66,12 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.11" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.11" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <PackageVersion Include="Pgvector" Version="0.3.2" />
     <PackageVersion Include="Pgvector.EntityFrameworkCore" Version="0.2.2" />
+  </ItemGroup>
+  <!-- Development Utilities -->
+  <ItemGroup>
+    <PackageVersion Include="JetBrains.Annotations" Version="2025.2.4" />
   </ItemGroup>
   <!-- Email -->
   <ItemGroup>
@@ -78,6 +79,14 @@
     <PackageVersion Include="FluentEmail.Mailgun" Version="3.0.2" />
     <PackageVersion Include="FluentEmail.SendGrid" Version="3.0.2" />
     <PackageVersion Include="FluentEmail.Smtp" Version="3.0.2" />
+  </ItemGroup>
+  <!-- SMS -->
+  <ItemGroup>
+      <PackageVersion Include="Sinch" Version="1.4.0" />
+  </ItemGroup>
+  <!-- Image Processing -->
+  <ItemGroup>
+    <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
   </ItemGroup>
   <!-- Logging -->
   <ItemGroup>
@@ -90,13 +99,12 @@
     <PackageVersion Include="Mapster" Version="7.4.0" />
     <PackageVersion Include="Mapster.DependencyInjection" Version="1.0.1" />
   </ItemGroup>
+  <!-- Messaging / CQRS -->
+  <ItemGroup>
+    <PackageVersion Include="MediatR" Version="13.1.0" />
+  </ItemGroup>
   <!-- Other / Miscellaneous -->
   <ItemGroup>
-    <PackageVersion Include="Bogus" Version="35.6.5" />
-    <PackageVersion Include="JetBrains.Annotations" Version="2025.2.4" />
-    <PackageVersion Include="MediatR" Version="13.1.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc" Version="2.3.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.0" />
   </ItemGroup>
   <!-- Payment Gateways -->
   <ItemGroup>
@@ -105,11 +113,17 @@
     <PackageVersion Include="Stripe.net" Version="50.0.0" />
     <PackageVersion Include="VNPAY.NET" Version="2.1.0" />
   </ItemGroup>
+  <!-- Resilience & Networking -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.5.0" />
+  </ItemGroup>
   <!-- Scheduling -->
   <ItemGroup>
     <PackageVersion Include="Quartz" Version="3.15.1" />
     <PackageVersion Include="Quartz.AspNetCore" Version="3.15.1" />
     <PackageVersion Include="Quartz.Extensions.DependencyInjection" Version="3.15.1" />
+    <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.15.1" />
     <PackageVersion Include="Quartz.Serialization.Json" Version="3.15.1" />
   </ItemGroup>
   <!-- Storage -->
@@ -118,9 +132,11 @@
     <PackageVersion Include="FluentStorage.AWS" Version="6.0.1" />
     <PackageVersion Include="FluentStorage.Azure.Blobs" Version="6.0.0" />
     <PackageVersion Include="FluentStorage.FTP" Version="6.0.0" />
+    <PackageVersion Include="FluentStorage.SFTP" Version="6.0.0" />
   </ItemGroup>
   <!-- Testing -->
   <ItemGroup>
+    <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="FluentAssertions" Version="8.8.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
@@ -135,7 +151,6 @@
     <PackageVersion Include="AsyncKeyedLock" Version="7.1.8" />
     <PackageVersion Include="ErrorOr" Version="2.0.1" />
     <PackageVersion Include="Humanizer.Core" Version="3.0.1" />
-    <PackageVersion Include="Sinch" Version="1.4.0" />
     <PackageVersion Include="Slugify.Core" Version="5.1.1" />
   </ItemGroup>
   <!-- Validation -->
@@ -143,4 +158,5 @@
     <PackageVersion Include="FluentValidation" Version="12.1.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
   </ItemGroup>
+
 </Project>

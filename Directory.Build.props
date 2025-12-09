@@ -13,14 +13,14 @@
     <FileVersion Condition="'$(FileVersion)' == ''">$(AssemblyVersion)</FileVersion>
     <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
 
-    <!-- Package Metadata (adjust these for your project) -->
+    <!-- Package Metadata -->
     <Authors>Phat Nguyen</Authors>
     <Company>Rys.Towa</Company>
     <Product>ReSys.Shop</Product>
     <Copyright>Copyright © $([System.DateTime]::Now.ToString('yyyy')) Rys.Towa</Copyright>
-    <RepositoryUrl>https://github.com/YourOrg/ReSys.Shop</RepositoryUrl>
+    <RepositoryUrl>https://github.com/qinfa-dev/ReSys.Shop</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/YourOrg/ReSys.Shop</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/qinfa-dev/ReSys.Shop</PackageProjectUrl>
 
     <!-- Build Configuration -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

@@ -31,14 +31,28 @@ public static class SortParamExtensions
 
         IOrderedQueryable<T>? orderedQuery = null;
 
-        foreach (ISortParam sort in sortParams.Where(predicate: s => !string.IsNullOrWhiteSpace(value: s.SortBy)))
+        foreach (ISortParam sort in sortParams.Where(s => !string.IsNullOrWhiteSpace(s.SortBy)))
         {
+            PropertyInfo? propertyInfo = GetPropertyInfo<T>(sort.SortBy!);
+
+            if (propertyInfo == null)
+            {
+                // Skip invalid property
+                continue;
+            }
+
+            bool descending = IsDescending(sort.SortOrder);
+
             if (orderedQuery == null)
-                orderedQuery = (IOrderedQueryable<T>)query.ApplySingleSort(sortBy: sort.SortBy!,
-                    sortOrder: sort.SortOrder);
+            {
+                // First valid sort
+                orderedQuery = query.ApplyOrderBy(propertyInfo, descending);
+            }
             else
-                orderedQuery = orderedQuery.ApplyThenBy(sortBy: sort.SortBy!,
-                    sortOrder: sort.SortOrder);
+            {
+                // Subsequent valid sorts
+                orderedQuery = orderedQuery.ApplyThenByInternal(propertyInfo, descending);
+            }
         }
 
         return orderedQuery ?? query;
@@ -91,7 +105,7 @@ public static class SortParamExtensions
             descending: descending);
     }
 
-    private static IQueryable<T> ApplyOrderBy<T>(
+    private static IOrderedQueryable<T> ApplyOrderBy<T>(
         this IQueryable<T> query,
         PropertyInfo propertyInfo,
         bool descending)
@@ -108,7 +122,7 @@ public static class SortParamExtensions
         LambdaExpression lambda = Expression.Lambda(body: property,
             parameters: parameter);
 
-        return (IQueryable<T>)method.Invoke(obj: null,
+        return (IOrderedQueryable<T>)method.Invoke(obj: null,
         parameters:
         [
             query,

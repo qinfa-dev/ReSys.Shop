@@ -21,9 +21,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Pgvector" />
     <PackageReference Include="Pgvector.EntityFrameworkCore" />
+    <PackageReference Include="Serilog" />
     <PackageReference Include="Slugify.Core" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
-    <PackageReference Include="Serilog" />
   </ItemGroup>
 
   <ItemGroup>

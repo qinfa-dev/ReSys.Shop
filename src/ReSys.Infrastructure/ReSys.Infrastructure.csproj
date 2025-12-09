@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Ardalis.GuardClauses" />
     <PackageReference Include="AsyncKeyedLock" />
+    <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="FluentEmail.Core" />
     <PackageReference Include="FluentEmail.Mailgun" />
     <PackageReference Include="FluentEmail.SendGrid" />
@@ -27,14 +28,13 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="Quartz" />
     <PackageReference Include="Quartz.Extensions.DependencyInjection" />
     <PackageReference Include="Quartz.Extensions.Hosting" />
     <PackageReference Include="Quartz.Serialization.Json" />
     <PackageReference Include="Serilog" />
     <PackageReference Include="Sinch" />
-    <PackageReference Include="SixLabors.ImageSharp" />      
+    <PackageReference Include="SixLabors.ImageSharp" />
   </ItemGroup>
 
   <ItemGroup>
