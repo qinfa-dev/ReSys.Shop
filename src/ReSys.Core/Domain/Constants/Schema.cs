@@ -133,7 +133,7 @@ public static class Schema
     public const string StockMovements = "stock_movements"; // Audit trail
     public const string InventoryUnits = "inventory_units"; // Individual stock items
     public const string StockTransfers = "stock_transfers"; // Inter-location transfers
-    public const string StockLocationStores = "stock_location_stores";
+    public const string StorePickups = "store_pickups";
 
     // Order Management - Full e-commerce workflow
     public const string Orders = "orders";
@@ -174,11 +174,6 @@ public static class Schema
     public const string RecommendationSets = "recommendation_sets"; // Cached recommendations
     public const string RecommendationLogs = "recommendation_logs"; // Performance tracking
 
-    // Fashion-specific ML features
-    public const string SeasonalTrends = "seasonal_trends"; // Trend analysis
-    public const string OutfitRecommendations = "outfit_recommendations"; // Complete looks
-    public const string StyleMatching = "style_matching"; // Cross-category matching
-
     // Behavioral Analytics
     public const string UserSessions = "user_sessions"; // Session tracking
     public const string ClickstreamEvents = "clickstream_events"; // Detailed interactions
@@ -191,6 +186,7 @@ public static class Schema
 
     // Promotion Engine - Spree-inspired complexity
     public const string Promotions = "promotions";
+    public const string PromotionUsages = "promotion_usages";
     public const string PromotionRules = "promotion_rules";
     public const string PromotionActions = "promotion_actions";
     public const string PromotionCategories = "promotion_categories"; // Fashion seasons/events

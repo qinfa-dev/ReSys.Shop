@@ -133,12 +133,6 @@ public sealed class StockItem : Aggregate, IHasMetadata
     public StockLocation StockLocation { get; set; } = null!;
     public Variant Variant { get; set; } = null!;
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
-    
-    /// <summary>
-    /// Gets the backordered inventory units waiting for this stock to become available.
-    /// Used by fulfillment system to automatically fill backorders when stock is replenished.
-    /// </summary>
-    public ICollection<InventoryUnit> BackorderedInventoryUnits { get; set; } = new List<InventoryUnit>();
     #endregion
 
     #region Computed Properties
@@ -210,6 +204,25 @@ public sealed class StockItem : Aggregate, IHasMetadata
                 StockLocationId: item.StockLocationId));
 
         return item;
+    }
+
+    #endregion
+
+    #region Queries
+
+    /// <summary>
+    /// Gets backordered inventory units for this stock item at this location.
+    /// Uses a query method (no stored collection) to maintain clean aggregate boundaries.
+    /// Spree-aligned pattern: InventoryUnit.backordered_for_stock_item(self)
+    /// </summary>
+    /// <param name="unitsQuery">The base InventoryUnit query to filter from.</param>
+    /// <returns>Backordered inventory units ordered by creation date.</returns>
+    public IEnumerable<InventoryUnit> GetBackorderedInventoryUnits(IQueryable<InventoryUnit> unitsQuery)
+    {
+        return unitsQuery
+            .Where(iu => iu.StockLocationId == StockLocationId &&
+                         iu.State == InventoryUnit.InventoryUnitState.Backordered)
+            .OrderBy(iu => iu.CreatedAt);
     }
 
     #endregion
@@ -355,7 +368,7 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// <param name="quantity">The quantity change (positive for restock, negative for damage/loss).</param>
     /// <param name="originator">The originator of this adjustment (Adjustment, StockTransfer, etc.).</param>
     /// <param name="reason">Optional description of why this adjustment occurred.</param>
-    /// <param name="stockTransferId">Optional reference to a stock transfer if this is part of a transfer.</param>
+    /// <param name="originatorId">Optional reference to a stock transfer if this is part of a transfer.</param>
     /// <returns>
     /// On success: This stock item (for method chaining).
     /// On failure: Error if resulting quantity would be negative.
@@ -397,9 +410,11 @@ public sealed class StockItem : Aggregate, IHasMetadata
                 NewCount: QuantityOnHand));
 
         // Process backorders if this is a restock (positive quantity)
+        // Note: Backorder processing now requires application service to fetch and pass units
+        // This maintains clean domain boundaries (domain doesn't query across aggregates)
         if (quantity > 0 && Backorderable)
         {
-            ProcessBackorders(quantityAvailable: quantity);
+            ProcessBackorders(quantityAvailable: quantity, backorderedUnits: null);
         }
 
         return this;
@@ -414,23 +429,21 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// Fills backorders sequentially up to the available quantity.
     /// </summary>
     /// <param name="quantityAvailable">The quantity of stock that became available.</param>
+    /// <param name="backorderedUnits"></param>
     /// <remarks>
     /// This is called automatically when stock is restocked (positive adjustment).
     /// Backordered units are filled in order of creation (oldest first).
     /// </remarks>
-    private void ProcessBackorders(int quantityAvailable)
+    private void ProcessBackorders(int quantityAvailable, IEnumerable<InventoryUnit>? backorderedUnits = null)
     {
-        if (!BackorderedInventoryUnits.Any())
+        // If no units provided, cannot process backorders
+        // (Units must be queried by application service and passed here)
+        if (backorderedUnits == null || !backorderedUnits.Any())
             return;
-
-        var backordered = BackorderedInventoryUnits
-            .Where(predicate: iu => iu.State == InventoryUnit.InventoryUnitState.Backordered)
-            .OrderBy(keySelector: iu => iu.CreatedAt)
-            .ToList();
 
         int remaining = quantityAvailable;
 
-        foreach (var unit in backordered)
+        foreach (var unit in backorderedUnits)
         {
             if (remaining <= 0)
                 break;
@@ -665,6 +678,38 @@ public sealed class StockItem : Aggregate, IHasMetadata
         AddDomainEvent(domainEvent: new Events.StockItemDeleted(StockItemId: Id));
         return Result.Deleted;
     }
+
+    #endregion
+
+    #region Business Logic: Inventory Queries
+
+    /// <summary>
+    /// Gets the quantity reserved for a specific order.
+    /// </summary>
+    /// <param name="orderId">The order ID to query.</param>
+    /// <returns>The quantity reserved for this order, or 0 if no reservation exists.</returns>
+    public int GetReservedQuantityForOrder(Guid orderId) =>
+        _reservations.TryGetValue(orderId, out var quantity) ? quantity : 0;
+
+    /// <summary>
+    /// Gets all orders with reservations for this stock item.
+    /// </summary>
+    /// <returns>Collection of order IDs that have reservations.</returns>
+    public IReadOnlyCollection<Guid> GetReservedOrders() =>
+        _reservations.Keys.ToList().AsReadOnly();
+
+    /// <summary>
+    /// Gets the total count of distinct orders with reservations.
+    /// </summary>
+    public int ReservationCount => _reservations.Count;
+
+    /// <summary>
+    /// Determines if a specific order has a reservation.
+    /// </summary>
+    /// <param name="orderId">The order ID to check.</param>
+    /// <returns>True if the order has a reservation; otherwise false.</returns>
+    public bool HasReservation(Guid orderId) =>
+        _reservations.ContainsKey(orderId);
 
     #endregion
 

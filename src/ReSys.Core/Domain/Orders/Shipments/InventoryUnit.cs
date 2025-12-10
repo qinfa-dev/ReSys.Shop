@@ -4,7 +4,6 @@ using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Orders.LineItems;
-using ReSys.Core.Domain.Orders.Returns;
 using ReSys.Core.Domain.Inventories.Locations;
 
 namespace ReSys.Core.Domain.Orders.Shipments;
@@ -120,10 +119,10 @@ public sealed class InventoryUnit : Aggregate
     /// <summary>Gets the ID of the line item this unit fulfills.</summary>
     public Guid LineItemId { get; set; }
 
-    /// <summary>Gets the optional ID of the shipment delivering this unit.</summary>
-    public Guid ShipmentId { get; set; }
+    /// <summary>Gets the optional ID of the shipment delivering this unit. Nullable until shipment is allocated.</summary>
+    public Guid? ShipmentId { get; set; }
 
-    /// <summary>Gets the optional ID of the stock location holding this unit.</summary>
+    /// <summary>Gets the optional ID of the stock location holding this unit. Assigned when shipment is allocated.</summary>
     public Guid? StockLocationId { get; set; }
 
     /// <summary>Gets the current state of this inventory unit in its lifecycle.</summary>
@@ -131,26 +130,23 @@ public sealed class InventoryUnit : Aggregate
 
     /// <summary>Gets the timestamp of the last state change.</summary>
     public DateTimeOffset StateChangedAt { get; set; }
-
-    /// <summary>Gets the optional ID of the original return item if this is an exchange unit.</summary>
-    public Guid? OriginalReturnItemId { get; set; }
     #endregion
 
     #region Relationships
+    /// <summary>The product variant being fulfilled by this unit.</summary>
     public Variant? Variant { get; set; }
+    
+    /// <summary>The order this unit belongs to (owning aggregate).</summary>
     public Order? Order { get; set; }
+    
+    /// <summary>The line item this unit fulfills.</summary>
     public LineItem? LineItem { get; set; }
-    public Shipment Shipment { get; set; } = null!;
+    
+    /// <summary>The shipment that will deliver this unit. Nullable until allocated.</summary>
+    public Shipment? Shipment { get; set; }
+    
+    /// <summary>The stock location holding this unit. Assigned when shipment is allocated.</summary>
     public StockLocation? StockLocation { get; set; }
-
-    /// <summary>Gets the return items created for this unit (for exchange/refund processing).</summary>
-    public ICollection<ReturnItem> ReturnItems { get; set; } = new List<ReturnItem>();
-
-    /// <summary>Gets the inventory units that were created as exchanges for returns of this unit.</summary>
-    public ICollection<InventoryUnit> ExchangeUnits { get; set; } = new List<InventoryUnit>();
-
-    /// <summary>Gets the return item that triggered this unit's creation (if this is an exchange).</summary>
-    public ReturnItem? OriginalReturnItem { get; set; }
     #endregion
 
     #region Constructors
@@ -160,14 +156,16 @@ public sealed class InventoryUnit : Aggregate
     #region Factory Methods
     /// <summary>
     /// Creates an inventory unit for a line item.
-    /// This now creates a single unit with a quantity, rather than multiple instances.
+    /// This creates a single unit with a quantity, rather than multiple instances.
+    /// ShipmentId is nullable - assigned later when shipment is allocated to warehouse.
     /// </summary>
     public static ErrorOr<InventoryUnit> Create(
         Guid variantId,
         Guid orderId,
         Guid lineItemId,
-        Guid shipmentId,
-        int quantity)
+        Guid? shipmentId,
+        int quantity,
+        InventoryUnitState initialState = InventoryUnitState.OnHand)
     {
         if (quantity <= 0)
         {
@@ -182,7 +180,7 @@ public sealed class InventoryUnit : Aggregate
             LineItemId = lineItemId,
             ShipmentId = shipmentId,
             Quantity = quantity,
-            State = InventoryUnitState.OnHand,
+            State = initialState,
             CreatedAt = DateTimeOffset.UtcNow,
             StateChangedAt = DateTimeOffset.UtcNow
         };
@@ -290,7 +288,6 @@ public sealed class InventoryUnit : Aggregate
             State = State,
             SerialNumber = null, 
             RequiresIndividualTracking = RequiresIndividualTracking,
-            OriginalReturnItemId = OriginalReturnItemId,
             CreatedAt = DateTimeOffset.UtcNow,
             StateChangedAt = DateTimeOffset.UtcNow
         };
@@ -331,12 +328,6 @@ public sealed class InventoryUnit : Aggregate
     #endregion
 
     #region Queries
-    public ReturnItem? GetCurrentReturnItem()
-    {
-        return ReturnItems.FirstOrDefault(
-            predicate: ri => ri.ReceptionStatus != ReturnItem.ReturnReceptionStatus.Cancelled);
-    }
-    
     public bool IsInTerminalState => State == InventoryUnitState.Returned;
     #endregion
 
@@ -360,7 +351,7 @@ public sealed class InventoryUnit : Aggregate
             Guid InventoryUnitId,
             Guid VariantId,
             Guid OrderId,
-            Guid ShipmentId) : DomainEvent;
+            Guid? ShipmentId) : DomainEvent;
 
         public sealed record Returned(
             Guid InventoryUnitId,

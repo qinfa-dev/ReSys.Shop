@@ -111,6 +111,7 @@ public class Order : Aggregate, IHasMetadata
     public enum OrderState { Cart = 0, Address = 1, Delivery = 2, Payment = 3, Confirm = 4, Complete = 5, Canceled = 6 }
 
     #region Constraints
+
     /// <summary>
     /// Defines all constraints and validation limits for Order domain objects.
     /// These constraints prevent invalid states and maintain data consistency.
@@ -153,9 +154,11 @@ public class Order : Aggregate, IHasMetadata
         /// <summary>Length of ISO 4217 currency code (always 3 characters: USD, EUR, etc.).</summary>
         public const int CurrencyMaxLength = CommonInput.Constraints.CurrencyAndLanguage.CurrencyCodeLength;
     }
+
     #endregion
 
     #region Errors
+
     /// <summary>
     /// Defines all possible error scenarios in the Order domain.
     /// Each error method provides a specific, actionable error message for debugging and user feedback.
@@ -196,31 +199,40 @@ public class Order : Aggregate, IHasMetadata
     public static class Errors
     {
         /// <summary>Triggered when attempting an invalid order state transition.</summary>
-        public static Error InvalidStateTransition(OrderState from, OrderState to) => Error.Validation(code: "Order.InvalidStateTransition", description: $"Cannot transition from {from} to {to}.");
+        public static Error InvalidStateTransition(OrderState from, OrderState to) =>
+            Error.Validation(code: "Order.InvalidStateTransition",
+                description: $"Cannot transition from {from} to {to}.");
 
         /// <summary>Triggered when order with specified ID is not found in database.</summary>
-        public static Error NotFound(Guid id) => Error.NotFound(code: "Order.NotFound", description: $"Order with ID '{id}' was not found.");
+        public static Error NotFound(Guid id) =>
+            Error.NotFound(code: "Order.NotFound", description: $"Order with ID '{id}' was not found.");
 
         /// <summary>Triggered when attempting to cancel an order that is already complete.</summary>
-        public static Error CannotCancelCompleted => Error.Validation(code: "Order.CannotCancelCompleted", description: "Cannot cancel completed order.");
+        public static Error CannotCancelCompleted => Error.Validation(code: "Order.CannotCancelCompleted",
+            description: "Cannot cancel completed order.");
 
         /// <summary>Triggered when attempting to modify a line item that does not exist in the order.</summary>
-        public static Error LineItemNotFound => Error.NotFound(code: "Order.LineItemNotFound", description: "Line item not found.");
+        public static Error LineItemNotFound =>
+            Error.NotFound(code: "Order.LineItemNotFound", description: "Line item not found.");
 
         /// <summary>Triggered when attempting to apply a second different promotion to an order.</summary>
-        public static Error PromotionAlreadyApplied => Error.Conflict(code: "Order.PromotionAlreadyApplied", description: "Promotion already applied to order.");
+        public static Error PromotionAlreadyApplied => Error.Conflict(code: "Order.PromotionAlreadyApplied",
+            description: "Promotion already applied to order.");
 
         /// <summary>Triggered when line item quantity is less than minimum allowed (< 1).</summary>
-        public static Error InvalidQuantity => CommonInput.Errors.TooFewItems(prefix: "Order.LineItem", field: nameof(LineItem.Quantity), min: Constraints.QuantityMinValue);
+        public static Error InvalidQuantity => CommonInput.Errors.TooFewItems(prefix: "Order.LineItem",
+            field: nameof(LineItem.Quantity), min: Constraints.QuantityMinValue);
 
         /// <summary>Triggered when required address is missing for physical order.</summary>
         public static Error AddressRequired => CommonInput.Errors.Required(prefix: "Order", field: "Address");
 
         /// <summary>Triggered when shipping method not selected before transitioning to Payment state.</summary>
-        public static Error ShippingMethodRequired => CommonInput.Errors.Required(prefix: "Order", field: "Shipping method");
+        public static Error ShippingMethodRequired =>
+            CommonInput.Errors.Required(prefix: "Order", field: "Shipping method");
 
         /// <summary>Triggered when payment amount is negative or less than zero.</summary>
-        public static Error InvalidAmountCents => CommonInput.Errors.TooFewItems(prefix: "Order", field: "Amount cents", min: Constraints.AmountCentsMinValue);
+        public static Error InvalidAmountCents => CommonInput.Errors.TooFewItems(prefix: "Order", field: "Amount cents",
+            min: Constraints.AmountCentsMinValue);
 
         /// <summary>Triggered when promotion reference is null.</summary>
         public static Error PromotionRequired => CommonInput.Errors.Required(prefix: "Order", field: "Promotion");
@@ -240,14 +252,16 @@ public class Order : Aggregate, IHasMetadata
                 code: "Order.MissingCancellationTimestamp",
                 description: "Canceled orders must have cancellation timestamp.");
     }
+
     #endregion
 
     #region Properties
+
     /// <summary>
     /// Foreign key reference to the Store where this order was placed.
     /// Used for multi-store/multi-channel isolation and store-specific configuration.
     /// </summary>
-    public Guid StoreId { get; set; }
+    public Guid? StoreId { get; set; }
 
     /// <summary>
     /// Foreign key reference to the ApplicationUser who placed this order (nullable for guest orders).
@@ -357,21 +371,26 @@ public class Order : Aggregate, IHasMetadata
     /// Not exposed to customers or external systems.
     /// </summary>
     public IDictionary<string, object?>? PrivateMetadata { get; set; } = new Dictionary<string, object?>();
+
     #endregion
 
     #region Relationships
+
     public UserAddress? ShipAddress { get; set; }
     public UserAddress? BillAddress { get; set; }
-    public Store Store { get; set; } = null!;
+    public Store? Store { get; set; }
     public User? User { get; set; }
     public Promotion? Promotion { get; set; }
     public ICollection<LineItem> LineItems { get; set; } = new List<LineItem>();
     public ICollection<OrderAdjustment> Adjustments { get; set; } = new List<OrderAdjustment>();
     public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+    public ICollection<InventoryUnit> InventoryUnits { get; set; } = new List<InventoryUnit>();
+
     #endregion
 
     #region Computed Properties
+
     /// <summary>
     /// Indicates whether order is in Cart state (items can still be added/removed).
     /// </summary>
@@ -416,16 +435,18 @@ public class Order : Aggregate, IHasMetadata
     public decimal TotalWeight => LineItems.Sum(selector: li => (li.Variant.Weight ?? 0) * li.Quantity);
 
     /// <summary>
-    /// Sum of all promotion-related adjustments in cents (order-level + line-item level).
+    /// Sum of all eligible promotion-related adjustments in cents (order-level + line-item level).
     /// Negative value indicates discount/reduction; used to display promotion savings.
     /// </summary>
-    public decimal PromotionTotalCents => Adjustments.Where(predicate: a => a.IsPromotion).Sum(selector: a => (decimal)a.AmountCents);
+    public decimal PromotionTotalCents => Adjustments.Where(predicate: a => a.IsPromotion && a.Eligible)
+        .Sum(selector: a => (decimal)a.AmountCents);
 
     /// <summary>
     /// Promotion total converted to decimal currency value (PromotionTotalCents ÷ 100).
     /// Displayed to customer as discount savings.
     /// </summary>
     public decimal PromotionTotal => PromotionTotalCents / 100m;
+
 
     /// <summary>
     /// Indicates whether a promotion is currently applied to this order.
@@ -438,14 +459,18 @@ public class Order : Aggregate, IHasMetadata
     /// Used to route digital orders through faster/simpler fulfillment path.
     /// </summary>
     public bool IsFullyDigital => LineItems.Any() && LineItems.All(predicate: li => li.Variant.Product.IsDigital);
+
     #endregion
 
     #region Constructors
+
     /// <summary>Private constructor prevents direct instantiation; use Create() factory method instead.</summary>
     private Order() { }
+
     #endregion
 
     #region Factory Methods
+
     /// <summary>
     /// Creates a new order in Cart state ready for items to be added.
     /// </summary>
@@ -495,9 +520,11 @@ public class Order : Aggregate, IHasMetadata
         order.AddDomainEvent(domainEvent: new Events.Created(OrderId: order.Id, StoreId: order.StoreId));
         return order;
     }
+
     #endregion
 
     #region Business Logic - State Transitions
+
     /// <summary>
     /// Progresses the order to the next state in its lifecycle.
     /// </summary>
@@ -532,7 +559,8 @@ public class Order : Aggregate, IHasMetadata
     /// <summary>Transitions order from Cart to Address state after validating prerequisites.</summary>
     private ErrorOr<Order> ToAddress()
     {
-        if (!LineItems.Any()) return Error.Validation(code: "Order.EmptyCart", description: "Cannot checkout empty cart.");
+        if (!LineItems.Any())
+            return Error.Validation(code: "Order.EmptyCart", description: "Cannot checkout empty cart.");
         State = OrderState.Address;
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: OrderState.Address));
@@ -647,7 +675,8 @@ public class Order : Aggregate, IHasMetadata
         var completedPayments = Payments.Where(predicate: p => p.IsCompleted).Sum(selector: p => p.AmountCents);
         if (completedPayments < TotalCents)
         {
-            return Error.Validation(code: "Order.PaymentNotCompleted", description: "Payment must be completed before completing the order.");
+            return Error.Validation(code: "Order.PaymentNotCompleted",
+                description: "Payment must be completed before completing the order.");
         }
 
         // NEW: Validate inventory allocation for physical orders
@@ -660,7 +689,8 @@ public class Order : Aggregate, IHasMetadata
                 {
                     return Error.Validation(
                         code: "Order.IncompleteInventoryAllocation",
-                        description: $"Not all inventory units allocated for line item {lineItem.Id}. Required: {lineItem.Quantity}, Allocated: {allocatedUnitsQuantity}");
+                        description:
+                        $"Not all inventory units allocated for line item {lineItem.Id}. Required: {lineItem.Quantity}, Allocated: {allocatedUnitsQuantity}");
                 }
             }
         }
@@ -722,9 +752,11 @@ public class Order : Aggregate, IHasMetadata
         AddDomainEvent(domainEvent: new Events.ReleaseInventory(OrderId: Id, StoreId: StoreId));
         return this;
     }
+
     #endregion
 
     #region Business Logic - Line Item Management
+
     /// <summary>
     /// Adds a product variant to the order with specified quantity.
     /// </summary>
@@ -743,9 +775,12 @@ public class Order : Aggregate, IHasMetadata
     /// </remarks>
     public ErrorOr<Order> AddLineItem(Variant? variant, int quantity)
     {
-        if (variant == null) return Error.Validation(code: "Order.VariantRequired", description: "Variant cannot be null.");
+        if (variant == null)
+            return Error.Validation(code: "Order.VariantRequired", description: "Variant cannot be null.");
         if (quantity < Constraints.QuantityMinValue) return Errors.InvalidQuantity;
-        if (!variant.Purchasable) return Error.Validation(code: "Order.VariantNotPurchasable", description: "Variant is not available for purchase.");
+        if (!variant.Purchasable)
+            return Error.Validation(code: "Order.VariantNotPurchasable",
+                description: "Variant is not available for purchase.");
 
         if (State != OrderState.Cart)
         {
@@ -832,9 +867,24 @@ public class Order : Aggregate, IHasMetadata
     /// </remarks>
     private ErrorOr<Success> RecalculateTotals()
     {
-        ItemTotalCents = LineItems.Sum(selector: li => li.SubtotalCents);
-        AdjustmentTotalCents = Adjustments.Sum(selector: a => (decimal)a.AmountCents);
+        // Base merchandise total (sum of line item subtotals)
+        var baseItemTotal = LineItems.Sum(selector: li => li.SubtotalCents);
 
+        // Sum of line-item scoped adjustments (apply to item total)
+        var lineItemAdjustments = Adjustments
+            .Where(a => a.Scope == OrderAdjustment.AdjustmentScope.LineItem && a.Eligible)
+            .Sum(a => (decimal)a.AmountCents);
+
+        // Item total includes base item subtotal plus any line-item adjustments
+        ItemTotalCents = baseItemTotal + lineItemAdjustments;
+
+        // Adjustment total includes only order-level adjustments (exclude line-item)
+        // Shipping is represented separately in ShipmentTotalCents so exclude Shipping adjustments here.
+        AdjustmentTotalCents = Adjustments
+            .Where(a => a.Scope == OrderAdjustment.AdjustmentScope.Order && a.Eligible)
+            .Sum(a => (decimal)a.AmountCents);
+
+        // Grand total: item total + shipment total + order-level adjustments
         TotalCents = ItemTotalCents + ShipmentTotalCents + AdjustmentTotalCents;
 
         // NEW: Validate total is not negative
@@ -848,9 +898,11 @@ public class Order : Aggregate, IHasMetadata
         UpdatedAt = DateTimeOffset.UtcNow;
         return Result.Success;
     }
+
     #endregion
 
     #region Business Logic - Address Management
+
     /// <summary>
     /// Sets the shipping address for the order.
     /// </summary>
@@ -889,9 +941,11 @@ public class Order : Aggregate, IHasMetadata
         AddDomainEvent(domainEvent: new Events.BillingAddressSet(OrderId: Id));
         return this;
     }
+
     #endregion
 
     #region Business Logic - Promotion Management
+
     /// <summary>
     /// Applies a promotion to the order with optional coupon code validation.
     /// </summary>
@@ -917,7 +971,8 @@ public class Order : Aggregate, IHasMetadata
     {
         if (promotion == null) return Errors.PromotionRequired;
         if (PromotionId.HasValue && PromotionId != promotion.Id) return Errors.PromotionAlreadyApplied;
-        if (promotion.RequiresCouponCode && promotion.PromotionCode?.Trim().ToUpperInvariant() != code?.Trim().ToUpperInvariant())
+        if (promotion.RequiresCouponCode &&
+            promotion.PromotionCode?.Trim().ToUpperInvariant() != code?.Trim().ToUpperInvariant())
             return Promotion.Errors.InvalidCode;
 
         var calcResult = PromotionCalculator.Calculate(promotion: promotion, order: this);
@@ -936,7 +991,9 @@ public class Order : Aggregate, IHasMetadata
 
         foreach (var adj in calcResult.Value.Adjustments)
         {
-            var scope = adj.LineItemId.HasValue ? OrderAdjustment.AdjustmentScope.LineItem : OrderAdjustment.AdjustmentScope.Order;
+            var scope = adj.LineItemId.HasValue
+                ? OrderAdjustment.AdjustmentScope.LineItem
+                : OrderAdjustment.AdjustmentScope.Order;
 
             var adjustmentResult = OrderAdjustment.Create(
                 orderId: Id,
@@ -944,7 +1001,9 @@ public class Order : Aggregate, IHasMetadata
                 description: adj.Description,
                 scope: scope,
                 lineItemId: adj.LineItemId,
-                promotionId: promotion.Id);
+                promotionId: promotion.Id,
+                eligible: true,
+                mandatory: false);
 
             if (adjustmentResult.IsError) return adjustmentResult.Errors;
 
@@ -954,7 +1013,8 @@ public class Order : Aggregate, IHasMetadata
         var recalcResult = RecalculateTotals();
         if (recalcResult.IsError) return recalcResult.FirstError;
 
-        AddDomainEvent(domainEvent: new Events.PromotionApplied(OrderId: Id, PromotionId: promotion.Id, DiscountAmount: PromotionTotal));
+        AddDomainEvent(domainEvent: new Events.PromotionApplied(OrderId: Id, PromotionId: promotion.Id,
+            DiscountAmount: PromotionTotal));
 
         return this;
     }
@@ -979,9 +1039,11 @@ public class Order : Aggregate, IHasMetadata
         AddDomainEvent(domainEvent: new Events.PromotionRemoved(OrderId: Id, PromotionId: oldPromotionId));
         return this;
     }
+
     #endregion
 
     #region Business Logic - Shipping Management
+
     /// <summary>
     /// Selects a shipping method for the order and calculates shipping cost.
     /// </summary>
@@ -1040,6 +1102,36 @@ public class Order : Aggregate, IHasMetadata
         }
 
         ShipmentTotalCents = (decimal)(shippingCost * 100);
+        // Persist a shipping-scoped adjustment so shipping charges are auditable.
+        // Mark as mandatory so zero-value shipping charges are still recorded.
+        var shippingDescription = shippingMethod.Presentation ?? shippingMethod.Name ?? "Shipping";
+
+        // Try update existing shipping adjustment if present
+        var existingShippingAdj = Adjustments.FirstOrDefault(a => a.Scope == OrderAdjustment.AdjustmentScope.Shipping);
+        if (existingShippingAdj != null)
+        {
+            existingShippingAdj.AmountCents = (long)ShipmentTotalCents;
+            existingShippingAdj.Description = shippingDescription;
+            existingShippingAdj.Eligible = true;
+            existingShippingAdj.Mandatory = true;
+        }
+        else
+        {
+            var shippingAdjResult = OrderAdjustment.Create(
+                orderId: Id,
+                amountCents: (long)ShipmentTotalCents,
+                description: shippingDescription,
+                scope: OrderAdjustment.AdjustmentScope.Shipping,
+                lineItemId: null,
+                promotionId: null,
+                eligible: true,
+                mandatory: true);
+
+            if (!shippingAdjResult.IsError)
+            {
+                Adjustments.Add(shippingAdjResult.Value);
+            }
+        }
 
         var recalcResult = RecalculateTotals();
         if (recalcResult.IsError) return recalcResult.FirstError;
@@ -1050,9 +1142,11 @@ public class Order : Aggregate, IHasMetadata
 
         return this;
     }
+
     #endregion
 
     #region Business Logic - Payment Management
+
     /// <summary>
     /// Records a payment/charge against the order.
     /// </summary>
@@ -1073,12 +1167,14 @@ public class Order : Aggregate, IHasMetadata
     {
         if (amountCents < Constraints.AmountCentsMinValue) return Errors.InvalidAmountCents;
 
-        var paymentResult = Payment.Create(orderId: Id, amountCents: amountCents, currency: Currency, paymentMethodType: paymentMethodType, paymentMethodId: paymentMethodId);
+        var paymentResult = Payment.Create(orderId: Id, amountCents: amountCents, currency: Currency,
+            paymentMethodType: paymentMethodType, paymentMethodId: paymentMethodId);
         if (paymentResult.IsError) return paymentResult.FirstError;
 
         Payments.Add(item: paymentResult.Value);
         return paymentResult.Value;
     }
+
     #endregion
 
     #region Business Logic - Invariants
@@ -1116,15 +1212,19 @@ public class Order : Aggregate, IHasMetadata
     #endregion
 
     #region Helpers
+
     /// <summary>
     /// Generates a unique, human-readable order number.
     /// Format: R{yyyyMMdd}{4-digit random}
     /// Example: R202312101234
     /// </summary>
-    private static string GenerateOrderNumber() => $"R{DateTimeOffset.UtcNow:yyyyMMdd}{Random.Shared.Next(minValue: 1000, maxValue: 9999)}";
+    private static string GenerateOrderNumber() =>
+        $"R{DateTimeOffset.UtcNow:yyyyMMdd}{Random.Shared.Next(minValue: 1000, maxValue: 9999)}";
+
     #endregion
 
     #region Events
+
     /// <summary>
     /// Domain events published by Order aggregate to communicate state changes.
     /// </summary>
@@ -1142,16 +1242,16 @@ public class Order : Aggregate, IHasMetadata
     public static class Events
     {
         /// <summary>Published when new order is created.</summary>
-        public sealed record Created(Guid OrderId, Guid StoreId) : DomainEvent;
+        public sealed record Created(Guid OrderId, Guid? StoreId) : DomainEvent;
 
         /// <summary>Published when order transitions between states.</summary>
         public sealed record StateChanged(Guid OrderId, OrderState NewState) : DomainEvent;
 
         /// <summary>Published when order reaches Complete state (terminal).</summary>
-        public sealed record Completed(Guid OrderId, Guid StoreId) : DomainEvent;
+        public sealed record Completed(Guid OrderId, Guid? StoreId) : DomainEvent;
 
         /// <summary>Published when order is canceled (terminal).</summary>
-        public sealed record Canceled(Guid OrderId, Guid StoreId) : DomainEvent;
+        public sealed record Canceled(Guid OrderId, Guid? StoreId) : DomainEvent;
 
         /// <summary>Published when product variant is added to order.</summary>
         public sealed record LineItemAdded(Guid OrderId, Guid VariantId, int Quantity) : DomainEvent;
@@ -1160,10 +1260,10 @@ public class Order : Aggregate, IHasMetadata
         public sealed record LineItemRemoved(Guid OrderId, Guid LineItemId) : DomainEvent;
 
         /// <summary>Published when order completes; signals inventory to reduce stock.</summary>
-        public sealed record FinalizeInventory(Guid OrderId, Guid StoreId) : DomainEvent;
+        public sealed record FinalizeInventory(Guid OrderId, Guid? StoreId) : DomainEvent;
 
         /// <summary>Published when order is canceled; signals inventory to release reserved stock.</summary>
-        public sealed record ReleaseInventory(Guid OrderId, Guid StoreId) : DomainEvent;
+        public sealed record ReleaseInventory(Guid OrderId, Guid? StoreId) : DomainEvent;
 
         /// <summary>Published when promotion is applied with calculated discount.</summary>
         public sealed record PromotionApplied(Guid OrderId, Guid PromotionId, decimal DiscountAmount) : DomainEvent;
@@ -1183,5 +1283,6 @@ public class Order : Aggregate, IHasMetadata
         /// <summary>Published when billing address is set.</summary>
         public sealed record BillingAddressSet(Guid OrderId) : DomainEvent;
     }
+
     #endregion
 }

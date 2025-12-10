@@ -8,6 +8,14 @@ using ReSys.Core.Domain.Orders.Shipments;
 namespace ReSys.Core.Domain.Orders.Returns;
 
 /// <summary>
+/// ⚠️ DISABLED: Return flow is currently disabled. This model exists for data compatibility only.
+/// All return-related features (reception, acceptance, reimbursement, exchanges) are non-functional.
+/// 
+/// This class may be re-enabled in future versions with full Spree-aligned implementation:
+/// - CustomerReturn aggregate for grouping returns
+/// - Reimbursement aggregate for refund tracking
+/// - ReturnAuthorization for approval workflow
+/// 
 /// Represents a return request for an inventory unit. Tracks the return lifecycle from initiation
 /// through reception, acceptance/rejection, and reimbursement processing.
 /// </summary>
@@ -283,51 +291,15 @@ public sealed class ReturnItem : Aggregate
     }
 
     /// <summary>
+    /// ⚠️ DISABLED: Returns feature is disabled.
     /// Creates or retrieves an existing return item for an inventory unit.
     /// </summary>
-    /// <param name="inventoryUnit">The inventory unit to create return for.</param>
-    /// <returns>Existing non-cancelled return or new pending return.</returns>
+    [Obsolete("Returns feature is disabled. This method will be re-implemented when returns are enabled.")]
     public static ErrorOr<ReturnItem> FromInventoryUnit(InventoryUnit? inventoryUnit)
     {
-        if (inventoryUnit == null)
-        {
-            return Error.Validation(
-                code: "ReturnItem.InventoryUnitRequired",
-                description: "Inventory unit is required.");
-        }
-
-        // Check unit is eligible for return
-        if (inventoryUnit.State != InventoryUnit.InventoryUnitState.Shipped)
-        {
-            return Errors.IneligibleForReturn;
-        }
-
-        var existing = inventoryUnit.ReturnItems.FirstOrDefault(
-            predicate: ri => ri.ReceptionStatus != ReturnReceptionStatus.Cancelled &&
-                             ri.AcceptanceStatus != ReturnAcceptanceStatus.Rejected);
-
-        if (existing != null)
-            return existing;
-
-        // FIXED: Quantity is always 1 now (per fixed InventoryUnit)
-        var newReturn = new ReturnItem
-        {
-            Id = Guid.NewGuid(),
-            InventoryUnitId = inventoryUnit.Id,
-            ReturnQuantity = 1,  // Always 1 per unit
-            PreTaxAmountCents = 0,
-            ReceptionStatus = ReturnReceptionStatus.Awaiting,
-            AcceptanceStatus = ReturnAcceptanceStatus.Pending,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-
-        newReturn.AddDomainEvent(
-            domainEvent: new Events.Created(
-                ReturnItemId: newReturn.Id,
-                InventoryUnitId: inventoryUnit.Id,
-                ReturnQuantity: 1));
-
-        return newReturn;
+        return Error.Validation(
+            code: "ReturnItem.FeatureDisabled",
+            description: "Return flow is currently disabled. Please contact support.");
     }
 
     /// <summary>

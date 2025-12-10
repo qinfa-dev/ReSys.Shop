@@ -124,7 +124,8 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasMany(navigationExpression: p => p.StoreProducts)
             .WithOne(navigationExpression: sp => sp.Product)
             .HasForeignKey(foreignKeyExpression: sp => sp.ProductId)
-            .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+            .OnDelete(deleteBehavior: DeleteBehavior.Cascade)
+            .IsRequired(false);
         
         builder.HasMany(navigationExpression: p => p.Reviews)
             .WithOne(navigationExpression: sp => sp.Product)

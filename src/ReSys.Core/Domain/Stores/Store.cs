@@ -5,7 +5,6 @@ using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Taxonomies;
-using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Location;
 using ReSys.Core.Domain.Location.Countries;
 using ReSys.Core.Domain.Location.States;
@@ -15,7 +14,6 @@ using ReSys.Core.Domain.ShippingMethods;
 using ReSys.Core.Domain.Stores.PaymentMethods;
 using ReSys.Core.Domain.Stores.Products;
 using ReSys.Core.Domain.Stores.ShippingMethods;
-using ReSys.Core.Domain.Stores.StockLocations;
 
 namespace ReSys.Core.Domain.Stores;
 
@@ -28,14 +26,13 @@ namespace ReSys.Core.Domain.Stores;
 /// - Distinct branding, pricing, and currency configuration
 /// - Isolated order management and customer interactions
 /// - Customized product catalog (products linked per store)
-/// - Multi-warehouse fulfillment configuration
 /// - Independent shipping and payment method offerings
 /// - Store-specific SEO and contact information
 /// 
 /// ## Key Characteristics
 /// - **Multi-Store Support**: System can manage multiple independent stores simultaneously
 /// - **Product Isolation**: Products are shared globally but shown/hidden per store (via StoreProduct)
-/// - **Inventory Isolation**: Stock locations are linked per store with priority ordering
+/// - **Inventory Isolation**: Stock locations are managed independently
 /// - **Configuration Isolation**: Each store has independent payment methods, shipping options, etc.
 /// - **Soft Deletion**: Stores are soft-deleted for audit trails and recovery capability
 /// - **Domain Events**: All significant state changes raise events for integration with other contexts
@@ -61,7 +58,6 @@ namespace ReSys.Core.Domain.Stores;
 /// 
 /// ## Related Aggregates & Entities
 /// - StoreProduct: Links products to this store with visibility/featured settings
-/// - StoreStockLocation: Links warehouse/inventory locations for fulfillment
 /// - StoreShippingMethod: Links available shipping methods with store-specific costs
 /// - StorePaymentMethod: Links available payment methods for checkout
 /// - Order: Customer orders placed within this store
@@ -71,7 +67,6 @@ namespace ReSys.Core.Domain.Stores;
 /// Publishes events for all significant state changes:
 /// - StoreCreated, StoreUpdated, StoreDeleted, StoreRestored
 /// - ProductAddedToStore, ProductRemovedFromStore, ProductSettingsUpdated
-/// - StockLocationAddedToStore, StockLocationRemovedFromStore
 /// - ShippingMethodAddedToStore, ShippingMethodRemovedFromStore
 /// - PaymentMethodAddedToStore, PaymentMethodRemovedFromStore
 /// - StoreMadeDefault, StorePasswordProtectionEnabled/Removed
@@ -288,12 +283,6 @@ public sealed class Store : Aggregate,
         /// <summary>Product is not linked to this store.</summary>
         public static Error ProductNotInStore => Error.NotFound("Store.ProductNotFound", "Product is not associated with this store.");
 
-        // Stock Location Management Errors
-        /// <summary>Stock location is already linked to this store.</summary>
-        public static Error StockLocationAlreadyAdded => Error.Conflict("Store.StockLocationAlreadyAdded", "Stock location already added to this store.");
-        /// <summary>Stock location is not linked to this store.</summary>
-        public static Error StockLocationNotFound => Error.NotFound("Store.StockLocationNotFound", "Stock location not found in store.");
-
         // Shipping Method Management Errors
         /// <summary>Shipping method is already linked to this store.</summary>
         public static Error ShippingMethodAlreadyAdded => Error.Conflict("Store.ShippingMethodAlreadyAdded", "Shipping method already added to this store.");
@@ -309,8 +298,6 @@ public sealed class Store : Aggregate,
         // Null Reference Errors
         /// <summary>Product reference is null (cannot add null product).</summary>
         public static Error InvalidProduct => Error.Validation("Store.InvalidProduct", "Product cannot be null.");
-        /// <summary>Stock location reference is null (cannot add null location).</summary>
-        public static Error InvalidStockLocation => Error.Validation("Store.InvalidStockLocation", "Stock location cannot be null.");
         /// <summary>Shipping method reference is null (cannot add null method).</summary>
         public static Error InvalidShippingMethod => Error.Validation("Store.InvalidShippingMethod", "Shipping method cannot be null.");
         /// <summary>Payment method reference is null (cannot add null method).</summary>
@@ -381,7 +368,6 @@ public sealed class Store : Aggregate,
     public ICollection<StoreProduct> StoreProducts { get; set; } = new List<StoreProduct>();
     public ICollection<Taxonomy> Taxonomies { get; set; } = new List<Taxonomy>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
-    public ICollection<StoreStockLocation> StoreStockLocations { get; set; } = new List<StoreStockLocation>();
     public ICollection<StoreShippingMethod> StoreShippingMethods { get; set; } = new List<StoreShippingMethod>();
     public ICollection<StorePaymentMethod> StorePaymentMethods { get; set; } = new List<StorePaymentMethod>();
     #endregion
@@ -392,24 +378,6 @@ public sealed class Store : Aggregate,
     /// </summary>
     public IReadOnlyCollection<Product> Products =>
         StoreProducts.Select(sp => sp.Product).ToList().AsReadOnly();
-
-    /// <summary>
-    /// Gets all stock locations linked to this store.
-    /// </summary>
-    public IReadOnlyCollection<StockLocation> StockLocations =>
-        StoreStockLocations
-            .OrderBy(sl => sl.Priority)
-            .Select(sl => sl.StockLocation)
-            .ToList()
-            .AsReadOnly();
-
-    /// <summary>
-    /// Gets the primary stock location (highest priority).
-    /// </summary>
-    public StockLocation? PrimaryStockLocation =>
-        StoreStockLocations
-            .OrderBy(sl => sl.Priority)
-            .FirstOrDefault()?.StockLocation;
 
     /// <summary>
     /// Gets available shipping methods for this store.
@@ -454,7 +422,6 @@ public sealed class Store : Aggregate,
     /// </summary>
     public bool IsConfigured =>
         Available &&
-        StoreStockLocations.Any() &&
         StoreShippingMethods.Any(sm => sm.Available) &&
         StorePaymentMethods.Any(pm => pm.Available);
     #endregion
@@ -1160,63 +1127,6 @@ public sealed class Store : Aggregate,
 
     #endregion
 
-    #region Business Logic - Stock Location Management
-
-    public ErrorOr<Store> AddStockLocation(
-        StockLocation? location,
-        int priority = 1)
-    {
-        if (location is null) return Errors.InvalidStockLocation;
-        if (StoreStockLocations.Any(x => x.StockLocationId == location.Id))
-            return Errors.StockLocationAlreadyAdded;
-
-        var link = StoreStockLocation.Create(
-            location.Id,
-            Id,
-            priority);
-
-        if (link.IsError) return link.FirstError;
-
-        StoreStockLocations.Add(link.Value);
-        UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.StockLocationAddedToStore(Id, location.Id, priority));
-        return this;
-    }
-
-    public ErrorOr<Store> RemoveStockLocation(Guid stockLocationId)
-    {
-        var link = StoreStockLocations.FirstOrDefault(sl => sl.StockLocationId == stockLocationId);
-        if (link is null) return Errors.StockLocationNotFound;
-
-        StoreStockLocations.Remove(link);
-        UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.StockLocationRemovedFromStore(Id, stockLocationId));
-        return this;
-    }
-
-    public ErrorOr<Store> UpdateStockLocationPriority(
-        Guid stockLocationId,
-        int priority)
-    {
-        var link = StoreStockLocations.FirstOrDefault(sl => sl.StockLocationId == stockLocationId);
-        if (link is null) return Errors.StockLocationNotFound;
-
-        var initialPriority = link.Priority;
-
-        var updateResult = link.UpdatePriority(priority);
-        if (updateResult.IsError) return updateResult.FirstError;
-
-        // Only raise event if actual settings changed
-        if (link.Priority != initialPriority)
-        {
-            UpdatedAt = DateTimeOffset.UtcNow;
-            AddDomainEvent(new Events.StockLocationPriorityUpdated(Id, stockLocationId, priority));
-        }
-        return this;
-    }
-
-    #endregion
-
     #region Business Logic - Shipping Method Management
 
     public ErrorOr<Store> AddShippingMethod(
@@ -1406,22 +1316,6 @@ public sealed class Store : Aggregate,
         /// Raised when product visibility or featured settings are updated.
         /// </summary>
         public sealed record ProductSettingsUpdated(Guid StoreId, Guid ProductId) : DomainEvent;
-
-        // Stock Location Events
-        /// <summary>
-        /// Raised when a stock location is linked to the store.
-        /// </summary>
-        public sealed record StockLocationAddedToStore(Guid StoreId, Guid StockLocationId, int Priority) : DomainEvent;
-
-        /// <summary>
-        /// Raised when a stock location is unlinked from the store.
-        /// </summary>
-        public sealed record StockLocationRemovedFromStore(Guid StoreId, Guid StockLocationId) : DomainEvent;
-
-        /// <summary>
-        /// Raised when stock location priority is updated.
-        /// </summary>
-        public sealed record StockLocationPriorityUpdated(Guid StoreId, Guid StockLocationId, int Priority) : DomainEvent;
 
         // Shipping Method Events
         /// <summary>

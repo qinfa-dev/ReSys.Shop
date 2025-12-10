@@ -7,16 +7,11 @@ namespace ReSys.Core.Domain.PaymentMethods.Providers.Webhooks;
 /// Orchestrates the processing of incoming webhook events by dispatching them to
 /// the appropriate <see cref="IWebhookHandler"/> based on the provider name.
 /// </summary>
-public class WebhookProcessor
+public class WebhookProcessor(IEnumerable<IWebhookHandler> handlers, ILogger<WebhookProcessor> logger)
 {
-    private readonly IEnumerable<IWebhookHandler> _handlers;
-    private readonly ILogger<WebhookProcessor> _logger;
+    private readonly IEnumerable<IWebhookHandler> _handlers = handlers;
+    private readonly ILogger<WebhookProcessor> _logger = logger;
 
-    public WebhookProcessor(IEnumerable<IWebhookHandler> handlers, ILogger<WebhookProcessor> logger)
-    {
-        _handlers = handlers;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Processes an incoming webhook event by finding and delegating to the responsible handler.

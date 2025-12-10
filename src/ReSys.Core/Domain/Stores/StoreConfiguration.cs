@@ -18,7 +18,7 @@ namespace ReSys.Core.Domain.Stores;
 /// <item><description>Primary Key: Store.Id (Guid, value-generated never)</description></item>
 /// <item><description>Uniqueness: Name, Code, Url all have unique constraints at DB level</description></item>
 /// <item><description>Query Filter: Soft-deleted stores automatically excluded from queries</description></item>
-/// <item><description>Cascade Delete: StoreProducts, StoreShippingMethods, StorePaymentMethods, StoreStockLocations cascade on delete</description></item>
+/// <item><description>Cascade Delete: StoreProducts, StoreShippingMethods, StorePaymentMethods cascade on delete</description></item>
 /// <item><description>Restrict Delete: Orders restricted (do not auto-delete with store)</description></item>
 /// </list>
 /// </para>
@@ -272,11 +272,6 @@ public sealed class StoreConfiguration : IEntityTypeConfiguration<Store>
             .HasForeignKey(foreignKeyExpression: o => o.StoreId)
             .OnDelete(deleteBehavior: DeleteBehavior.Restrict); // Orders should not be deleted if store is deleted
 
-        builder.HasMany(navigationExpression: s => s.StoreStockLocations)
-            .WithOne(navigationExpression: sls => sls.Store)
-            .HasForeignKey(foreignKeyExpression: sls => sls.StoreId)
-            .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
         builder.HasMany(navigationExpression: s => s.StoreShippingMethods)
             .WithOne(navigationExpression: ssm => ssm.Store)
             .HasForeignKey(foreignKeyExpression: ssm => ssm.StoreId)
@@ -307,7 +302,6 @@ public sealed class StoreConfiguration : IEntityTypeConfiguration<Store>
 
         #region Ignored Properties
         builder.Ignore(propertyExpression: oa => oa.Products);
-        builder.Ignore(propertyExpression: oa => oa.StockLocations);
         builder.Ignore(propertyExpression: oa => oa.AvailablePaymentMethods);
         builder.Ignore(propertyExpression: oa => oa.AvailableShippingMethods);
         #endregion

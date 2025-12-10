@@ -5,25 +5,40 @@ using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Inventories.Stocks;
-using ReSys.Core.Domain.Orders;
+using ReSys.Core.Domain.Inventories.StorePickups;
 using ReSys.Core.Domain.Location;
 using ReSys.Core.Domain.Location.Countries;
 using ReSys.Core.Domain.Location.States;
-using ReSys.Core.Domain.Stores;
-using ReSys.Core.Domain.Stores.StockLocations;
+using ReSys.Core.Domain.Orders;
 
 namespace ReSys.Core.Domain.Inventories.Locations;
 
 /// <summary>
-/// Represents a physical or logical location where inventory is held and managed (e.g., a warehouse, a retail store).
+/// Defines the type of inventory location (warehouse, retail store, or hybrid).
+/// This enum determines which fulfillment operations (shipping, store pickup) are supported.
+/// </summary>
+public enum LocationType
+{
+    /// <summary>A warehouse or distribution center (supports shipping).</summary>
+    Warehouse = 1,
+
+    /// <summary>A retail physical store (supports store pickup).</summary>
+    RetailStore = 2,
+
+    /// <summary>A hybrid location that functions as both warehouse and retail store.</summary>
+    Both = 3
+}
+
+/// <summary>
+/// Represents a physical or logical location where inventory is held and managed (e.g., a warehouse, a distribution center).
 /// This aggregate root serves as a container for stock items and orchestrates inventory operations specific to that location.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <strong>Responsibility:</strong>
 /// Manages a collection of <see cref="StockItem"/>s, orchestrates stock movements (restocking and unstocking),
-/// tracks address information, and links to stores for multi-location retail operations. It ensures
-/// the integrity of stock levels and provides a centralized point for inventory management at a given site.
+/// and tracks address information. It ensures the integrity of stock levels and provides a centralized point 
+/// for inventory management at a given site.
 /// </para>
 ///
 /// <para>
@@ -31,9 +46,9 @@ namespace ReSys.Core.Domain.Inventories.Locations;
 /// Stock locations can represent various types of inventory storage:
 /// <list type="bullet">
 /// <item><b>Warehouse:</b> Central distribution location for bulk inventory.</item>
-/// <item><b>Retail Store:</b> Physical retail location with customer-facing inventory.</item>
+/// <item><b>Distribution Center:</b> Regional fulfillment point for order distribution.</item>
 /// <item><b>Staging Area:</b> Temporary holding location for transfers or returns.</item>
-/// <item><b>Fulfillment Center:</b> Distribution point for order fulfillment.</item>
+/// <item><b>Fulfillment Center:</b> Specialized location optimized for order fulfillment.</item>
 /// </list>
 /// </para>
 ///
@@ -42,8 +57,8 @@ namespace ReSys.Core.Domain.Inventories.Locations;
 /// <list type="bullet">
 /// <item><b>Restock:</b> Increase inventory at this location for a specific <see cref="Variant"/>.</item>
 /// <item><b>Unstock:</b> Decrease inventory at this location for a specific <see cref="Variant"/>.</item>
-/// <item><b>Link/Unlink Stores:</b> Associate with retail stores for multi-location management via <see cref="StoreStockLocation"/>.</item>
-/// <item><b>Make Default:</b> Set as the default fulfillment location for a store or the system.</item>
+/// <item><b>Track Transfers:</b> Record and manage stock movements between locations.</item>
+/// <item><b>Make Default:</b> Set as the default fulfillment location for the system.</item>
 /// </list>
 /// </para>
 ///
@@ -82,6 +97,8 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
         public const int PhoneMaxLength = 50;
         /// <summary>Maximum allowed length for the <see cref="StockLocation.Company"/> property.</summary>
         public const int CompanyMaxLength = 255;
+        /// <summary>Maximum allowed length for the <see cref="StockLocation.Email"/> property.</summary>
+        public const int EmailMaxLength = 256;
     }
     #endregion
 
@@ -147,14 +164,6 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
                 description: "Stock item has a negative quantity reserved.");
 
         /// <summary>
-        /// Error indicating invalid store linkages (e.g., a <see cref="StoreStockLocation"/> referencing an invalid <see cref="Store"/> or <see cref="StockLocation"/>).
-        /// </summary>
-        public static Error InvalidStoreLinkage =>
-            Error.Validation(
-                code: "StockLocation.InvalidStoreLinkage",
-                description: "Invalid store linkages detected.");
-
-        /// <summary>
         /// Error indicating that a stock location cannot be deleted because it has pending shipments.
         /// All pending shipments must be resolved or cancelled first.
         /// </summary>
@@ -180,6 +189,22 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
             Error.Conflict(
                 code: "StockLocation.HasBackorderedInventoryUnits",
                 description: "Cannot delete location with backordered inventory units assigned. Fill or reassign backorders first.");
+
+        /// <summary>
+        /// Error indicating that the location type is invalid or not supported.
+        /// </summary>
+        public static Error InvalidLocationType =>
+            Error.Validation(
+                code: "StockLocation.InvalidLocationType",
+                description: "The specified location type is invalid.");
+
+        /// <summary>
+        /// Error indicating that coordinates (latitude/longitude) are invalid or incomplete.
+        /// </summary>
+        public static Error InvalidCoordinates =>
+            Error.Validation(
+                code: "StockLocation.InvalidCoordinates",
+                description: "Location coordinates (latitude/longitude) are invalid or incomplete.");
     }
     #endregion
 
@@ -234,6 +259,50 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     public string? Company { get; set; }
 
     /// <summary>
+    /// Gets or sets the email address for this stock location (optional).
+    /// </summary>
+    public string? Email { get; set; }
+
+    /// <summary>
+    /// Gets or sets the type of this location (Warehouse, RetailStore, or Both).
+    /// Determines which fulfillment operations (shipping, store pickup) are supported.
+    /// </summary>
+    public LocationType Type { get; set; } = LocationType.Warehouse;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether this location can ship orders.
+    /// Warehouses and hybrid locations typically have this enabled.
+    /// </summary>
+    public bool ShipEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether this location supports store pickup.
+    /// Retail stores and hybrid locations typically have this enabled.
+    /// </summary>
+    public bool PickupEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the geographic latitude coordinate for this location (optional).
+    /// Used for distance calculations and nearby store searches.
+    /// Valid range: -90 to 90.
+    /// </summary>
+    public decimal? Latitude { get; set; }
+
+    /// <summary>
+    /// Gets or sets the geographic longitude coordinate for this location (optional).
+    /// Used for distance calculations and nearby store searches.
+    /// Valid range: -180 to 180.
+    /// </summary>
+    public decimal? Longitude { get; set; }
+
+    /// <summary>
+    /// Gets or sets operating hours for this location as flexible JSON data.
+    /// Format example: { "monday": "09:00-17:00", "tuesday": "09:00-17:00", ... }
+    /// Null if operating hours are not defined.
+    /// </summary>
+    public IDictionary<string, object?>? OperatingHours { get; set; }
+
+    /// <summary>
     /// Gets or sets public metadata: custom attributes visible to administrators and potentially exposed via public APIs.
     /// Use for: display hints, operational tags, geographical regions.
     /// </summary>
@@ -266,12 +335,6 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// This represents the current inventory for various product variants.
     /// </summary>
     public ICollection<StockItem> StockItems { get; set; } = new List<StockItem>();
-    /// <summary>
-    /// Gets or sets the collection of <see cref="StoreStockLocation"/> entities that link
-    /// this stock location to various retail <see cref="Store"/>s.
-    /// This enables multi-location inventory management for stores.
-    /// </summary>
-    public ICollection<StoreStockLocation> StoreStockLocations { get; set; } = new List<StoreStockLocation>();
 
     /// <summary>
     /// Gets or sets the unique identifier of the <see cref="Country"/> associated with this stock location.
@@ -290,14 +353,16 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// Gets or sets the navigation property to the <see cref="State"/> associated with this stock location (optional).
     /// </summary>
     public State? State { get; set; }
+
+    /// <summary>
+    /// Gets or sets the collection of <see cref="StorePickup"/>s associated with this stock location.
+    /// This represents the store pickups that are managed by this location.
+    /// </summary>
+    public ICollection<StorePickup> StorePickups { get; set; } = new List<StorePickup>();
     #endregion
 
     #region Computed Properties
-    /// <summary>
-    /// Gets a collection of <see cref="Store"/>s that are currently linked to this stock location.
-    /// This is a computed property derived from the <see cref="StoreStockLocations"/> collection.
-    /// </summary>
-    public ICollection<Store> Stores => StoreStockLocations.Select(selector: sls => sls.Store).ToList();
+    // Stores linkage removed - StockLocation is focused on inventory management, not store association
     #endregion
 
     #region Constructors
@@ -325,17 +390,23 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// <param name="stateId">Optional: The unique identifier of the <see cref="State"/> for this location.</param>
     /// <param name="phone">Optional: The phone number for this location.</param>
     /// <param name="company">Optional: The company name associated with this location.</param>
+    /// <param name="email">Optional: The email address for this location.</param>
+    /// <param name="type">The type of this location (Warehouse, RetailStore, Both). Defaults to Warehouse.</param>
+    /// <param name="shipEnabled">Whether this location can ship orders. Defaults to true.</param>
+    /// <param name="pickupEnabled">Whether this location supports store pickup. Defaults to false.</param>
+    /// <param name="latitude">Optional: The geographic latitude coordinate (-90 to 90) for distance calculations.</param>
+    /// <param name="longitude">Optional: The geographic longitude coordinate (-180 to 180) for distance calculations.</param>
+    /// <param name="operatingHours">Optional: JSON dictionary of operating hours by day of week.</param>
     /// <param name="publicMetadata">Optional: Dictionary for public-facing metadata.</param>
     /// <param name="privateMetadata">Optional: Dictionary for internal-only metadata.</param>
     /// <returns>
     /// An <see cref="ErrorOr{StockLocation}"/> result.
     /// Returns a new <see cref="StockLocation"/> instance on success.
-    /// Returns errors if name normalization fails or required fields are missing (though basic string validation is implicit here).
+    /// Returns errors if name normalization fails, coordinates are invalid, or required fields are missing.
     /// </returns>
     /// <remarks>
     /// This method adds a <see cref="Events.Created"/> domain event upon successful creation.
-    /// Further validation (e.g., name uniqueness, address format) is typically handled by FluentValidation
-    /// or application services.
+    /// Validation of location type, coordinates, and address format is handled here and by FluentValidation.
     /// </remarks>
     public static ErrorOr<StockLocation> Create(
         string name,
@@ -350,9 +421,26 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
         Guid? stateId = null,
         string? phone = null,
         string? company = null,
+        string? email = null,
+        LocationType type = LocationType.Warehouse,
+        bool shipEnabled = true,
+        bool pickupEnabled = false,
+        decimal? latitude = null,
+        decimal? longitude = null,
+        IDictionary<string, object?>? operatingHours = null,
         IDictionary<string, object?>? publicMetadata = null,
         IDictionary<string, object?>? privateMetadata = null)
     {
+        // Validate coordinates if provided
+        if ((latitude.HasValue && !longitude.HasValue) || (!latitude.HasValue && longitude.HasValue))
+            return Errors.InvalidCoordinates;
+
+        if (latitude.HasValue && (latitude < -90 || latitude > 90))
+            return Errors.InvalidCoordinates;
+
+        if (longitude.HasValue && (longitude < -180 || longitude > 180))
+            return Errors.InvalidCoordinates;
+
         (name, presentation) = HasParameterizableName.NormalizeParams(name: name, presentation: presentation);
 
         var location = new StockLocation
@@ -371,6 +459,13 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
             StateId = stateId,
             Phone = phone?.Trim(),
             Company = company?.Trim(),
+            Email = email?.Trim(),
+            Type = type,
+            ShipEnabled = shipEnabled,
+            PickupEnabled = pickupEnabled,
+            Latitude = latitude,
+            Longitude = longitude,
+            OperatingHours = operatingHours,
             PublicMetadata = publicMetadata,
             PrivateMetadata = privateMetadata
         };
@@ -397,9 +492,16 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// <param name="countryId">The new <see cref="Country"/> ID for this location.</param>
     /// <param name="stateId">The new <see cref="State"/> ID for this location.</param>
     /// <param name="phone">The new phone number.</param>
+    /// <param name="email"></param>
     /// <param name="company">The new company name.</param>
+    /// <param name="latitude"></param>
+    /// <param name="longitude"></param>
+    /// <param name="operatingHours"></param>
     /// <param name="publicMetadata">New public metadata. If null, existing is retained.</param>
     /// <param name="privateMetadata">New private metadata. If null, existing is retained.</param>
+    /// <param name="type"></param>
+    /// <param name="shipEnabled"></param>
+    /// <param name="pickupEnabled"></param>
     /// <returns>
     /// An <see cref="ErrorOr{StockLocation}"/> result.
     /// Returns the updated <see cref="StockLocation"/> instance on success.
@@ -420,10 +522,27 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
         Guid? countryId = null,
         Guid? stateId = null,
         string? phone = null,
+        string? email = null,
         string? company = null,
+        LocationType? type = null,
+        bool? shipEnabled = null,
+        bool? pickupEnabled = null,
+        decimal? latitude = null,
+        decimal? longitude = null,
+        IDictionary<string, object?>? operatingHours = null,
         IDictionary<string, object?>? publicMetadata = null,
         IDictionary<string, object?>? privateMetadata = null)
     {
+        // Validate coordinates if being updated
+        if ((latitude.HasValue && !longitude.HasValue) || (!latitude.HasValue && longitude.HasValue))
+            return Errors.InvalidCoordinates;
+
+        if (latitude.HasValue && (latitude < -90 || latitude > 90))
+            return Errors.InvalidCoordinates;
+
+        if (longitude.HasValue && (longitude < -180 || longitude > 180))
+            return Errors.InvalidCoordinates;
+
         bool changed = false;
         (name, presentation) = HasParameterizableName.NormalizeParams(
             name: name ?? Name,
@@ -501,9 +620,51 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
             changed = true;
         }
 
+        if (email != null && Email != email)
+        {
+            Email = email.Trim();
+            changed = true;
+        }
+
         if (company != null && Company != company)
         {
             Company = company.Trim();
+            changed = true;
+        }
+
+        if (type.HasValue && type != Type)
+        {
+            Type = type.Value;
+            changed = true;
+        }
+
+        if (shipEnabled.HasValue && shipEnabled != ShipEnabled)
+        {
+            ShipEnabled = shipEnabled.Value;
+            changed = true;
+        }
+
+        if (pickupEnabled.HasValue && pickupEnabled != PickupEnabled)
+        {
+            PickupEnabled = pickupEnabled.Value;
+            changed = true;
+        }
+
+        if (latitude.HasValue && latitude != Latitude)
+        {
+            Latitude = latitude;
+            changed = true;
+        }
+
+        if (longitude.HasValue && longitude != Longitude)
+        {
+            Longitude = longitude;
+            changed = true;
+        }
+
+        if (operatingHours != null)
+        {
+            OperatingHours = operatingHours;
             changed = true;
         }
 
@@ -543,6 +704,84 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
         AddDomainEvent(domainEvent: new Events.StockLocationMadeDefault(StockLocationId: Id));
         return this;
     }
+
+    #endregion
+
+    #region Business Logic: Capability Queries
+
+    /// <summary>
+    /// Determines if this location can ship orders.
+    /// </summary>
+    /// <returns>True if the location is not deleted and shipping is enabled; otherwise false.</returns>
+    public bool CanShip => ShipEnabled && !IsDeleted;
+
+    /// <summary>
+    /// Determines if this location supports store pickup.
+    /// </summary>
+    /// <returns>True if the location is not deleted and pickup is enabled; otherwise false.</returns>
+    public bool CanPickup => PickupEnabled && !IsDeleted;
+
+    /// <summary>
+    /// Determines if this location is a warehouse (supports shipping only).
+    /// </summary>
+    /// <returns>True if the location type is Warehouse; otherwise false.</returns>
+    public bool IsWarehouse => Type == LocationType.Warehouse;
+
+    /// <summary>
+    /// Determines if this location is a retail store (supports pickup only).
+    /// </summary>
+    /// <returns>True if the location type is RetailStore; otherwise false.</returns>
+    public bool IsRetailStore => Type == LocationType.RetailStore;
+
+    /// <summary>
+    /// Determines if this location is a hybrid facility (supports both shipping and pickup).
+    /// </summary>
+    /// <returns>True if the location type is Both; otherwise false.</returns>
+    public bool IsHybrid => Type == LocationType.Both;
+
+    /// <summary>
+    /// Determines if this location has valid geographic coordinates defined.
+    /// </summary>
+    /// <returns>True if both latitude and longitude are set; otherwise false.</returns>
+    public bool HasLocation => Latitude.HasValue && Longitude.HasValue;
+
+    /// <summary>
+    /// Calculates the Haversine distance between this location and another location in kilometers.
+    /// </summary>
+    /// <param name="otherLatitude">The latitude of the other location.</param>
+    /// <param name="otherLongitude">The longitude of the other location.</param>
+    /// <returns>The distance in kilometers, or null if this location or the other coordinates are not defined.</returns>
+    /// <remarks>
+    /// Uses the Haversine formula for great-circle distance calculations on Earth.
+    /// Formula: a = sin²(Δφ/2) + cos(φ1).cos(φ2).sin²(Δλ/2)
+    ///          c = 2.atan2(√a, √(1−a))
+    ///          d = R.c (where R = 6371 km, Earth's mean radius)
+    /// </remarks>
+    public decimal? CalculateDistanceTo(decimal otherLatitude, decimal otherLongitude)
+    {
+        if (!HasLocation)
+            return null;
+
+        const decimal earthRadiusKm = 6371m;
+
+        var lat1Rad = DegreesToRadians(Latitude!.Value);
+        var lat2Rad = DegreesToRadians(otherLatitude);
+        var deltaLatRad = DegreesToRadians(otherLatitude - Latitude!.Value);
+        var deltaLonRad = DegreesToRadians(otherLongitude - Longitude!.Value);
+
+        var a = (decimal)Math.Sin((double)(deltaLatRad / 2)) * (decimal)Math.Sin((double)(deltaLatRad / 2)) +
+                (decimal)Math.Cos((double)lat1Rad) * (decimal)Math.Cos((double)lat2Rad) *
+                (decimal)Math.Sin((double)(deltaLonRad / 2)) * (decimal)Math.Sin((double)(deltaLonRad / 2));
+
+        var c = 2m * (decimal)Math.Atan2(Math.Sqrt((double)a), Math.Sqrt((double)(1m - a)));
+
+        return earthRadiusKm * c;
+    }
+
+    /// <summary>
+    /// Converts degrees to radians.
+    /// </summary>
+    private static decimal DegreesToRadians(decimal degrees) => degrees * (decimal)Math.PI / 180m;
 
     #endregion
 
@@ -794,7 +1033,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// <remarks>
     /// This method is crucial for maintaining data integrity, especially after complex inventory operations.
     /// It checks for conditions like reserved quantity not exceeding on-hand quantity for non-backorderable items,
-    /// and ensures no quantities are negative. It also verifies the validity of linked stores.
+    /// and ensures no quantities are negative.
     /// </remarks>
     public ErrorOr<Success> ValidateInvariants()
     {
@@ -823,90 +1062,6 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
                     description: $"Stock item {stockItem.Id} has negative quantity reserved.");
             }
         }
-
-        // Check linked stores are valid
-        if (StoreStockLocations.Any(ssl => ssl.StoreId == Guid.Empty || ssl.StockLocationId != Id))
-        {
-            return Error.Validation(
-                code: "StockLocation.InvalidStoreLinkage",
-                description: "Invalid store linkages detected.");
-        }
-
-        return Result.Success;
-    }
-
-    #endregion
-
-    #region Business Logic: Store Linkage
-
-    /// <summary>
-    /// Associates this stock location with a specific <see cref="Store"/> for multi-location retail operations.
-    /// </summary>
-    /// <param name="store">The <see cref="Store"/> aggregate to link with this location.</param>
-    /// <returns>
-    /// An <see cref="ErrorOr{Success}"/> result.
-    /// Returns <see cref="Result.Success"/> if the link operation succeeds.
-    /// Returns <see cref="Error.Conflict"/> if the store is already linked to this location.
-    /// Returns errors if the underlying <see cref="StoreStockLocation"/> creation fails.
-    /// </returns>
-    /// <remarks>
-    /// This method creates a <see cref="StoreStockLocation"/> entry to represent the association.
-    /// An <see cref="Events.LinkedToStockLocation"/> domain event is added.
-    /// </remarks>
-    public ErrorOr<Success> LinkStore(Store store)
-    {
-        if (StoreStockLocations.Any(predicate: sls => sls.StoreId == store.Id))
-        {
-            return Error.Conflict(
-                code: "StockLocation.StoreAlreadyLinked",
-                description: $"Store '{store.Name}' is already linked to this location.");
-        }
-
-        var stockLocationStoreResult = StoreStockLocation.Create(
-            stockLocationId: Id,
-            storeId: store.Id);
-
-        if (stockLocationStoreResult.IsError)
-            return stockLocationStoreResult.Errors;
-
-        StoreStockLocations.Add(item: stockLocationStoreResult.Value);
-        AddDomainEvent(
-            domainEvent: new Events.LinkedToStockLocation(
-                StockLocationId: Id,
-                StoreId: store.Id));
-
-        return Result.Success;
-    }
-
-    /// <summary>
-    /// Removes the association between this stock location and a specific <see cref="Store"/>.
-    /// </summary>
-    /// <param name="store">The <see cref="Store"/> aggregate to unlink from this location.</param>
-    /// <returns>
-    /// An <see cref="ErrorOr{Success}"/> result.
-    /// Returns <see cref="Result.Success"/> if the unlink operation succeeds.
-    /// Returns <see cref="Error.NotFound"/> if the store is not currently linked to this location.
-    /// </returns>
-    /// <remarks>
-    /// This method removes the corresponding <see cref="StoreStockLocation"/> entry.
-    /// An <see cref="Events.UnlinkedFromStockLocation"/> domain event is added.
-    /// </remarks>
-    public ErrorOr<Success> UnlinkStore(Store store)
-    {
-        var stockLocationStore = StoreStockLocations.FirstOrDefault(predicate: sls => sls.StoreId == store.Id);
-
-        if (stockLocationStore == null)
-        {
-            return Error.NotFound(
-                code: "StockLocation.StoreNotLinked",
-                description: $"Store '{store.Name}' is not linked to this location.");
-        }
-
-        StoreStockLocations.Remove(item: stockLocationStore);
-        AddDomainEvent(
-            domainEvent: new Events.UnlinkedFromStockLocation(
-                StockLocationId: Id,
-                StoreId: store.Id));
 
         return Result.Success;
     }
@@ -958,20 +1113,29 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
         public sealed record StockLocationMadeDefault(Guid StockLocationId) : DomainEvent;
 
         /// <summary>
-        /// Raised when a store is linked to this location.
-        /// Purpose: Signals a new association for multi-location retail operations.
+        /// Raised when shipping capability is enabled or disabled for this location.
+        /// Purpose: Notifies fulfillment systems of changes to shipping availability.
         /// </summary>
         /// <param name="StockLocationId">The unique identifier of the stock location.</param>
-        /// <param name="StoreId">The unique identifier of the store that was linked.</param>
-        public sealed record LinkedToStockLocation(Guid StockLocationId, Guid StoreId) : DomainEvent;
+        /// <param name="IsEnabled">Whether shipping is now enabled (true) or disabled (false).</param>
+        public sealed record ShippingCapabilityChanged(Guid StockLocationId, bool IsEnabled) : DomainEvent;
 
         /// <summary>
-        /// Raised when a store is unlinked from this location.
-        /// Purpose: Signals the removal of an association with a store.
+        /// Raised when store pickup capability is enabled or disabled for this location.
+        /// Purpose: Notifies fulfillment systems of changes to pickup availability.
         /// </summary>
         /// <param name="StockLocationId">The unique identifier of the stock location.</param>
-        /// <param name="StoreId">The unique identifier of the store that was unlinked.</param>
-        public sealed record UnlinkedFromStockLocation(Guid StockLocationId, Guid StoreId) : DomainEvent;
+        /// <param name="IsEnabled">Whether pickup is now enabled (true) or disabled (false).</param>
+        public sealed record PickupCapabilityChanged(Guid StockLocationId, bool IsEnabled) : DomainEvent;
+
+        /// <summary>
+        /// Raised when the geographic location of this stock location is updated.
+        /// Purpose: Notifies systems that depend on geographic distance calculations.
+        /// </summary>
+        /// <param name="StockLocationId">The unique identifier of the stock location.</param>
+        /// <param name="Latitude">The updated latitude coordinate.</param>
+        /// <param name="Longitude">The updated longitude coordinate.</param>
+        public sealed record LocationCoordinatesUpdated(Guid StockLocationId, decimal? Latitude, decimal? Longitude) : DomainEvent;
     }
 
     #endregion

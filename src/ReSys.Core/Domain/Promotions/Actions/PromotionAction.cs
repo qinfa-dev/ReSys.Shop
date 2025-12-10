@@ -51,7 +51,7 @@ namespace ReSys.Core.Domain.Promotions.Actions;
 /// </code>
 /// </para>
 /// </remarks>
-public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
+public sealed class PromotionAction : AuditableEntity<Guid>, IHasMetadata
 {
     #region Constraints
     public static class Constraints
@@ -109,7 +109,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
     #endregion
 
     #region Constructors
-    private PromotionUsage() { }
+    private PromotionAction() { }
     #endregion
 
     #region Factory Methods
@@ -123,7 +123,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
     /// On success: A new PromotionAction configured for order discounts.
     /// On failure: Validation error if value is invalid.
     /// </returns>
-    public static ErrorOr<PromotionUsage> CreateOrderDiscount(
+    public static ErrorOr<PromotionAction> CreateOrderDiscount(
         Promotion.DiscountType discountType,
         decimal value)
     {
@@ -135,7 +135,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
             return Errors.InvalidPercentageValue;
         }
 
-        var action = new PromotionUsage
+        var action = new PromotionAction
         {
             Id = Guid.NewGuid(),
             Type = Promotion.PromotionType.OrderDiscount
@@ -156,19 +156,19 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
     /// On success: A new PromotionAction configured for item discounts.
     /// On failure: Validation error if value is invalid.
     /// </returns>
-    public static ErrorOr<PromotionUsage> CreateItemDiscount(
+    public static ErrorOr<PromotionAction> CreateItemDiscount(
         Promotion.DiscountType discountType,
         decimal value)
     {
         if (value < Constraints.MinValue)
             return Errors.InvalidValue;
-        
+
         if (discountType == Promotion.DiscountType.Percentage && (value < 0.0m || value > 1.0m))
         {
             return Errors.InvalidPercentageValue;
         }
 
-        var action = new PromotionUsage
+        var action = new PromotionAction
         {
             Id = Guid.NewGuid(),
             Type = Promotion.PromotionType.ItemDiscount
@@ -186,7 +186,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
     /// <remarks>
     /// Only applies to orders with physical items (not fully digital orders).
     /// </remarks>
-    public static PromotionUsage CreateFreeShipping()
+    public static PromotionAction CreateFreeShipping()
         => new()
         {
             Id = Guid.NewGuid(),
@@ -208,7 +208,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
     /// Example: Buy 2 red shirts, get 1 blue shirt free.
     /// If customer buys 4 red shirts, they get 2 blue shirts free (2 cycles of the 2:1 ratio).
     /// </remarks>
-    public static ErrorOr<PromotionUsage> CreateBuyXGetY(
+    public static ErrorOr<PromotionAction> CreateBuyXGetY(
         Guid buyVariantId,
         int buyQuantity,
         Guid getVariantId,
@@ -220,7 +220,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
         if (getQuantity < Constraints.MinQuantity)
             return Errors.InvalidGetQuantity;
 
-        var action = new PromotionUsage
+        var action = new PromotionAction
         {
             Id = Guid.NewGuid(),
             Type = Promotion.PromotionType.BuyXGetY
@@ -325,7 +325,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
     {
         var adjustments = new List<PromotionAdjustment>();
         var baseAmount = context.EligibleItems.Sum(li => li.Subtotal);
-        
+
         if (baseAmount == 0)
             return adjustments;
 
@@ -446,7 +446,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
         var boughtItems = context.EligibleItems
             .Where(li => li.VariantId == buyVariantId.Value)
             .ToList();
-        
+
         if (!boughtItems.Any())
             return adjustments;
 
@@ -463,7 +463,7 @@ public sealed class PromotionUsage : AuditableEntity<Guid>, IHasMetadata
         var getItems = context.EligibleItems
             .Where(li => li.VariantId == getVariantId.Value)
             .ToList();
-        
+
         var availableFreeQty = getItems.Sum(li => li.Quantity);
         var qtyToDiscount = Math.Min(availableFreeQty, freeQty);
 

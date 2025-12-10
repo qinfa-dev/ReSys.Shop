@@ -7,6 +7,7 @@ using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Orders.Adjustments;
 using ReSys.Core.Domain.Promotions.Actions;
+using ReSys.Core.Domain.Promotions.Audits;
 using ReSys.Core.Domain.Promotions.Rules;
 
 namespace ReSys.Core.Domain.Promotions.Promotions;
@@ -151,13 +152,14 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     public bool RequiresCouponCode { get; set; }
 
     /// <summary>Gets or sets the promotion action that defines the discount/reward calculation.</summary>
-    public PromotionUsage? Action { get; set; }
+    public PromotionAction? Action { get; set; }
     #endregion
 
     #region Relationships
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<PromotionRule> PromotionRules { get; set; } = new List<PromotionRule>();
     public ICollection<OrderAdjustment> OrderAdjustments { get; set; } = new List<OrderAdjustment>();
+    public ICollection<PromotionUsage> PromotionUsages { get; set; } = new List<PromotionUsage>();
     #endregion
 
     #region Computed Properties
@@ -207,7 +209,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     /// Creates a new promotion with the specified configuration.
     /// </summary>
     /// <param name="name">The promotion name (required, trimmed). Must be between MinNameLength and NameMaxLength characters.</param>
-    /// <param name="usage">The promotion action defining the discount/reward logic (required).</param>
+    /// <param name="action">The promotion action defining the discount/reward logic (required).</param>
     /// <param name="code">Optional coupon code (auto-trimmed and uppercased). Required if requiresCouponCode is true.</param>
     /// <param name="description">Optional description of the promotion (trimmed).</param>
     /// <param name="minimumOrderAmount">Optional minimum order amount for promotion eligibility.</param>
@@ -222,7 +224,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     /// </returns>
     public static ErrorOr<Promotion> Create(
         string name,
-        PromotionUsage usage,
+        PromotionAction action,
         string? code = null,
         string? description = null,
         decimal? minimumOrderAmount = null,
@@ -256,7 +258,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
         {
             Id = Guid.NewGuid(),
             Name = name.Trim(),
-            Action = usage,
+            Action = action,
             PromotionCode = code?.Trim().ToUpperInvariant(),
             Description = description?.Trim(),
             MinimumOrderAmount = minimumOrderAmount,
@@ -300,7 +302,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
         string? name = null,
         string? code = null,
         string? description = null,
-        PromotionUsage? action = null,
+        PromotionAction? action = null,
         decimal? minimumOrderAmount = null,
         decimal? maximumDiscountAmount = null,
         DateTimeOffset? startsAt = null,

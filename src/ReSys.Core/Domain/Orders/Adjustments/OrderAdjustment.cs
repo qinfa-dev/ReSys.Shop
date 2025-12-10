@@ -78,6 +78,20 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
     public AdjustmentScope Scope { get; set; }
 
     /// <summary>
+    /// Whether this adjustment is currently eligible and should be applied to totals.
+    /// Adjustments that become ineligible are preserved on the order but do not
+    /// contribute to totals until reinstated.
+    /// </summary>
+    public bool Eligible { get; set; } = true;
+
+    /// <summary>
+    /// If true, this adjustment is mandatory and should be persisted even when
+    /// the computed amount is zero. Useful for explicitly marking taxes or shipping
+    /// charges that are intentionally zero.
+    /// </summary>
+    public bool Mandatory { get; set; }
+
+    /// <summary>
     /// Foreign key reference to the Promotion that created this adjustment (nullable).
     /// Set only if this adjustment comes from a promotion; null for manual adjustments (tax, fee).
     /// </summary>
@@ -129,7 +143,9 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
         string description, 
         AdjustmentScope scope,
         Guid? lineItemId = null,
-        Guid? promotionId = null)
+        Guid? promotionId = null,
+        bool eligible = true,
+        bool mandatory = false)
     {
         if (string.IsNullOrWhiteSpace(value: description)) return Errors.DescriptionRequired;
         if (description.Length > Constraints.DescriptionMaxLength) return Errors.DescriptionTooLong;
@@ -144,6 +160,8 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
             Scope = scope,
             LineItemId = lineItemId,
             PromotionId = promotionId,
+            Eligible = eligible,
+            Mandatory = mandatory,
             CreatedAt = DateTimeOffset.UtcNow
         };
     }

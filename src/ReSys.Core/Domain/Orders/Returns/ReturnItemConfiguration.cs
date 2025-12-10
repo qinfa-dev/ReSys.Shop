@@ -81,7 +81,7 @@ public sealed class ReturnItemConfiguration : IEntityTypeConfiguration<ReturnIte
 
         // Relationships
         builder.HasOne(e => e.InventoryUnit)
-            .WithMany(iu => iu.ReturnItems)
+            .WithMany()
             .HasForeignKey(e => e.InventoryUnitId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
@@ -89,13 +89,6 @@ public sealed class ReturnItemConfiguration : IEntityTypeConfiguration<ReturnIte
         builder.HasOne(e => e.ExchangeVariant)
             .WithMany()
             .HasForeignKey(e => e.ExchangeVariantId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        // Exchange inventory units relationship
-        builder.HasMany(e => e.ExchangeInventoryUnits)
-            .WithOne()
-            .HasForeignKey(e => e.OriginalReturnItemId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
 

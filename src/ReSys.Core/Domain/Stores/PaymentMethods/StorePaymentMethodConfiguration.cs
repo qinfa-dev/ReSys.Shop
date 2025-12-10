@@ -41,7 +41,7 @@ public sealed class StorePaymentMethodConfiguration : IEntityTypeConfiguration<S
             .HasComment(comment: "Id: Unique identifier for the store payment method. Value generated never.");
 
         builder.Property(propertyExpression: spm => spm.StoreId)
-            .IsRequired()
+            .IsRequired(required: false)
             .HasComment(comment: "StoreId: Foreign key to the associated Storefront.");
 
         builder.Property(propertyExpression: spm => spm.PaymentMethodId)
@@ -63,6 +63,14 @@ public sealed class StorePaymentMethodConfiguration : IEntityTypeConfiguration<S
             .WithMany(navigationExpression: pm => pm.StorePaymentMethods)
             .HasForeignKey(foreignKeyExpression: spm => spm.PaymentMethodId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+
+
+        builder.HasOne(navigationExpression: spm => spm.Store)
+            .WithMany(navigationExpression: s => s.StorePaymentMethods)
+            .HasForeignKey(foreignKeyExpression: spm => spm.StoreId)
+            .OnDelete(deleteBehavior: DeleteBehavior.Cascade)
+            .IsRequired(false);
+
         #endregion
     }
 }

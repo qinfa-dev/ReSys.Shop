@@ -29,11 +29,11 @@ public sealed class VariantConfiguration : IEntityTypeConfiguration<Variant>
             .HasComment(comment: "ProductId: Foreign key to the associated Product.");
 
         builder.Property(propertyExpression: v => v.Sku)
-            .ConfigureInputOptional(maxLength: Variant.Constraints.SkuMaxLength)
+            .ConfigureInputOptional(columnName: "sku", maxLength: Variant.Constraints.SkuMaxLength)
             .HasComment(comment: "Sku: Stock Keeping Unit for the variant.");
 
         builder.Property(propertyExpression: v => v.Barcode)
-            .ConfigureInputOptional(maxLength: Variant.Constraints.BarcodeMaxLength)
+            .ConfigureInputOptional(columnName: "barcode", maxLength: Variant.Constraints.BarcodeMaxLength)
             .HasComment(comment: "Barcode: Unique code printed on product label for internal or store scanning.");
 
         builder.Property(propertyExpression: v => v.TrackInventory)
@@ -66,11 +66,11 @@ public sealed class VariantConfiguration : IEntityTypeConfiguration<Variant>
             .HasComment(comment: "Depth: The depth of the variant.");
 
         builder.Property(propertyExpression: v => v.DimensionsUnit)
-            .ConfigureInputOptional(maxLength: CommonInput.Constraints.Text.TinyTextMaxLength)
+            .ConfigureInputOptional(columnName: "dimensions_unit", maxLength: CommonInput.Constraints.Text.TinyTextMaxLength)
             .HasComment(comment: "DimensionsUnit: The unit of measurement for dimensions (e.g., mm, cm).");
 
         builder.Property(propertyExpression: v => v.WeightUnit)
-            .ConfigureInputOptional(maxLength: CommonInput.Constraints.Text.TinyTextMaxLength)
+            .ConfigureInputOptional(columnName: "weight_unit", maxLength: CommonInput.Constraints.Text.TinyTextMaxLength)
             .HasComment(comment: "WeightUnit: The unit of measurement for weight (e.g., g, kg).");
 
         builder.Property(propertyExpression: v => v.CostPrice)

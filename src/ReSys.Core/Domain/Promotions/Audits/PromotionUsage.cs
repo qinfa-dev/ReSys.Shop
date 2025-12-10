@@ -7,7 +7,7 @@ namespace ReSys.Core.Domain.Promotions.Audits;
 /// Audit log entry for promotion changes.
 /// Tracks all modifications, activations, and usage of promotions.
 /// </summary>
-public sealed class PromotionAuditLog : AuditableEntity<Guid>
+public sealed class PromotionUsage : AuditableEntity<Guid>
 {
     #region Properties
     public Guid PromotionId { get; set; }
@@ -27,11 +27,11 @@ public sealed class PromotionAuditLog : AuditableEntity<Guid>
     #endregion
 
     #region Constructors
-    private PromotionAuditLog() { }
+    private PromotionUsage() { }
     #endregion
 
     #region Factory Methods
-    public static PromotionAuditLog Create(
+    public static PromotionUsage Create(
         Guid promotionId,
         string action,
         string description,
@@ -43,7 +43,7 @@ public sealed class PromotionAuditLog : AuditableEntity<Guid>
         Dictionary<string, object?>? changesAfter = null,
         Dictionary<string, object?>? metadata = null)
     {
-        return new PromotionAuditLog
+        return new PromotionUsage
         {
             Id = Guid.NewGuid(),
             PromotionId = promotionId,

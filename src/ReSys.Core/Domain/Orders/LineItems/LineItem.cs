@@ -162,13 +162,13 @@ public class LineItem : AuditableEntity<Guid>
     /// Nullable; used for inventory tracking and reorder purposes.
     /// </summary>
     public string? CapturedSku { get; set; }
-    
+
     /// <summary>
     /// Flags this as a promotional/bonus item.
     /// When true, this item may be free or part of a buy-x-get-y promotion.
     /// Affects how the item is tracked in fulfillment.
     /// </summary>
-    public bool IsPromotional { get; set; } = false;
+    public bool IsPromotional { get; set; }
     #endregion
 
     #region Relationships
@@ -278,12 +278,6 @@ public class LineItem : AuditableEntity<Guid>
             CreatedAt = DateTimeOffset.UtcNow,
             Currency = currency
         };
-
-        // var inventoryUnitResult = InventoryUnit.Create(lineItem.VariantId, lineItem.OrderId, lineItem.Id, lineItem.Quantity);
-        // if (inventoryUnitResult.IsError)
-        //     return inventoryUnitResult.Errors;
-        
-        // lineItem.InventoryUnits.Add(inventoryUnitResult.Value);
 
         return lineItem;
     }

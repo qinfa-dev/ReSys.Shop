@@ -35,7 +35,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasComment(comment: "Id: Unique identifier for the order. Value generated never.");
 
         builder.Property(propertyExpression: o => o.StoreId)
-            .IsRequired()
+            .IsRequired(required: false)
             .HasComment(comment: "StoreId: Foreign key to the associated Storefront.");
 
         builder.Property(propertyExpression: o => o.UserId)
@@ -43,7 +43,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasComment(comment: "UserId: Foreign key to the associated ApplicationUser.");
 
         builder.Property(propertyExpression: o => o.Number)
-            .ConfigureInput(maxLength: 50)
+            .ConfigureInput(columnName: "number", maxLength: 50)
             .HasComment(comment: "Number: Unique order number.");
 
         builder.Property(propertyExpression: o => o.State)
@@ -106,7 +106,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasComment(comment: "RowVersion: Used for optimistic concurrency control.");
 
         builder.Property(propertyExpression: o => o.PromoCode)
-            .ConfigureInputOptional(maxLength: Order.Constraints.PromoCodeMaxLength)
+            .ConfigureInputOptional(columnName: "promo_code", maxLength: Order.Constraints.PromoCodeMaxLength)
             .HasComment(comment: "PromoCode: Promotional code applied to the order.");
 
         // Apply common configurations using extension methods.
@@ -152,6 +152,14 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasMany(navigationExpression: o => o.Payments)
             .WithOne(navigationExpression: p => p.Order)
             .HasForeignKey(foreignKeyExpression: p => p.OrderId)
+            .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+
+        // InventoryUnits are owned by Order - tracks fulfillment across all shipments
+        // Also referenced by Shipment for allocation, but Order is the aggregate root
+        builder.HasMany(navigationExpression: o => o.InventoryUnits)
+            .WithOne(navigationExpression: iu => iu.Order)
+            .HasForeignKey(foreignKeyExpression: iu => iu.OrderId)
+            .IsRequired()
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
 

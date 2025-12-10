@@ -39,7 +39,7 @@ public sealed class StoreShippingMethod : AuditableEntity
 
     #region Properties
     /// <summary>The ID of the Store this shipping method is available in.</summary>
-    public Guid StoreId { get; set; }
+    public Guid? StoreId { get; set; }
     
     /// <summary>The ID of the ShippingMethod being offered in this store.</summary>
     public Guid ShippingMethodId { get; set; }

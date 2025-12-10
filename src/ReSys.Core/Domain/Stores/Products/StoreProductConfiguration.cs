@@ -35,7 +35,7 @@ public sealed class StoreProductConfiguration : IEntityTypeConfiguration<StorePr
             .HasComment(comment: "Id: Unique identifier for the store product link. Value generated never.");
 
         builder.Property(propertyExpression: sp => sp.StoreId)
-            .IsRequired()
+            .IsRequired(required: false)
             .HasComment(comment: "StoreId: Foreign key to the associated Storefront.");
 
         builder.Property(propertyExpression: sp => sp.ProductId)

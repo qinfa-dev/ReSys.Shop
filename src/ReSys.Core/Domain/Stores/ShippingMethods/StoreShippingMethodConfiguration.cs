@@ -40,7 +40,7 @@ public sealed class StoreShippingMethodConfiguration : IEntityTypeConfiguration<
             .HasComment(comment: "Id: Unique identifier for the store shipping method. Value generated never.");
 
         builder.Property(propertyExpression: ssm => ssm.StoreId)
-            .IsRequired()
+            .IsRequired(required: false)
             .HasComment(comment: "StoreId: Foreign key to the associated Storefront.");
 
         builder.Property(propertyExpression: ssm => ssm.ShippingMethodId)

@@ -45,7 +45,7 @@ public sealed class StoreProduct : AuditableEntity, IHasPosition
         public static Error NotFound(Guid id) => Error.NotFound(code: "StoreProduct.NotFound", description: $"StoreProduct with ID '{id}' was not found.");
     }
 
-    public Guid StoreId { get; set; }
+    public Guid? StoreId { get; set; }
     public Guid ProductId { get; set; }
     public bool Visible { get; set; } = true;
     public bool Featured { get; set; }
@@ -78,13 +78,13 @@ public sealed class StoreProduct : AuditableEntity, IHasPosition
     /// </para>
     /// </remarks>
     public static ErrorOr<StoreProduct> Create(
-        Guid storeId,
+        Guid? storeId,
         Guid productId,
         bool visible = true,
         bool featured = false,
         int position = 0)
     {
-        if (storeId == Guid.Empty) return Errors.StoreRequired;
+        if (storeId is null || storeId == Guid.Empty) return Errors.StoreRequired;
         if (productId == Guid.Empty) return Errors.ProductRequired;
 
         return new StoreProduct

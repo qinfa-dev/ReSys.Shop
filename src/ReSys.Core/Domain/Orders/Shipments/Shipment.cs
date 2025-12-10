@@ -132,17 +132,24 @@ public sealed class Shipment : Aggregate
         if (!InventoryUnits.Any())
             return Error.Validation(code: "Shipment.NoInventoryUnits", description: "Shipment has no inventory units.");
 
-        // Check if all units are on-hand (not backordered)
-        var backordered = InventoryUnits
-            .Where(u => u.State == InventoryUnit.InventoryUnitState.Backordered)
-            .ToList();
+        // Allow partial allocation: as long as at least one unit is OnHand, mark Ready
+        var onHandCount = InventoryUnits.Count(u => u.State == InventoryUnit.InventoryUnitState.OnHand);
 
-        if (backordered.Any())
-            return Error.Validation(
-                code: "Shipment.BackorderedItems",
-                description: $"{backordered.Count} items are backordered and cannot be shipped.");
+        if (onHandCount == 0)
+        {
+            var backordered = InventoryUnits.Count(u => u.State == InventoryUnit.InventoryUnitState.Backordered);
+            if (backordered > 0)
+            {
+                return Error.Validation(
+                    code: "Shipment.BackorderedOnly",
+                    description: $"Shipment contains only backordered items ({backordered}). No items available to allocate.");
+            }
+
+            return Error.Validation(code: "Shipment.NoInventoryUnits", description: "Shipment has no available on-hand items to allocate.");
+        }
 
         State = ShipmentState.Ready;
+        AllocatedAt = DateTimeOffset.UtcNow;
         UpdatedAt = DateTimeOffset.UtcNow;
 
         AddDomainEvent(new Events.Ready(

@@ -39,12 +39,12 @@ public sealed class CountryConfiguration : IEntityTypeConfiguration<Country>
             .HasComment(comment: "Name: The full name of the country. Required.");
 
         builder.Property(propertyExpression: c => c.Iso)
-            .ConfigureInput(maxLength: Country.Constraints.IsoMaxLength) 
-            .HasComment(comment: "Iso: The two-letter ISO code for the country (e.g., 'US'). Required.");
+            .ConfigureInput(columnName: "iso", maxLength: Country.Constraints.IsoMaxLength)
+            .HasComment(comment: "Iso: ISO 3166-1 alpha-2 code.");
 
         builder.Property(propertyExpression: c => c.Iso3)
-            .ConfigureInput(maxLength: Country.Constraints.Iso3MaxLength) 
-            .HasComment(comment: "Iso3: The three-letter ISO code for the country (e.g., 'USA'). Required.");
+            .ConfigureInput(columnName: "iso3", maxLength: Country.Constraints.Iso3MaxLength)
+            .HasComment(comment: "Iso3: ISO 3166-1 alpha-3 code.");
 
         // Apply common configurations using extension methods.
         builder.ConfigureAuditable();

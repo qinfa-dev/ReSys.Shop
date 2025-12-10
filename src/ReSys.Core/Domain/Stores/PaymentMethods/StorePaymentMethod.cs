@@ -39,7 +39,7 @@ public sealed class StorePaymentMethod : AuditableEntity
 
     #region Properties
     /// <summary>The ID of the Store this payment method is available in.</summary>
-    public Guid StoreId { get; set; }
+    public Guid? StoreId { get; set; }
     
     /// <summary>The ID of the PaymentMethod being offered in this store.</summary>
     public Guid PaymentMethodId { get; set; }
@@ -76,7 +76,7 @@ public sealed class StorePaymentMethod : AuditableEntity
     /// </para>
     /// </remarks>
     public static ErrorOr<StorePaymentMethod> Create(
-        Guid storeId,
+        Guid? storeId,
         Guid paymentMethodId,
         bool available = true)
     {

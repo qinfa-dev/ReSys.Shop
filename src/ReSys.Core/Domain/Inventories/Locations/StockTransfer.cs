@@ -205,6 +205,54 @@ public sealed class StockTransfer : Aggregate
 
     #endregion
 
+    #region Business Logic: Transfer Policy Validation
+
+    /// <summary>
+    /// Validates that a transfer can occur between source and destination locations.
+    /// Checks location capabilities and inter-location transfer eligibility.
+    /// </summary>
+    /// <param name="sourceLocation">The source location (warehouse or retail).</param>
+    /// <param name="destinationLocation">The destination location (warehouse or retail).</param>
+    /// <returns>
+    /// Success if transfer is allowed, or Error if locations don't support transfers.
+    /// </returns>
+    public static ErrorOr<Success> ValidateTransferCapabilities(
+        StockLocation sourceLocation,
+        StockLocation destinationLocation)
+    {
+        // Validate source can ship
+        if (!sourceLocation.CanShip)
+            return Error.Validation(
+                code: "StockTransfer.SourceCannotShip",
+                description: $"Source location '{sourceLocation.Id}' is not enabled for shipping.");
+
+        // Validate destination can receive (implicit: all locations can receive)
+        // But if we want to restrict, we could add: if (!destinationLocation.CanReceive)
+
+        // Validate not same location (already checked in factory, but explicit here)
+        if (sourceLocation.Id == destinationLocation.Id)
+            return Error.Validation(
+                code: "StockTransfer.SourceEqualsDestination",
+                description: "Source and destination locations cannot be the same.");
+
+        return Result.Success;
+    }
+
+    /// <summary>
+    /// Validates that supplier receipt can occur at a location.
+    /// </summary>
+    /// <param name="destinationLocation">The location receiving supplier stock.</param>
+    /// <returns>Success if location can receive, Error otherwise.</returns>
+    public static ErrorOr<Success> ValidateReceiptCapabilities(
+        StockLocation destinationLocation)
+    {
+        // All locations can receive stock from suppliers
+        // In the future, this could restrict by location type or configuration
+        return Result.Success;
+    }
+
+    #endregion
+
     #region Business Logic: Updates
 
     /// <summary>
@@ -354,7 +402,7 @@ public sealed class StockTransfer : Aggregate
         // NOTE: Caller must wrap this in a database transaction!
         var executionErrors = new List<Error>();
 
-        foreach (var (variant, quantity, sourceStockItem) in stockItemsToProcess)
+        foreach (var (variant, quantity, _) in stockItemsToProcess)
         {
             // Unstock from source
             var unstockResult = sourceLocation.Unstock(

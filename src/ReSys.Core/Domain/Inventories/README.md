@@ -29,6 +29,10 @@ This section defines the key terms and concepts used within the `Inventories` bo
 -   **Destination Location**: The `Stock Location` to which stock is received during a `Stock Transfer`.
 -   **Number Generator**: A utility responsible for generating unique, sequential reference numbers for inventory-related transactions (e.g., stock transfers).
 -   **Track Inventory Levels**: A global configuration setting (`Config.TrackInventoryLevels`) that enables or disables the entire inventory tracking system.
+-   **Store Pickup**: A fulfillment option allowing customers to collect orders from retail locations instead of shipping. Represented by the `StorePickup` aggregate.
+-   **Pickup Location**: A `StockLocation` with `PickupEnabled = true` that supports in-store customer pickups.
+-   **Pickup Code**: A human-readable, unique code generated for each pickup used for customer verification at the store (e.g., NYC-12345-A7K9).
+-   **Pickup State**: The lifecycle state of a store pickup: Pending (order placed), Ready (items prepared), PickedUp (customer collected), or Cancelled.
 
 ---
 
@@ -50,6 +54,13 @@ This domain is composed of the following core building blocks:
 -   **`StockTransfer`**: This is an Aggregate Root. It orchestrates the complex process of moving stock between `StockLocation`s or receiving stock from external vendors. It ensures that all necessary `StockMovement`s are correctly recorded at the affected `StockItem`s.
     -   **Entities**: `StockMovement` (orchestrated by `StockTransfer` but ultimately owned by `StockItem`).
     -   **Value Objects**: None explicitly defined as separate classes. Properties like `Number` (generated), and `Reference` act as intrinsic attributes.
+
+-   **`StorePickup`**: This is an Aggregate Root. It manages the lifecycle of in-store pickup orders, allowing customers to collect items from retail locations. It tracks pickup status, generates secure pickup codes for verification, and orchestrates the pickup workflow from creation through customer collection or cancellation.
+    -   **Responsibility**: Manages store pickup fulfillment for retail locations. Each pickup is associated with an order and a specific stock location (retail store) where the customer will collect their items.
+    -   **State Machine**: Pending → Ready → PickedUp | Cancelled at any point before PickedUp
+    -   **Pickup Code**: Human-readable, secure code in format {LOCATION-PREFIX}-{CHECKSUM}-{RANDOM-SUFFIX} (e.g., NYC-12345-A7K9)
+    -   **Domain Events**: Published on Create, MarkReady, MarkPickedUp, Cancel, and Reschedule
+    -   **Relationships**: References Order and StockLocation (retail store with PickupEnabled = true)
 
 -   **`InventoryUnit`** (from `Orders.Orders` boundary, tracked here for fulfillment): Represents a trackable unit of inventory associated with an order line item. It progresses through fulfillment states: `OnHand` → `Shipped` → optionally `Returned`. One line item with quantity N creates N inventory units for granular tracking.
     -   **Related Entities**: Links to `Variant`, `Order`, `LineItem`, `Shipment`, `StockLocation`

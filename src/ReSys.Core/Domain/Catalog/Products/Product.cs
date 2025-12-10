@@ -438,11 +438,11 @@ public sealed class Product : Aggregate,
     /// <summary>
     /// Collection of store products associated with the product.
     /// </summary>
-    public ICollection<StoreProduct> StoreProducts { get; set; } = new List<StoreProduct>();
+    public ICollection<StoreProduct>? StoreProducts { get; set; } = new List<StoreProduct>();
     /// <summary>
     /// Collection of stores where the product is available.
     /// </summary>
-    public ICollection<Store> Stores => StoreProducts.Select(selector: sp => sp.Store).ToList();
+    public ICollection<Store> Stores => StoreProducts?.Select(selector: sp => sp.Store).ToList() ?? [];
     /// <summary>
     /// Collection of reviews for the product.
     /// </summary>

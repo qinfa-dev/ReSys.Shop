@@ -32,7 +32,7 @@ public sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
         builder.Property(propertyExpression: si => si.Id)
             .HasColumnName(name: "id")
             .ValueGeneratedNever()
-            .HasComment(comment: "Id: Unique identifier for the stock item. Value generated never.");
+            .HasComment(comment: "Unique identifier for the stock item.");
 
         builder.Property(e => e.RowVersion)
             .IsRowVersion()
@@ -40,11 +40,11 @@ public sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
 
         builder.Property(propertyExpression: si => si.StockLocationId)
             .IsRequired()
-            .HasComment(comment: "StockLocationId: Foreign key to the associated StockLocation.");
+            .HasComment(comment: "Foreign key to the associated StockLocation.");
 
         builder.Property(propertyExpression: si => si.VariantId)
             .IsRequired()
-            .HasComment(comment: "VariantId: Foreign key to the associated Variant.");
+            .HasComment(comment: "Foreign key to the associated Variant.");
 
         builder.Property(propertyExpression: si => si.QuantityOnHand)
             .IsRequired()
@@ -77,18 +77,13 @@ public sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
         builder.HasOne(navigationExpression: si => si.Variant)
             .WithMany(navigationExpression: v => v.StockItems)
             .HasForeignKey(foreignKeyExpression: si => si.VariantId)
-            .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+            .OnDelete(deleteBehavior: DeleteBehavior.SetNull);
 
         builder.HasMany(navigationExpression: si => si.StockMovements)
             .WithOne(navigationExpression: sm => sm.StockItem)
             .HasForeignKey(foreignKeyExpression: sm => sm.StockItemId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-        builder.HasMany(navigationExpression: si => si.BackorderedInventoryUnits)
-            .WithOne()
-            .HasForeignKey(e => e.StockLocationId)
-            .IsRequired(false)
-            .OnDelete(deleteBehavior: DeleteBehavior.NoAction);
         #endregion
 
         #region Indexes
@@ -96,6 +91,7 @@ public sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
         builder.HasIndex(indexExpression: si => new { si.StockLocationId, si.VariantId }).IsUnique();
         builder.HasIndex(indexExpression: si => si.VariantId);
         builder.HasIndex(indexExpression: si => si.StockLocationId);
+        builder.HasIndex(indexExpression: si => new { si.QuantityReserved, si.QuantityOnHand });
         #endregion
 
         #region Ignored Properties

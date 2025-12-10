@@ -27,7 +27,7 @@ public sealed class InventoryUnitConfiguration : IEntityTypeConfiguration<Invent
             .IsRequired();
 
         builder.Property(e => e.ShipmentId)
-            .IsRequired();
+            .IsRequired(false); // NULLABLE: Assigned only when shipment is allocated
 
         builder.Property(e => e.StockLocationId)
             .IsRequired(false);
@@ -38,9 +38,6 @@ public sealed class InventoryUnitConfiguration : IEntityTypeConfiguration<Invent
             
         builder.Property(e => e.StateChangedAt)
             .IsRequired();
-
-        builder.Property(e => e.OriginalReturnItemId)
-            .IsRequired(false);
 
         builder.Property(e => e.RowVersion)
             .IsRowVersion();
@@ -57,7 +54,7 @@ public sealed class InventoryUnitConfiguration : IEntityTypeConfiguration<Invent
             .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne(e => e.Order)
-            .WithMany()
+            .WithMany(o => o.InventoryUnits)
             .HasForeignKey(e => e.OrderId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
@@ -71,32 +68,12 @@ public sealed class InventoryUnitConfiguration : IEntityTypeConfiguration<Invent
         builder.HasOne(e => e.Shipment)
             .WithMany(s => s.InventoryUnits)
             .HasForeignKey(e => e.ShipmentId)
-            .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade);
+            .IsRequired(false) // NULLABLE: Shipment assigned during allocation
+            .OnDelete(DeleteBehavior.SetNull); // SetNull instead of Cascade when shipment deleted
 
         builder.HasOne(e => e.StockLocation)
             .WithMany()
             .HasForeignKey(e => e.StockLocationId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        // Return items relationship
-        builder.HasMany(e => e.ReturnItems)
-            .WithOne(ri => ri.InventoryUnit)
-            .HasForeignKey(ri => ri.InventoryUnitId)
-            .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Exchange units relationship (self-referencing)
-        builder.HasMany(e => e.ExchangeUnits)
-            .WithOne()
-            .HasForeignKey(e => e.OriginalReturnItemId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        builder.HasOne(e => e.OriginalReturnItem)
-            .WithMany()
-            .HasForeignKey(e => e.OriginalReturnItemId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
 

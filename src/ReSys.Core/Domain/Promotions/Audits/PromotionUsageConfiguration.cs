@@ -6,15 +6,15 @@ using ReSys.Core.Common.Constants;
 namespace ReSys.Core.Domain.Promotions.Audits;
 
 /// <summary>
-/// Configures the database mapping for the <see cref="PromotionAuditLog"/> entity.
+/// Configures the database mapping for the <see cref="PromotionUsage"/> entity.
 /// </summary>
-public sealed class PromotionAuditLogConfiguration : IEntityTypeConfiguration<PromotionAuditLog>
+public sealed class PromotionUsageConfiguration : IEntityTypeConfiguration<PromotionUsage>
 {
     /// <summary>
-    /// Configures the entity of type <see cref="PromotionAuditLog"/>.
+    /// Configures the entity of type <see cref="PromotionUsage"/>.
     /// </summary>
     /// <param name="builder">The builder to configure the entity type.</param>
-    public void Configure(EntityTypeBuilder<PromotionAuditLog> builder)
+    public void Configure(EntityTypeBuilder<PromotionUsage> builder)
     {
         #region Table
         // Set the table name for the PromotionAuditLog entity.
@@ -88,7 +88,7 @@ public sealed class PromotionAuditLogConfiguration : IEntityTypeConfiguration<Pr
         #region Relationships
         // Define navigation property relationship with Promotion.
         builder.HasOne(navigationExpression: x => x.Promotion)
-            .WithMany()
+            .WithMany(p => p.PromotionUsages)
             .HasForeignKey(foreignKeyExpression: x => x.PromotionId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion

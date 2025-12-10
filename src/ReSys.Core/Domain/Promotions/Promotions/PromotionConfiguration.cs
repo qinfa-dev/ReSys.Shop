@@ -98,7 +98,7 @@ public sealed class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
         // Action: A promotion has one action that defines what it does.
         builder.HasOne(p => p.Action)
             .WithOne(a => a.Promotion)
-            .HasForeignKey<PromotionUsage>(a => a.PromotionId)
+            .HasForeignKey<PromotionAction>(a => a.PromotionId)
             .OnDelete(DeleteBehavior.Cascade);
 
 
