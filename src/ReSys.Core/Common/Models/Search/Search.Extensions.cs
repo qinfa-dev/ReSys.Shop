@@ -99,7 +99,6 @@ public static class SearchExtensions
         ConstantExpression searchConstant = Expression.Constant(value: searchTerm);
         Expression? combinedExpression = null;
 
-        Type entityType = typeof(T);
         Dictionary<string, PropertyInfo> propertyMapping = GetPropertyMapping<T>();
 
         foreach (string fieldName in searchFields)

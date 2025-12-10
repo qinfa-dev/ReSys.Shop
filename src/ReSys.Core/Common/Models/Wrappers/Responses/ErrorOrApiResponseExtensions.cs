@@ -347,7 +347,7 @@ public static class ErrorOrApiResponseExtensions
                 requestId: requestId);
 
         Error firstError = errors[index: 0];
-        int statusCode = GetStatusCode(type: firstError.Type);
+        GetStatusCode(type: firstError.Type);
 
         // Group errors by full error code (not just category)
         Dictionary<string, string[]> errorGroups = errors

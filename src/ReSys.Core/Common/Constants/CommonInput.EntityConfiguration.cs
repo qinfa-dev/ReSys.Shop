@@ -1,7 +1,9 @@
-﻿using System.Text.Json;
-using System.Reflection;
+﻿using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -432,23 +434,107 @@ public static partial class CommonInput
     #endregion
 
     #region Dictionary
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonObjectConverter() }
+    };
+
+    private sealed class JsonObjectConverter : JsonConverter<object?>
+    {
+        public override object? Read(ref Utf8JsonReader reader, Type t, JsonSerializerOptions o)
+            => reader.TokenType switch
+            {
+                JsonTokenType.Null => null,
+                JsonTokenType.True => true,
+                JsonTokenType.False => false,
+                JsonTokenType.Number when reader.TryGetInt64(out long l) => l,
+                JsonTokenType.Number => reader.GetDouble(),
+                JsonTokenType.String when reader.TryGetDateTime(out var dt) => dt,
+                JsonTokenType.String => reader.GetString(),
+                JsonTokenType.StartObject => JsonSerializer.Deserialize<Dictionary<string, object?>>(ref reader, o),
+                JsonTokenType.StartArray => JsonSerializer.Deserialize<List<object?>>(ref reader, o),
+                _ => throw new JsonException()
+            };
+
+        public override void Write(Utf8JsonWriter w, object? v, JsonSerializerOptions o)
+            => JsonSerializer.Serialize(w, v, v?.GetType() ?? typeof(object), o);
+    }
+
+    // -----------------------------------------------------
+    // Converter (works for nullable or required)
+    // -----------------------------------------------------
+    private static readonly ValueConverter<IDictionary<string, object?>?, string> DictConverter =
+        new(
+            v => JsonSerializer.Serialize(v ?? new Dictionary<string, object?>(), JsonOptions),
+            v => string.IsNullOrWhiteSpace(v)
+                ? new Dictionary<string, object?>()
+                : JsonSerializer.Deserialize<Dictionary<string, object?>>(v, JsonOptions)
+                  ?? new Dictionary<string, object?>()
+        );
+
+    // -----------------------------------------------------
+    // Comparer (expression-safe)
+    // -----------------------------------------------------
+    private static readonly ValueComparer<IDictionary<string, object?>?> DictComparer =
+        new(
+            (a, b) =>
+                JsonSerializer.Serialize(a ?? new Dictionary<string, object?>(), JsonOptions)
+                ==
+                JsonSerializer.Serialize(b ?? new Dictionary<string, object?>(), JsonOptions),
+
+            d =>
+                JsonSerializer.Serialize(d ?? new Dictionary<string, object?>(), JsonOptions)
+                .GetHashCode(),
+
+            d =>
+                JsonSerializer.Deserialize<Dictionary<string, object?>>(
+                    JsonSerializer.Serialize(d ?? new Dictionary<string, object?>(), JsonOptions),
+                    JsonOptions
+                )!
+        );
+
+    // -----------------------------------------------------
+    // Core internal method
+    // -----------------------------------------------------
+    private static PropertyBuilder<IDictionary<string, object?>?> ConfigureInternal(
+        PropertyBuilder<IDictionary<string, object?>?> builder,
+        bool isRequired,
+        string? columnType)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.HasConversion(DictConverter);
+        builder.Metadata.SetValueComparer(DictComparer);
+        builder.HasColumnType(columnType ?? "jsonb");
+
+        if (isRequired)
+            builder.IsRequired();
+
+        return builder;
+    }
+
+    // -----------------------------------------------------
+    // Public API
+    // -----------------------------------------------------
+
+    // Optional dictionary
     public static PropertyBuilder<IDictionary<string, object?>?> ConfigureDictionary(
         this PropertyBuilder<IDictionary<string, object?>?> builder,
         bool isRequired = false,
-        string? columnName = null)
+        string? columnType = null)
+        => ConfigureInternal(builder, isRequired, columnType);
+
+    // Required dictionary
+    public static PropertyBuilder<IDictionary<string, object?>> ConfigureDictionaryRequired(
+        this PropertyBuilder<IDictionary<string, object?>> builder,
+        string? columnType = null)
     {
-        ArgumentNullException.ThrowIfNull(argument: builder);
+        ArgumentNullException.ThrowIfNull(builder);
 
-        builder.HasConversion(
-            v => v == null ? null : JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-            v => string.IsNullOrWhiteSpace(v) ? new Dictionary<string, object?>() : JsonSerializer.Deserialize<IDictionary<string, object?>>(v, (JsonSerializerOptions?)null) ?? new Dictionary<string, object?>());
-
-        builder
-            .IsRequired(required: isRequired)
-            .HasMaxLength(maxLength: Constraints.Dictionary.ValueMaxLength); // Max length of the JSON string representation
-
-        if (!string.IsNullOrWhiteSpace(value: columnName))
-            builder.HasColumnName(columnName);
+        // Cast to nullable version for reuse of internal code
+        var cast = (PropertyBuilder<IDictionary<string, object?>?>)(object)builder;
+        ConfigureInternal(cast, isRequired: true, columnType);
 
         return builder;
     }
@@ -551,7 +637,7 @@ public static partial class CommonInput
         builder.IsRequired(required: false);
 
         // PostgreSQL will handle the enum natively when mapped via MapEnum()
-
+        
         return builder;
     }
 
