@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using ReSys.Core.Common.Constants;
 using ReSys.Core.Feature.Common.Behaviors;
+using ReSys.Core.Domain.Inventories.Locations.FulfillmentStrategies;
 
 using Serilog;
 
@@ -118,6 +119,9 @@ public static class DependencyInjection
                 cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>),
                     implementationType: typeof(ValidationBehavior<,>));
             });
+
+            // Register: Domain services (factories, strategies, etc.)
+            services.AddDomainServices();
 
             stopwatch.Stop();
 
@@ -303,6 +307,24 @@ public static class DependencyInjection
 
             throw;
         }
+    }
+
+    #endregion
+
+    #region Domain Services Configuration
+
+    /// <summary>
+    /// Registers domain services including factories, strategies, and other domain-specific services.
+    /// </summary>
+    private static void AddDomainServices(this IServiceCollection services)
+    {
+        // Register: Fulfillment Strategy Factory
+        services.AddScoped<IFulfillmentStrategyFactory, FulfillmentStrategyFactory>();
+
+        Log.Debug(
+            messageTemplate: LogTemplates.ServiceRegistered,
+            propertyValue0: "IFulfillmentStrategyFactory",
+            propertyValue1: "Scoped");
     }
 
     #endregion

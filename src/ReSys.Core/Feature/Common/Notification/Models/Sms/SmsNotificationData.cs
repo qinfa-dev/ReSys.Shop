@@ -19,7 +19,7 @@ public partial class SmsNotificationData
     public NotificationConstants.PriorityLevel Priority { get; set; } = NotificationConstants.PriorityLevel.Normal;
     public NotificationConstants.SendMethod SendMethod { get; set; } = NotificationConstants.SendMethod.SMS;
     public string Language { get; set; } = "en-US";
-    public bool IsUnicode { get; set; } = false;
+    public bool IsUnicode { get; set; }
     public string? TrackingId { get; set; }
 
     /// <summary>

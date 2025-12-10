@@ -57,7 +57,6 @@ public static class SystemConfiguration
             }
 
             // --- Storefront Options ---
-            StorefrontOption storefrontOption = new();
             IConfigurationSection storefrontSection = configuration.GetSection(key: StorefrontOption.Section);
             if (storefrontSection.Exists())
             {
