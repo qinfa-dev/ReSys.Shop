@@ -80,7 +80,7 @@ public sealed class SmtpConfig
 {
     public string Host { get; init; } = "localhost";
     public int Port { get; init; } = 25;
-    public bool EnableSsl { get; init; } = false;
+    public bool EnableSsl { get; init; }
     public bool UseDefaultCredentials { get; init; } = true;
     public string? Username { get; init; }
     public string? Password { get; init; }

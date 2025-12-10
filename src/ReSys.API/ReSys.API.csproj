@@ -27,4 +27,11 @@
     <ProjectReference Include="..\ReSys.Infrastructure\ReSys.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Modules\Admin\Catalog\" />
+    <Folder Include="Modules\Admin\Locations\" />
+    <Folder Include="Modules\Admin\Orders\" />
+    <Folder Include="Modules\Admin\Users\" />
+  </ItemGroup>
+
 </Project>

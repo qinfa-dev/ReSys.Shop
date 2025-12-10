@@ -9,6 +9,19 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 using ReSys.Core.Common.Constants;
+using ReSys.Core.Common.Domain.Concerns;
+using ReSys.Core.Domain.Auditing;
+using ReSys.Core.Domain.Catalog.Products;
+using ReSys.Core.Domain.Catalog.Products.Images;
+using ReSys.Core.Domain.Catalog.Products.Reviews;
+using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Configurations;
+using ReSys.Core.Domain.Identity.Permissions;
+using ReSys.Core.Domain.Identity.UserAddresses;
+using ReSys.Core.Domain.Inventories.Locations;
+using ReSys.Core.Domain.Inventories.StorePickups;
+using ReSys.Core.Domain.Orders;
+using ReSys.Core.Domain.Orders.Payments;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 using ReSys.Infrastructure.Persistence.Caching;
 using ReSys.Infrastructure.Persistence.Contexts;
@@ -17,6 +30,8 @@ using ReSys.Infrastructure.Persistence.Options;
 using ReSys.Infrastructure.Seeders;
 
 using Serilog;
+
+using static ReSys.Core.Domain.Orders.Adjustments.OrderAdjustment;
 
 namespace ReSys.Infrastructure.Persistence;
 
@@ -103,7 +118,6 @@ internal static class DatabaseServiceCollectionExtensions
 
         // Auditing log interceptor
         services.AddScoped<ISaveChangesInterceptor, PersistenceInterceptors.AuditingLog>();
-        Log.Debug(LogTemplates.ServiceRegistered, nameof(PersistenceInterceptors.AuditingLog), "Scoped");
 
         Log.Information("EF Core interceptors registered (3 total)");
     }
@@ -129,30 +143,32 @@ internal static class DatabaseServiceCollectionExtensions
         try
         {
             var connectionString = configuration.GetConnectionString(DbConnectionOptions.DefaultConnectionString);
-            Guard.Against.NullOrWhiteSpace(connectionString);
+            Guard.Against.NullOrWhiteSpace(connectionString, nameof(connectionString));
 
             services.AddDbContext<ApplicationDbContext>((sp, options) =>
             {
-                // Add all registered interceptors
                 options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
 
-                // Configure based on environment
                 if (environment.IsEnvironment(DbConnectionOptions.TestEnvironmentName))
                 {
-                    ConfigureInMemoryDatabase(options, environment);
+                    ConfigureInMemoryDatabase(options);
+                    Log.Information(LogTemplates.DbConnected, "Test", "InMemory-TestDb");
                 }
                 else if (environment.IsDevelopment())
                 {
-                    ConfigurePostgreSqlDatabase(options, connectionString, environment, isDevelopment: true);
+                    ConfigurePostgreSqlDatabase(options, connectionString, enableSensitiveLogging: true);
+                    Log.Information(LogTemplates.DbConnected, "Development", "PostgreSQL");
                 }
                 else
                 {
-                    ConfigurePostgreSqlDatabase(options, connectionString, environment, isDevelopment: false);
+                    ConfigurePostgreSqlDatabase(options, connectionString, enableSensitiveLogging: false);
+                    Log.Information(LogTemplates.DbConnected, environment.EnvironmentName, "PostgreSQL");
                 }
             });
 
-            // Register IApplicationDbContext interface
-            services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+            services.AddScoped<IApplicationDbContext>(sp =>
+                sp.GetRequiredService<ApplicationDbContext>());
+
             Log.Debug(LogTemplates.ServiceRegistered, nameof(ApplicationDbContext), "Scoped");
 
             sw.Stop();
@@ -166,83 +182,95 @@ internal static class DatabaseServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Configures the in-memory database for testing environments.
+    /// Configures the in-memory database provider for testing.
     /// </summary>
-    private static void ConfigureInMemoryDatabase(
-        DbContextOptionsBuilder options,
-        IHostEnvironment environment)
+    private static void ConfigureInMemoryDatabase(DbContextOptionsBuilder options)
     {
         options.UseInMemoryDatabase(DbConnectionOptions.TestDatabaseName)
-            .EnableDetailedErrors()
-            .EnableSensitiveDataLogging();
-
-        Log.Information(
-            LogTemplates.DbConnected,
-            environment.EnvironmentName,
-            $"InMemory-{DbConnectionOptions.TestDatabaseName}");
+               .EnableDetailedErrors()
+               .EnableSensitiveDataLogging();
     }
 
     /// <summary>
-    /// Configures PostgreSQL database with environment-specific settings.
+    /// Configures the PostgreSQL database provider with optimized settings.
     /// </summary>
     private static void ConfigurePostgreSqlDatabase(
         DbContextOptionsBuilder options,
         string connectionString,
-        IHostEnvironment environment,
-        bool isDevelopment)
+        bool enableSensitiveLogging)
     {
         options.UseNpgsql(connectionString, npgsqlOptions =>
         {
-            ConfigureNpgsqlOptions(npgsqlOptions);
+            // Enable pgvector extension support
+            npgsqlOptions.UseVector();
+
+            // Configure migrations
+            npgsqlOptions.MigrationsHistoryTable(
+                DbConnectionOptions.MigrationsHistoryTable,
+                DbConnectionOptions.MigrationsSchema);
+
+            // Enable dynamic JSON support
+            npgsqlOptions.ConfigureDataSource(dataSourceBuilder =>
+            {
+                dataSourceBuilder.EnableDynamicJson();
+                dataSourceBuilder.MapEnum<DisplayOn>();
+                dataSourceBuilder.MapEnum<AuditSeverity>();
+                dataSourceBuilder.MapEnum<ProductImage.ProductImageType>();
+                dataSourceBuilder.MapEnum<Product.ProductStatus>();
+                dataSourceBuilder.MapEnum<Review.ReviewStatus>();
+                dataSourceBuilder.MapEnum<Property.PropertyKind>();
+                dataSourceBuilder.MapEnum<ConfigurationValueType>();
+                dataSourceBuilder.MapEnum<AccessPermission.PermissionCategory>();
+                dataSourceBuilder.MapEnum<AddressType>();
+                dataSourceBuilder.MapEnum<LocationType>();
+                dataSourceBuilder.MapEnum<StorePickup.PickupState>();
+                dataSourceBuilder.MapEnum<AdjustmentScope>();
+                dataSourceBuilder.MapEnum<Order.OrderState>();
+                dataSourceBuilder.MapEnum<Payment.PaymentState>();
+            });
+
+            // Connection resilience
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorCodesToAdd: null);
+
+            // Command timeout
+            npgsqlOptions.CommandTimeout(30);
         })
             .EnableDetailedErrors()
-            .EnableSensitiveDataLogging()
             .UseSnakeCaseNamingConvention();
 
-        Log.Information(LogTemplates.DbConnected, environment.EnvironmentName, DbConnectionOptions.Postgres);
-    }
-
-    /// <summary>
-    /// Configures Npgsql-specific options including vector support, migrations, and enum mappings.
-    /// </summary>
-    private static void ConfigureNpgsqlOptions(
-        Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.NpgsqlDbContextOptionsBuilder npgsqlOptions)
-    {
-        // Enable vector support for pgvector extension
-        npgsqlOptions.UseVector();
-
-        // Configure migrations history table
-        npgsqlOptions.MigrationsHistoryTable(
-            DbConnectionOptions.MigrationsHistoryTable,
-            DbConnectionOptions.MigrationsSchema);
-
-        // Configure data source with dynamic JSON support
-        npgsqlOptions.ConfigureDataSource(dataSourceBuilder =>
+        if (enableSensitiveLogging)
         {
-            dataSourceBuilder.EnableDynamicJson();
+            options.EnableSensitiveDataLogging();
+        }
+
+        // Performance optimization: disable query splitting warnings
+        options.ConfigureWarnings(warnings =>
+        {
+            warnings.Ignore(RelationalEventId.MultipleCollectionIncludeWarning);
         });
     }
 
     /// <summary>
-    /// Logs the final database configuration details.
+    /// Logs the database configuration details.
     /// </summary>
     private static void LogDatabaseConfiguration(IHostEnvironment environment, double durationMs)
     {
-        var provider = environment.IsProduction() || environment.IsDevelopment()
-            ? DbConnectionOptions.Postgres
-            : DbConnectionOptions.InMemory;
+        var provider = environment.IsEnvironment(DbConnectionOptions.TestEnvironmentName)
+            ? DbConnectionOptions.InMemory
+            : DbConnectionOptions.Postgres;
 
-        Log.Information(
-            LogTemplates.ConfigLoaded,
-            "Database",
-            new
-            {
-                Environment = environment.EnvironmentName,
-                Provider = provider,
-                Interceptors = true,
-                SnakeCaseNaming = provider == DbConnectionOptions.Postgres,
-                VectorSupport = provider == DbConnectionOptions.Postgres
-            });
+        Log.Information(LogTemplates.ConfigLoaded, "Database", new
+        {
+            Environment = environment.EnvironmentName,
+            Provider = provider,
+            Interceptors = true,
+            SnakeCaseNaming = provider == DbConnectionOptions.Postgres,
+            VectorSupport = provider == DbConnectionOptions.Postgres,
+            RetryOnFailure = provider == DbConnectionOptions.Postgres
+        });
 
         Log.Debug("Database configured in {Duration:0.0000}ms", durationMs);
     }
@@ -258,6 +286,52 @@ internal static class DatabaseServiceCollectionExtensions
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         Log.Debug(LogTemplates.ServiceRegistered, nameof(IUnitOfWork), "Scoped");
+    }
+
+    #endregion
+
+    #region Migration Utilities
+
+    /// <summary>
+    /// Ensures the database is created and migrations are applied.
+    /// Use with caution in production environments.
+    /// </summary>
+    public static async Task EnsureDatabaseAsync(
+        this IServiceProvider serviceProvider,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var sw = Stopwatch.StartNew();
+        Log.Information("Ensuring database exists and migrations are applied...");
+
+        try
+        {
+            await context.Database.MigrateAsync(cancellationToken);
+            sw.Stop();
+
+            Log.Information("Database ensured successfully in {Duration:0.0000}ms", sw.Elapsed.TotalMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            Log.Error(ex, "Failed to ensure database: {Error}", ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets pending migrations that haven't been applied to the database.
+    /// </summary>
+    public static async Task<IEnumerable<string>> GetPendingMigrationsAsync(
+        this IServiceProvider serviceProvider,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await context.Database.GetPendingMigrationsAsync(cancellationToken);
     }
 
     #endregion

@@ -9,7 +9,7 @@ public sealed class BackgroundServicesOptions
     /// <summary>
     /// Enable or disable Quartz dashboard (if using a dashboard plugin)
     /// </summary>
-    public bool EnableDashboard { get; init; } = false;
+    public bool EnableDashboard { get; init; }
 
     /// <summary>
     /// Dashboard URL path (e.g., "/quartz", "/admin/jobs")

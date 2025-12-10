@@ -12,6 +12,7 @@ using ReSys.Core.Domain.Identity.Users.Claims;
 using ReSys.Core.Domain.Identity.Users.Logins;
 using ReSys.Core.Domain.Identity.Users.Roles;
 using ReSys.Core.Domain.Identity.Users.Tokens;
+using ReSys.Core.Domain.Inventories.StorePickups;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
 namespace ReSys.Infrastructure.Persistence.Contexts;
@@ -24,6 +25,7 @@ public sealed class ApplicationDbContext(
         RoleClaim, UserToken>(options: options), IApplicationDbContext
 {
     public DbSet<Configuration> Configurations { get; set; }
+    public DbSet<StorePickup> StorePickups { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

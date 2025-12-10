@@ -68,5 +68,5 @@ public sealed class RedisDistributedCacheOptions
 {
     public string Host { get; set; } = "localhost";
     public int Port { get; set; } = 6379;
-    public bool AllowAdmin { get; set; } = false;
+    public bool AllowAdmin { get; set; }
 }

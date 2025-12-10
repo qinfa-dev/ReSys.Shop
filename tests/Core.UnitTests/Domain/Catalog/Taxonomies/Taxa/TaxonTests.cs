@@ -202,7 +202,6 @@ public class TaxonTests
     public void Taxon_Update_ShouldUpdateBasicPropertiesAndRegeneratePermalink()
     {
         // Arrange
-        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, name: "old-name", presentation: "Old Presentation", hideFromNav: false, automatic: false);
         taxon.ClearDomainEvents();
@@ -254,7 +253,6 @@ public class TaxonTests
     public void Taxon_Update_ShouldMarkForRegenerateProducts_WhenRulesMatchPolicyChanges()
     {
         // Arrange
-        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, automatic: true, rulesMatchPolicy: "all"); // Initially "all"
         taxon.ClearDomainEvents();
@@ -274,7 +272,6 @@ public class TaxonTests
     public void Taxon_Update_ShouldNotMarkForRegenerateProducts_WhenOnlyCosmeticChanges()
     {
         // Arrange
-        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, name: "original", presentation: "Original", hideFromNav: false, automatic: false);
         taxon.ClearDomainEvents();
