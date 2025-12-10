@@ -42,9 +42,13 @@ namespace ReSys.API.Middlewares.Paramesters;
 /// // Result: ?pageSize=10&amp;page_size=10&amp;sortOrder=desc&amp;sort_order=desc
 /// </code>
 /// </example>
-public sealed class QueryKeyNormalizationMiddleware
+/// <remarks>
+/// Initializes a new instance of the QueryKeyNormalizationMiddleware.
+/// </remarks>
+/// <param name="next">The next middleware delegate in the pipeline.</param>
+public sealed class QueryKeyNormalizationMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
+    private readonly RequestDelegate _next = next;
 
     #region Caching Infrastructure
 
@@ -109,12 +113,6 @@ public sealed class QueryKeyNormalizationMiddleware
     private const int StackAllocThreshold = 256;
 
     #endregion
-
-    /// <summary>
-    /// Initializes a new instance of the QueryKeyNormalizationMiddleware.
-    /// </summary>
-    /// <param name="next">The next middleware delegate in the pipeline.</param>
-    public QueryKeyNormalizationMiddleware(RequestDelegate next) => _next = next;
 
     /// <summary>
     /// Processes the HTTP request, normalizing query parameter names if needed.

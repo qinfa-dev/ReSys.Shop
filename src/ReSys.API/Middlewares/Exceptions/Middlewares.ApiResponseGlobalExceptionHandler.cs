@@ -46,9 +46,13 @@ namespace ReSys.API.Middlewares.Exceptions;
 /// - KeyNotFoundException → ApiResponse with status 404
 /// - TimeoutException → ApiResponse with status 500
 /// </example>
-internal sealed class ApiResponseGlobalExceptionHandler : IExceptionHandler
+/// <remarks>
+/// Initializes a new instance of the ApiResponseGlobalExceptionHandler.
+/// </remarks>
+/// <param name="logger">Logger for recording unhandled exceptions</param>
+internal sealed class ApiResponseGlobalExceptionHandler(ILogger<ApiResponseGlobalExceptionHandler> logger) : IExceptionHandler
 {
-    private readonly ILogger<ApiResponseGlobalExceptionHandler> _logger;
+    private readonly ILogger<ApiResponseGlobalExceptionHandler> _logger = logger;
 
     // Pre-computed frozen dictionary for better performance - matches ErrorOrApiResponseExtensions
     private static readonly FrozenDictionary<ErrorType, int> ErrorTypeToStatusCode =
@@ -65,15 +69,6 @@ internal sealed class ApiResponseGlobalExceptionHandler : IExceptionHandler
 
     private const int DefaultStatusCode = StatusCodes.Status500InternalServerError;
     private const string ResponseContentType = "application/json";
-
-    /// <summary>
-    /// Initializes a new instance of the ApiResponseGlobalExceptionHandler.
-    /// </summary>
-    /// <param name="logger">Logger for recording unhandled exceptions</param>
-    public ApiResponseGlobalExceptionHandler(ILogger<ApiResponseGlobalExceptionHandler> logger)
-    {
-        _logger = logger;
-    }
 
     /// <summary>
     /// Handles unhandled exceptions by converting them to ApiResponse wrapper format.

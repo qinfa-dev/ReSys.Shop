@@ -37,9 +37,13 @@ namespace ReSys.API.Middlewares.Exceptions;
 /// - KeyNotFoundException → 404 Not Found
 /// - TimeoutException → 500 Internal Server Error
 /// </example>
-internal sealed class GlobalExceptionHandler : IExceptionHandler
+/// <remarks>
+/// Initializes a new instance of the GlobalExceptionHandler.
+/// </remarks>
+/// <param name="logger">Logger for recording unhandled exceptions</param>
+internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
-    private readonly ILogger<GlobalExceptionHandler> _logger;
+    private readonly ILogger<GlobalExceptionHandler> _logger = logger;
 
     // Pre-computed frozen dictionary for better performance - matches ErrorOrExtensions
     private static readonly FrozenDictionary<ErrorType, int> ErrorTypeToStatusCode =
@@ -57,15 +61,6 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
     private const int DefaultStatusCode = StatusCodes.Status500InternalServerError;
     private const string ValidationProblemType = "https://tools.ietf.org/html/rfc7231#section-6.5.1";
     private const string ResponseContentType = "application/problem+json";
-
-    /// <summary>
-    /// Initializes a new instance of the GlobalExceptionHandler.
-    /// </summary>
-    /// <param name="logger">Logger for recording unhandled exceptions</param>
-    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
-    {
-        _logger = logger;
-    }
 
     /// <summary>
     /// Handles unhandled exceptions by converting them to ErrorOr-based ProblemDetails responses.
