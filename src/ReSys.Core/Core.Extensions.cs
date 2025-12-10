@@ -319,12 +319,12 @@ public static class DependencyInjection
     private static void AddDomainServices(this IServiceCollection services)
     {
         // Register: Fulfillment Strategy Factory
-        services.AddScoped<IFulfillmentStrategyFactory, FulfillmentStrategyFactory>();
+        //services.AddScoped<IFulfillmentStrategyFactory, FulfillmentStrategyFactory>();
 
-        Log.Debug(
-            messageTemplate: LogTemplates.ServiceRegistered,
-            propertyValue0: "IFulfillmentStrategyFactory",
-            propertyValue1: "Scoped");
+        //Log.Debug(
+        //    messageTemplate: LogTemplates.ServiceRegistered,
+        //    propertyValue0: "IFulfillmentStrategyFactory",
+        //    propertyValue1: "Scoped");
     }
 
     #endregion
