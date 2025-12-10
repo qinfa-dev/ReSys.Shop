@@ -202,7 +202,7 @@ public class TaxonTests
     public void Taxon_Update_ShouldUpdateBasicPropertiesAndRegeneratePermalink()
     {
         // Arrange
-        var storeId = Guid.NewGuid();
+        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, name: "old-name", presentation: "Old Presentation", hideFromNav: false, automatic: false);
         taxon.ClearDomainEvents();
@@ -234,7 +234,7 @@ public class TaxonTests
     public void Taxon_Update_ShouldMarkForRegenerateProducts_WhenAutomaticChanges()
     {
         // Arrange
-        var storeId = Guid.NewGuid();
+        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, automatic: false); // Initially manual
         taxon.ClearDomainEvents();
@@ -254,7 +254,7 @@ public class TaxonTests
     public void Taxon_Update_ShouldMarkForRegenerateProducts_WhenRulesMatchPolicyChanges()
     {
         // Arrange
-        var storeId = Guid.NewGuid();
+        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, automatic: true, rulesMatchPolicy: "all"); // Initially "all"
         taxon.ClearDomainEvents();
@@ -274,7 +274,7 @@ public class TaxonTests
     public void Taxon_Update_ShouldNotMarkForRegenerateProducts_WhenOnlyCosmeticChanges()
     {
         // Arrange
-        var storeId = Guid.NewGuid();
+        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, name: "original", presentation: "Original", hideFromNav: false, automatic: false);
         taxon.ClearDomainEvents();
@@ -476,7 +476,7 @@ public class TaxonTests
     public void Taxon_SetParent_ShouldUpdateParentIdAndRaiseEvent()
     {
         // Arrange
-        var storeId = Guid.NewGuid();
+        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var rootTaxon = CreateValidTaxon(taxonomyId: taxonomyId, name: "root", hideFromNav: false, automatic: false);
         var childTaxon = CreateValidTaxon(taxonomyId: taxonomyId, name: "child", parentId: null, hideFromNav: false, automatic: false);
@@ -500,7 +500,7 @@ public class TaxonTests
     public void Taxon_SetParent_ShouldReturnSelfParentingError_WhenParentIsSelf()
     {
         // Arrange
-        var storeId = Guid.NewGuid();
+        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, hideFromNav: false, automatic: false);
         taxon.ClearDomainEvents();
@@ -562,7 +562,7 @@ public class TaxonTests
     public void Taxon_Delete_ShouldReturnDeletedResultAndRaiseEvent_WhenNoChildren()
     {
         // Arrange
-        var storeId = Guid.NewGuid();
+        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var taxon = CreateValidTaxon(taxonomyId: taxonomyId, hideFromNav: false, automatic: false);
         taxon.ClearDomainEvents();
@@ -580,7 +580,7 @@ public class TaxonTests
     public void Taxon_Delete_ShouldReturnHasChildrenError_WhenHasChildren()
     {
         // Arrange
-        var storeId = Guid.NewGuid();
+        Guid.NewGuid();
         var taxonomyId = Guid.NewGuid();
         var parentTaxon = CreateValidTaxon(taxonomyId: taxonomyId, hideFromNav: false, automatic: false);
         var childTaxon = CreateValidTaxon(taxonomyId: taxonomyId, parentId: parentTaxon.Id, hideFromNav: false, automatic: false);

@@ -396,10 +396,9 @@ public class OrderTests
             baseCost: 5.0m);
 
                 shippingMethodResult.IsError.Should().BeFalse();
-                var shippingMethod = shippingMethodResult.Value;
-                
-        
-        // Act
+
+
+                // Act
         var result = order.Next(); // Delivery -> Payment without shipping method
 
         // Assert
@@ -801,7 +800,7 @@ public class OrderTests
         var addLineItemResult = order.AddLineItem(variant, 2);
         addLineItemResult.IsError.Should().BeFalse($"Expected AddLineItem to succeed, but got error: {addLineItemResult.FirstError.Code} - {addLineItemResult.FirstError.Description}"); // Total 2000 cents
 
-        var promotionUsageResult = PromotionUsage.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 10.0m);
+        var promotionUsageResult = PromotionAction.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 10.0m);
         promotionUsageResult.IsError.Should().BeFalse();
         var promotionUsage = promotionUsageResult.Value;
 
@@ -829,7 +828,7 @@ public class OrderTests
         var addLineItemResult = order.AddLineItem(variant, 1);
         addLineItemResult.IsError.Should().BeFalse($"Expected AddLineItem to succeed, but got error: {addLineItemResult.FirstError.Code} - {addLineItemResult.FirstError.Description}");
 
-        var promotionUsage1Result = PromotionUsage.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 1.0m);
+        var promotionUsage1Result = PromotionAction.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 1.0m);
         promotionUsage1Result.IsError.Should().BeFalse();
         var promotionUsage1 = promotionUsage1Result.Value;
         var promotion1Result = Promotion.Create("Promo1", promotionUsage1);
@@ -837,7 +836,7 @@ public class OrderTests
         var promotion1 = promotion1Result.Value;
         order.ApplyPromotion(promotion1); // Apply first promotion
 
-        var promotionUsage2Result = PromotionUsage.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 2.0m);
+        var promotionUsage2Result = PromotionAction.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 2.0m);
         promotionUsage2Result.IsError.Should().BeFalse();
         var promotionUsage2 = promotionUsage2Result.Value;
         var promotion2Result = Promotion.Create("Promo2", promotionUsage2);
@@ -861,7 +860,7 @@ public class OrderTests
         var addLineItemResult = order.AddLineItem(variant, 2);
         addLineItemResult.IsError.Should().BeFalse($"Expected AddLineItem to succeed, but got error: {addLineItemResult.FirstError.Code} - {addLineItemResult.FirstError.Description}");
 
-        var promotionUsageResult = PromotionUsage.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 2.0m);
+        var promotionUsageResult = PromotionAction.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 2.0m);
         promotionUsageResult.IsError.Should().BeFalse();
         var promotionUsage = promotionUsageResult.Value;
         var promotionResult = Promotion.Create("Promo Discount", promotionUsage);

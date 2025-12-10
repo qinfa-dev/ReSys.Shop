@@ -6,7 +6,7 @@ using ReSys.Core.Common.Domain.Concerns; // Added for IHasMetadata
 
 namespace Core.UnitTests.Domain.Promotions.Actions;
 
-public class PromotionUsageTests
+public class PromotionActionTests
 {
     [Fact]
     public void CreateOrderDiscount_ShouldCreateCorrectUsage_ForFixedAmount()
@@ -15,7 +15,7 @@ public class PromotionUsageTests
         var amount = 15.0m;
 
         // Act
-        var result = PromotionUsage.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, amount);
+        var result = PromotionAction.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, amount);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -32,7 +32,7 @@ public class PromotionUsageTests
         var percentage = 0.2m; // 20%
 
         // Act
-        var result = PromotionUsage.CreateOrderDiscount(Promotion.DiscountType.Percentage, percentage);
+        var result = PromotionAction.CreateOrderDiscount(Promotion.DiscountType.Percentage, percentage);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -49,11 +49,11 @@ public class PromotionUsageTests
         var invalidPercentage = 1.1m; // 110%
 
         // Act
-        var result = PromotionUsage.CreateOrderDiscount(Promotion.DiscountType.Percentage, invalidPercentage);
+        var result = PromotionAction.CreateOrderDiscount(Promotion.DiscountType.Percentage, invalidPercentage);
 
         // Assert
         result.IsError.Should().BeTrue();
-        result.FirstError.Code.Should().Be(PromotionUsage.Errors.InvalidPercentageValue.Code);
+        result.FirstError.Code.Should().Be(PromotionAction.Errors.InvalidPercentageValue.Code);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class PromotionUsageTests
         var amount = 5.0m;
 
         // Act
-        var result = PromotionUsage.CreateItemDiscount(Promotion.DiscountType.FixedAmount, amount);
+        var result = PromotionAction.CreateItemDiscount(Promotion.DiscountType.FixedAmount, amount);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -80,10 +80,10 @@ public class PromotionUsageTests
         var invalidPercentage = 1.1m; // 110%
 
         // Act
-        var result = PromotionUsage.CreateItemDiscount(Promotion.DiscountType.Percentage, invalidPercentage);
+        var result = PromotionAction.CreateItemDiscount(Promotion.DiscountType.Percentage, invalidPercentage);
 
         // Assert
         result.IsError.Should().BeTrue();
-        result.FirstError.Code.Should().Be(PromotionUsage.Errors.InvalidPercentageValue.Code);
+        result.FirstError.Code.Should().Be(PromotionAction.Errors.InvalidPercentageValue.Code);
     }
 }

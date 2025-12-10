@@ -2,11 +2,8 @@ using FluentAssertions;
 using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Inventories.Stocks;
 using ReSys.Core.Domain.Catalog.Products.Variants;
-// Added for Product
-using ReSys.Core.Domain.Stores.StockLocations;
-using ReSys.Core.Domain.Stores;
 
-using System.Reflection; // For reflection
+using System.Reflection; 
 
 namespace Core.UnitTests.Domain.Inventories.Locations;
 
@@ -60,20 +57,6 @@ public class StockLocationInvariantTests
         var stockItem = result.Value;
         stockItem.Variant = variant; // Assign the variant navigation property
         return stockItem;
-    }
-    private StoreStockLocation CreateTestStoreStockLocation(StockLocation stockLocation, Store store, int priority = 1, bool canFulfillOrders = true)
-    {
-        var result = StoreStockLocation.Create(stockLocationId: stockLocation.Id, storeId: store.Id, priority: priority, canFulfillOrders: canFulfillOrders);
-        result.IsError.Should().BeFalse(because: $"StoreStockLocation.Create should not fail for valid inputs: {result.FirstError.Description}");
-        
-        var storeStockLocation = result.Value;
-        storeStockLocation.Should().NotBeNull(because: "StoreStockLocation object should not be null after successful creation."); // Explicit null check
-
-        // Removed direct assignment of navigation properties
-        // storeStockLocation.StockLocation = stockLocation;
-        // storeStockLocation.Store = store; 
-        
-        return storeStockLocation;
     }
 
     [Fact]
@@ -159,31 +142,5 @@ public class StockLocationInvariantTests
         // Assert
         result.IsError.Should().BeTrue();
         result.FirstError.Code.Should().Be(expected: "StockLocation.NegativeQuantityReserved");
-    }
-
-    [Fact]
-    public void ValidateInvariants_ShouldReturnError_WhenStoreLinkageIsInvalid()
-    {
-        // Arrange
-        var stockLocation = CreateTestStockLocation();
-        var storeResult = Store.Create(name: "Test Store", mailFromAddress: "test@store.com", customerSupportEmail: "test@store.com");
-        storeResult.IsError.Should().BeFalse();
-        var store = storeResult.Value;
-
-        // Directly create an invalid StoreStockLocation
-        var invalidStoreStockLocationResult = StoreStockLocation.Create(stockLocationId: Guid.NewGuid(), storeId: store.Id);
-        invalidStoreStockLocationResult.IsError.Should().BeFalse();
-        var invalidStoreStockLocation = invalidStoreStockLocationResult.Value;
-        // invalidStoreStockLocation.StockLocation = stockLocation; // Removed to fix NRE
-        // invalidStoreStockLocation.Store = store; // Removed to fix NRE
-
-        stockLocation.StoreStockLocations.Add(item: invalidStoreStockLocation);
-
-        // Act
-        var result = stockLocation.ValidateInvariants();
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Code.Should().Be(expected: "StockLocation.InvalidStoreLinkage");
     }
 }

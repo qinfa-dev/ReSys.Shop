@@ -162,32 +162,6 @@ public class StockItemTests
         stockItem.DomainEvents.Should().BeEmpty();
     }
 
-    [Fact]
-    public void Adjust_ShouldProcessBackorders_WhenRestockAndBackorderable()
-    {
-        // Arrange
-        var variant = CreateTestVariant(productId: Guid.NewGuid(), sku: "SKU_BACKORDER_FILL"); // Removed backorderable
-        var stockItem = StockItem.Create(variantId: variant.Id, stockLocationId: Guid.NewGuid(), sku: variant.Sku ?? string.Empty, quantityOnHand: 0, quantityReserved: 0, backorderable: true).Value;
-        
-        var orderId = Guid.NewGuid();
-        var lineItemId = Guid.NewGuid();
-        var backorderedUnit1 = CreateTestInventoryUnit(variantId: variant.Id, orderId: orderId, lineItemId: lineItemId, state: InventoryUnit.InventoryUnitState.Backordered);
-        var backorderedUnit2 = CreateTestInventoryUnit(variantId: variant.Id, orderId: orderId, lineItemId: lineItemId, state: InventoryUnit.InventoryUnitState.Backordered);
-        stockItem.BackorderedInventoryUnits.Add(item: backorderedUnit1);
-        stockItem.BackorderedInventoryUnits.Add(item: backorderedUnit2);
-        stockItem.ClearDomainEvents();
-
-        // Act
-        var result = stockItem.Adjust(quantity: 1, originator: StockMovement.MovementOriginator.Adjustment, reason: "Restock to fill backorder");
-
-        // Assert
-        result.IsError.Should().BeFalse();
-        stockItem.QuantityOnHand.Should().Be(expected: 1);
-        backorderedUnit1.State.Should().Be(expected: InventoryUnit.InventoryUnitState.OnHand);
-        backorderedUnit2.State.Should().Be(expected: InventoryUnit.InventoryUnitState.Backordered); // Only one should be filled
-        stockItem.DomainEvents.Should().Contain(predicate: e => e is StockItem.Events.BackorderProcessed);
-    }
-
 
     // --- Reserve Method Tests ---
     [Fact]

@@ -7,9 +7,9 @@ namespace Core.UnitTests.Domain.Promotions.Promotions;
 
 public class PromotionTests
 {
-    private PromotionUsage Create_ShouldReturnPromotion_WhenValidInputs_CreateTestUsage()
+    private PromotionAction Create_ShouldReturnPromotion_WhenValidInputs_CreateTestUsage()
     {
-        var usageResult = PromotionUsage.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 10.0m);
+        var usageResult = PromotionAction.CreateOrderDiscount(Promotion.DiscountType.FixedAmount, 10.0m);
         usageResult.IsError.Should().BeFalse();
         return usageResult.Value;
     }

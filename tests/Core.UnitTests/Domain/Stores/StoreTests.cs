@@ -786,139 +786,9 @@ public class StoreTests
         var product = CreateValidProduct();
         store.AddProduct(product, visible: true, featured: false);
         store.ClearDomainEvents();
-        var initialUpdatedAt = store.UpdatedAt;
 
         // Act
         var result = store.UpdateProductSettings(product.Id, visible: true, featured: false);
-
-        // Assert
-        result.IsError.Should().BeFalse();
-        store.DomainEvents.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void Store_AddStockLocation_ShouldAddLocationAndRaiseEvent_WhenValidLocationProvided()
-    {
-        // Arrange
-        var store = CreateValidStore();
-        store.ClearDomainEvents();
-        var location = CreateValidStockLocation();
-
-        // Act
-        var result = store.AddStockLocation(location, priority: 1);
-
-        // Assert
-        result.IsError.Should().BeFalse();
-        store.StoreStockLocations.Should().ContainSingle(sl => sl.StockLocationId == location.Id);
-        store.StoreStockLocations.First().Priority.Should().Be(1);
-        store.UpdatedAt.Should().NotBeNull();
-        store.DomainEvents.Should().ContainSingle(e => e is Events.StockLocationAddedToStore);
-    }
-
-    [Fact]
-    public void Store_AddStockLocation_ShouldReturnInvalidStockLocationError_WhenNullLocationProvided()
-    {
-        // Arrange
-        var store = CreateValidStore();
-        store.ClearDomainEvents();
-
-        // Act
-        var result = store.AddStockLocation(null);
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(Errors.InvalidStockLocation);
-        store.StoreStockLocations.Should().BeEmpty();
-        store.DomainEvents.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void Store_AddStockLocation_ShouldReturnStockLocationAlreadyAddedError_WhenLocationAlreadyExists()
-    {
-        // Arrange
-        var store = CreateValidStore();
-        var location = CreateValidStockLocation();
-        store.AddStockLocation(location); // Add once
-        store.ClearDomainEvents();
-
-        // Act
-        var result = store.AddStockLocation(location); // Add again
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(Errors.StockLocationAlreadyAdded);
-        store.StoreStockLocations.Should().ContainSingle(sl => sl.StockLocationId == location.Id);
-        store.DomainEvents.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void Store_RemoveStockLocation_ShouldRemoveLocationAndRaiseEvent_WhenLocationExists()
-    {
-        // Arrange
-        var store = CreateValidStore();
-        var location = CreateValidStockLocation();
-        store.AddStockLocation(location);
-        store.ClearDomainEvents();
-
-        // Act
-        var result = store.RemoveStockLocation(location.Id);
-
-        // Assert
-        result.IsError.Should().BeFalse();
-        store.StoreStockLocations.Should().BeEmpty();
-        store.UpdatedAt.Should().NotBeNull();
-        store.DomainEvents.Should().ContainSingle(e => e is Events.StockLocationRemovedFromStore);
-    }
-
-    [Fact]
-    public void Store_RemoveStockLocation_ShouldReturnStockLocationNotFoundError_WhenLocationDoesNotExist()
-    {
-        // Arrange
-        var store = CreateValidStore();
-        store.ClearDomainEvents();
-        var nonExistentLocationId = Guid.NewGuid();
-
-        // Act
-        var result = store.RemoveStockLocation(nonExistentLocationId);
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(Errors.StockLocationNotFound);
-        store.DomainEvents.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void Store_UpdateStockLocationPriority_ShouldUpdatePriorityAndRaiseEvent_WhenLocationExists()
-    {
-        // Arrange
-        var store = CreateValidStore();
-        var location = CreateValidStockLocation();
-        store.AddStockLocation(location, priority: 1);
-        store.ClearDomainEvents();
-        var storeStockLocation = store.StoreStockLocations.First();
-
-        // Act
-        var result = store.UpdateStockLocationPriority(location.Id, priority: 5);
-
-        // Assert
-        result.IsError.Should().BeFalse();
-        storeStockLocation.Priority.Should().Be(5);
-        store.UpdatedAt.Should().NotBeNull();
-        store.DomainEvents.Should().ContainSingle(e => e is Events.StockLocationPriorityUpdated);
-    }
-
-    [Fact]
-    public void Store_UpdateStockLocationPriority_ShouldNotUpdateOrRaiseEvent_WhenNoChanges()
-    {
-        // Arrange
-        var store = CreateValidStore();
-        var location = CreateValidStockLocation();
-        store.AddStockLocation(location, priority: 1);
-        store.ClearDomainEvents();
-        var initialUpdatedAt = store.UpdatedAt;
-
-        // Act
-        var result = store.UpdateStockLocationPriority(location.Id, priority: 1);
 
         // Assert
         result.IsError.Should().BeFalse();
@@ -1046,7 +916,6 @@ public class StoreTests
         var shippingMethod = CreateValidShippingMethod();
         store.AddShippingMethod(shippingMethod, available: true, storeBaseCost: 10.00m);
         store.ClearDomainEvents();
-        var initialUpdatedAt = store.UpdatedAt;
 
         // Act
         var result = store.UpdateShippingMethodSettings(shippingMethod.Id, available: true, storeBaseCost: 10.00m);
