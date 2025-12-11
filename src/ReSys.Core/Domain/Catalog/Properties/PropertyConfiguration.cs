@@ -54,7 +54,6 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         // Configure indexes for frequently queried columns to improve performance.
         builder.HasIndex(indexExpression: p => p.Name).IsUnique();
         builder.HasIndex(indexExpression: p => p.Position);
-        builder.HasIndex(indexExpression: p => p.FilterParam).IsUnique();
         #endregion
 
         #region Properties

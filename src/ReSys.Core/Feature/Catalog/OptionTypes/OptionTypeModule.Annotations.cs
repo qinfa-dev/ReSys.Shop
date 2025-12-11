@@ -12,7 +12,7 @@ public static partial class OptionTypeModule
         public static ApiGroupMeta Group => new()
         {
             Name = "Admin.Catalog.OptionType",
-            Tags = ["Option Type Management"],
+            Tags = ["Option Type"],
             Summary = "Option Type Management API",
             Description = "Endpoints for managing catalog option types"
         };
