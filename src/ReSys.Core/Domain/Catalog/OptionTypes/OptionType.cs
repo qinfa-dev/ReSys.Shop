@@ -140,13 +140,13 @@ public sealed class OptionType : AuditableEntity,
         /// </summary>
         public static Error NotFound(Guid id) => 
             CommonInput.Errors.NotFound(prefix: nameof(OptionType));
-        
+
         /// <summary>
-        /// Triggered when attempting to delete an option type that has existing option values.
+        /// Triggered when attempting to delete an option type that has existing product in use.
         /// Option values must be deleted first, or option type should be archived instead of deleted.
         /// </summary>
-        public static Error HasValues =>
-            Error.Conflict(code: "OptionType.HasValues", description: "Cannot delete option type with existing values.");
+        public static Error HasProductInUse =>
+            Error.Conflict(code: "OptionType.HasProductInUse", description: "Cannot delete option type with existing product in use.");
     }
     #endregion
 
@@ -350,7 +350,7 @@ public sealed class OptionType : AuditableEntity,
     /// <returns>
     /// An <see cref="ErrorOr{Deleted}"/> result.
     /// Returns <see cref="Result.Deleted"/> on successful deletion.
-    /// Returns <see cref="Errors.HasValues"/> if the option type still has associated values.
+    /// Returns <see cref="Errors.HasProductInUse"/> if the option type still has associated values.
     /// </returns>
     /// <remarks>
     /// Before calling this method, ensure all <see cref="OptionValue"/>s belonging to this
@@ -359,7 +359,7 @@ public sealed class OptionType : AuditableEntity,
     /// </remarks>
     public ErrorOr<Deleted> Delete()
     {
-        if (OptionValues.Any()) return Errors.HasValues;
+        if (OptionValues.Any()) return Errors.HasProductInUse;
         return Result.Deleted;
     }
 
