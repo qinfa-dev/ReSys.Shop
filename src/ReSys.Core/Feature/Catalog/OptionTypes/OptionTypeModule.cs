@@ -38,7 +38,7 @@ public static partial class OptionTypeModule
                 .UseEndpointMeta(meta: Annotations.Create)
                 .RequireAccessPermission(permission: FeaturePermission.Admin.Catalog.OptionType.Create);
 
-            group.MapPost(pattern: "{id:guid}", handler: async (
+            group.MapPut(pattern: "{id:guid}", handler: async (
                 [FromRoute] Guid id,
                 [FromBody] Update.Request request,
                 [FromServices] ISender mediator,

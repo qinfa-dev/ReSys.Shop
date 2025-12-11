@@ -58,7 +58,8 @@ public static partial class OptionValueModule
                         .CheckNameIsUniqueAsync<OptionValue, Guid>(
                             name: request.Name,
                             prefix: nameof(OptionValue),
-                            cancellationToken: cancellationToken);
+                            cancellationToken: cancellationToken, 
+                            exclusions: optionValue.Id);
                     if (uniqueNameCheck.IsError)
                         return uniqueNameCheck.Errors;
                 }
