@@ -230,10 +230,11 @@ internal static class DatabaseServiceCollectionExtensions
             });
 
             // Connection resilience
-            npgsqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 3,
-                maxRetryDelay: TimeSpan.FromSeconds(5),
-                errorCodesToAdd: null);
+            // TODO: Enable if needed
+            //npgsqlOptions.EnableRetryOnFailure(
+            //    maxRetryCount: 3,
+            //    maxRetryDelay: TimeSpan.FromSeconds(5),
+            //    errorCodesToAdd: null);
 
             // Command timeout
             npgsqlOptions.CommandTimeout(30);

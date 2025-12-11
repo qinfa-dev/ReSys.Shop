@@ -19,15 +19,15 @@ public static class HasUniqueName
         return !await query.AnyAsync(predicate: x => x.Name == name, cancellationToken: ct);
     }
 
-    public static void AddUniqueNameRules<T>(this AbstractValidator<T> validator) where T : IHasUniqueName
+    public static void AddUniqueNameRules<T>(this AbstractValidator<T> validator, string prefix = nameof(IHasUniqueName)) where T : IHasUniqueName
     {
         validator.RuleFor(expression: x => x.Name)
             .NotEmpty()
-            .WithErrorCode(errorCode: CommonInput.Errors.Required(prefix: nameof(IHasUniqueName.Name)).Code)
-            .WithMessage(errorMessage: CommonInput.Errors.Required(prefix: nameof(IHasUniqueName.Name)).Description)
+            .WithErrorCode(errorCode: CommonInput.Errors.Required(prefix: prefix, nameof(IHasUniqueName.Name)).Code)
+            .WithMessage(errorMessage: CommonInput.Errors.Required(prefix: prefix, nameof(IHasUniqueName.Name)).Description)
             .MaximumLength(maximumLength: CommonInput.Constraints.NamesAndUsernames.NameMaxLength)
-            .WithErrorCode(errorCode: CommonInput.Errors.TooLong(field: nameof(IHasUniqueName.Name), maxLength: CommonInput.Constraints.NamesAndUsernames.NameMaxLength).Code)
-            .WithMessage(errorMessage: CommonInput.Errors.TooLong(field: nameof(IHasUniqueName.Name), maxLength: CommonInput.Constraints.NamesAndUsernames.NameMaxLength).Description);
+            .WithErrorCode(errorCode: CommonInput.Errors.TooLong(prefix: prefix, field: nameof(IHasUniqueName.Name), maxLength: CommonInput.Constraints.NamesAndUsernames.NameMaxLength).Code)
+            .WithMessage(errorMessage: CommonInput.Errors.TooLong(prefix: prefix, field: nameof(IHasUniqueName.Name), maxLength: CommonInput.Constraints.NamesAndUsernames.NameMaxLength).Description);
     }
 
     public static void ConfigureUniqueName<T>(this EntityTypeBuilder<T> builder) where T : class, IHasUniqueName
