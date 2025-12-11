@@ -1,9 +1,5 @@
-﻿using ErrorOr;
+﻿using Microsoft.AspNetCore.Identity;
 
-using Microsoft.AspNetCore.Identity;
-
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Reviews;
 using ReSys.Core.Domain.Identity.Tokens;

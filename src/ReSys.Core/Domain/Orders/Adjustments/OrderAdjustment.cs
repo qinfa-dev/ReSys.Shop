@@ -1,7 +1,4 @@
-﻿using ErrorOr;
-
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Common.Domain.Entities;
+﻿using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Domain.Promotions.Promotions;
 
 namespace ReSys.Core.Domain.Orders.Adjustments;

@@ -1,5 +1,4 @@
 using ReSys.Core.Common.Domain.Entities;
-using ErrorOr;
 
 namespace ReSys.Core.Domain.Configurations;
 

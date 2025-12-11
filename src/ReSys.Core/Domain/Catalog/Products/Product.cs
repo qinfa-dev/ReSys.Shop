@@ -1,8 +1,4 @@
-﻿using ErrorOr;
-
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Common.Domain.Concerns;
-using ReSys.Core.Common.Domain.Entities;
+﻿using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Common.Extensions;
 using ReSys.Core.Domain.Catalog.OptionTypes;

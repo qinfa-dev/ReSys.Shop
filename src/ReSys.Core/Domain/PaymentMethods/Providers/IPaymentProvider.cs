@@ -1,5 +1,3 @@
-using ErrorOr;
-
 using ReSys.Core.Domain.PaymentMethods.Providers.Models;
 
 namespace ReSys.Core.Domain.PaymentMethods.Providers;

@@ -1,10 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using ReSys.Core.Common.Domain.Concerns;
-using ReSys.Core.Domain.Constants;
-
-namespace ReSys.Core.Domain.Catalog.Products.OptionTypes;
+﻿namespace ReSys.Core.Domain.Catalog.Products.OptionTypes;
 /// <summary>
 /// Configures the database mapping for the <see cref="ProductOptionType"/> entity.
 /// </summary>

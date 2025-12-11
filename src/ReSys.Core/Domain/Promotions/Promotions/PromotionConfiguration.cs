@@ -1,9 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Common.Domain.Concerns;
-using ReSys.Core.Domain.Constants;
 using ReSys.Core.Domain.Promotions.Actions;
 
 namespace ReSys.Core.Domain.Promotions.Promotions;

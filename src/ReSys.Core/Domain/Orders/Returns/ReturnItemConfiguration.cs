@@ -1,6 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 namespace ReSys.Core.Domain.Orders.Returns;
 
 /// <summary>

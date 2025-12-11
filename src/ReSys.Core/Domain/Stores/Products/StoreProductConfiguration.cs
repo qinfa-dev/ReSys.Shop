@@ -1,10 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using ReSys.Core.Common.Domain.Concerns;
-using ReSys.Core.Domain.Constants;
-
-namespace ReSys.Core.Domain.Stores.Products;
+﻿namespace ReSys.Core.Domain.Stores.Products;
 
 /// <summary>
 /// Configures the database mapping for the <see cref="StoreProduct"/> entity.

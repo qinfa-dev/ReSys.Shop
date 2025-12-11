@@ -1,11 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Common.Domain.Concerns;
-using ReSys.Core.Domain.Constants;
-
-namespace ReSys.Core.Domain.Location.Countries;
+﻿namespace ReSys.Core.Domain.Location.Countries;
 
 /// <summary>
 /// Configures the database mapping for the <see cref="Country"/> entity.

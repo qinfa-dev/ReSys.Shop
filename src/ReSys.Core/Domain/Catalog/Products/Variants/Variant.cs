@@ -1,9 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
-using ErrorOr;
+using Microsoft.AspNetCore.Http.HttpResults;
 
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Common.Extensions;
@@ -953,7 +951,7 @@ public sealed class Variant :
     /// Returns the updated <see cref="Variant"/> instance on success.
     /// Returns <see cref="Errors.MasterCannotHaveOptionValues"/> if called on a master variant.
     /// Returns <see cref="OptionValue.Errors.NotFound(Guid)"/> if <paramref name="optionValue"/> is null.
-    /// Returns an <see cref="Error.Validation"/> if the option type is not associated with the product.
+    /// Returns an <see cref="DbLoggerCategory.Model.Validation"/> if the option type is not associated with the product.
     /// </returns>
     /// <remarks>
     /// Master variants are not allowed to have option values.
@@ -1060,9 +1058,9 @@ public sealed class Variant :
     /// <returns>
     /// An <see cref="ErrorOr{Variant}"/> result.
     /// Returns the updated <see cref="Variant"/> instance on success.
-    /// Returns an <see cref="Error.Validation"/> if the provided asset is null.
+    /// Returns an <see cref="DbLoggerCategory.Model.Validation"/> if the provided asset is null.
     /// Returns one of the <see cref="ProductImage.Errors"/> if the asset's parameters are invalid.
-    /// Returns an <see cref="Error.Conflict"/> if a duplicate image type exists.
+    /// Returns an <see cref="Conflict"/> if a duplicate image type exists.
     /// </returns>
     /// <remarks>
     /// This method performs checks for null assets and duplicate image types to maintain data integrity.

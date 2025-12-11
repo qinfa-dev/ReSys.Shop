@@ -1,5 +1,3 @@
-using ReSys.Core.Common.Constants;
-
 namespace ReSys.Core.Domain.Location;
 
 public interface IAddress

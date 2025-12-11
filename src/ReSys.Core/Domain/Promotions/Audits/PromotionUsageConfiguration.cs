@@ -1,9 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using ReSys.Core.Common.Constants;
-
-namespace ReSys.Core.Domain.Promotions.Audits;
+﻿namespace ReSys.Core.Domain.Promotions.Audits;
 
 /// <summary>
 /// Configures the database mapping for the <see cref="PromotionUsage"/> entity.

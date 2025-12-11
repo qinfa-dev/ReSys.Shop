@@ -1,12 +1,9 @@
-using ErrorOr;
-
-using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Inventories.Locations;
-using ReSys.Core.Domain.Orders.Shipments;
 using ReSys.Core.Domain.Orders;
+using ReSys.Core.Domain.Orders.Shipments;
 
 namespace ReSys.Core.Domain.Inventories.Stocks;
 

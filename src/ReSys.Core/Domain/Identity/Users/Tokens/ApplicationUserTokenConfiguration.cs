@@ -1,9 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using ReSys.Core.Domain.Constants;
-
-namespace ReSys.Core.Domain.Identity.Users.Tokens;
+﻿namespace ReSys.Core.Domain.Identity.Users.Tokens;
 /// <summary>
 /// Configures the database mapping for the <see cref="UserToken"/> entity.
 /// </summary>

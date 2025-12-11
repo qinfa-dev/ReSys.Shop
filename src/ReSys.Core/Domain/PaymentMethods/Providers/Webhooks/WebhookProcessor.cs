@@ -1,4 +1,3 @@
-using ErrorOr;
 using Microsoft.Extensions.Logging;
 
 namespace ReSys.Core.Domain.PaymentMethods.Providers.Webhooks;

@@ -1,10 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Common.Domain.Concerns;
-using ReSys.Core.Domain.Constants;
-
 namespace ReSys.Core.Domain.Catalog.Products.Variants;
 
 public sealed class VariantConfiguration : IEntityTypeConfiguration<Variant>

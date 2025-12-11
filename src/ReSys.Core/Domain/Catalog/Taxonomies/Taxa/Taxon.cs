@@ -1,7 +1,4 @@
-﻿using ErrorOr;
-
-using ReSys.Core.Common.Domain.Concerns;
-using ReSys.Core.Common.Domain.Entities;
+﻿using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Common.Extensions;
 using ReSys.Core.Domain.Catalog.Products.Classifications;
@@ -917,7 +914,7 @@ public sealed class Taxon :
     /// <param name="index">The new position index for the child taxon.</param>
     /// <returns>
     /// An <see cref="ErrorOr{Success}"/> result.
-    /// Always returns <see cref="Result.Success"/> if the operation completes without errors.
+    /// Always returns <see cref="Success"/> if the operation completes without errors.
     /// </returns>
     /// <remarks>
     /// This method is part of managing the hierarchical display order of taxons.

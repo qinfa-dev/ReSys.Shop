@@ -1,8 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using ReSys.Core.Common.Domain.Concerns; // Add this using directive
-using ReSys.Core.Domain.Constants;
+// Add this using directive
 
 namespace ReSys.Core.Domain.Catalog.Products.Variants;
 

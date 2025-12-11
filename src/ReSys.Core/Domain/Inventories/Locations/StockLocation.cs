@@ -1,6 +1,3 @@
-using ErrorOr;
-
-using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
@@ -919,7 +916,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// <param name="originatorId">Optional: A unique identifier for the originating operation (e.g., StockTransfer ID, Order ID).</param>
     /// <returns>
     /// An <see cref="ErrorOr{Success}"/> result.
-    /// Returns <see cref="Result.Success"/> if the unstock operation succeeds.
+    /// Returns <see cref="Success"/> if the unstock operation succeeds.
     /// Returns <see cref="Error.Validation"/> if the <paramref name="variant"/> is null or <paramref name="quantity"/> is not positive.
     /// Returns <see cref="Error.NotFound"/> if no stock is found for the variant.
     /// Returns <see cref="Error.Validation"/> if unstocking would violate reserved quantities for non-backorderable items.

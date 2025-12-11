@@ -1,8 +1,4 @@
-﻿using ErrorOr;
-
-using Microsoft.AspNetCore.Identity;
-
-using ReSys.Core.Common.Domain.Concerns;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace ReSys.Core.Domain.Identity.Users.Claims;
 

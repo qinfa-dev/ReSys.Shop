@@ -1,5 +1,3 @@
-using ErrorOr;
-
 namespace ReSys.Core.Domain.PaymentMethods.Providers;
 
 /// <summary>

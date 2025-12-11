@@ -1,4 +1,3 @@
-using ErrorOr;
 using Microsoft.Extensions.Logging;
 using ReSys.Core.Domain.PaymentMethods.Providers.Models;
 

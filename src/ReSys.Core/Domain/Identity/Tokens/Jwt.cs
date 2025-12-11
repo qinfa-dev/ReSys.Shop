@@ -1,8 +1,4 @@
-﻿using ErrorOr;
-
-using ReSys.Core.Common.Constants;
-
-namespace ReSys.Core.Domain.Identity.Tokens;
+﻿namespace ReSys.Core.Domain.Identity.Tokens;
 
 /// <summary>
 /// A static helper class providing constants and error definitions related to JSON Web Tokens (JWTs).
