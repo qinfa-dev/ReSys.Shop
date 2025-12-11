@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-
-using ReSys.Core.Common.Models.Pagination;
+﻿using ReSys.Core.Common.Models.Pagination;
 
 namespace ReSys.Core.Common.Models.Wrappers.PagedLists;
 

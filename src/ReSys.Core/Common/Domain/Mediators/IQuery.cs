@@ -1,6 +1,4 @@
-﻿using ErrorOr;
-
-using MediatR;
+﻿using MediatR;
 
 namespace ReSys.Core.Common.Domain.Mediators;
 

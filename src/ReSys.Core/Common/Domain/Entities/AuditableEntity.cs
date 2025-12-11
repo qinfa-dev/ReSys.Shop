@@ -1,6 +1,4 @@
-﻿using ReSys.Core.Common.Domain.Concerns;
-
-namespace ReSys.Core.Common.Domain.Entities;
+﻿namespace ReSys.Core.Common.Domain.Entities;
 
 public interface IAuditableEntity<TId> :
     IEntity<TId>, IHasAuditable where TId : struct

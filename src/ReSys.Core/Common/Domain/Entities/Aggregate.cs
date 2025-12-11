@@ -1,6 +1,6 @@
 
 using System.ComponentModel.DataAnnotations;
-using ReSys.Core.Common.Domain.Concerns;
+
 using ReSys.Core.Common.Domain.Events;
 
 namespace ReSys.Core.Common.Domain.Entities;

@@ -2,9 +2,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 using ReSys.Core.Common.Extensions;
 
 namespace ReSys.Core.Common.Domain.Concerns;

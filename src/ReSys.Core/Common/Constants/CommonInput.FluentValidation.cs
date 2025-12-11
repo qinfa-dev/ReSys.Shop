@@ -2,8 +2,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-using FluentValidation;
-
 namespace ReSys.Core.Common.Constants;
 
 public static partial class CommonInput

@@ -1,6 +1,4 @@
-﻿using ErrorOr;
-
-using ReSys.Core.Common.Extensions;
+﻿using ReSys.Core.Common.Extensions;
 
 namespace ReSys.Core.Common.Constants;
 

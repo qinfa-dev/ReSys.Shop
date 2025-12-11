@@ -1,6 +1,4 @@
-﻿using ReSys.Core.Common.Domain.Concerns;
-
-namespace ReSys.Core.Common.Domain.Events;
+﻿namespace ReSys.Core.Common.Domain.Events;
 
 // -------------------------------------------------------------------------
 // REGION: CORE INTERFACES

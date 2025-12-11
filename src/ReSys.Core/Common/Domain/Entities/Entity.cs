@@ -1,6 +1,4 @@
-﻿using ReSys.Core.Common.Domain.Concerns;
-
-namespace ReSys.Core.Common.Domain.Entities;
+﻿namespace ReSys.Core.Common.Domain.Entities;
 
 /// <summary>
 /// Represents a base entity combining identity and creator metadata.
