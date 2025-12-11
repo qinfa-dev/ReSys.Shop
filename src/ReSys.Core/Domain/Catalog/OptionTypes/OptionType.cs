@@ -359,7 +359,7 @@ public sealed class OptionType : AuditableEntity,
     /// </remarks>
     public ErrorOr<Deleted> Delete()
     {
-        if (OptionValues.Any()) return Errors.HasProductInUse;
+        if (ProductOptionTypes.Any()) return Errors.HasProductInUse;
         return Result.Deleted;
     }
 
