@@ -1,5 +1,3 @@
-using ErrorOr;
-
 using ReSys.Core.Feature.Common.Notification.Constants;
 
 namespace ReSys.Core.Feature.Common.Notification.Models.Emails;

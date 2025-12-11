@@ -1,5 +1,3 @@
-using ErrorOr;
-
 using ReSys.Core.Feature.Common.Notification.Models.Sms;
 
 namespace ReSys.Core.Feature.Common.Notification.Interfaces;

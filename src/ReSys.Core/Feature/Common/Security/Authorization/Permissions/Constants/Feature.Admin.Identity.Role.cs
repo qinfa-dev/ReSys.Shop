@@ -2,7 +2,7 @@
 
 namespace ReSys.Core.Feature.Common.Security.Authorization.Permissions.Constants;
 
-public static partial class Feature
+public static partial class FeaturePermission
 {
     public static partial class Admin
     {
@@ -13,7 +13,7 @@ public static partial class Feature
                 public static AccessPermission Create => AccessPermission.Create(name: "admin.role.create",
                     displayName: "Create Role",
                     description: "Allows creating new roles").Value;
-                public static AccessPermission Read => AccessPermission.Create(name: "admin.role.read",
+                public static AccessPermission View => AccessPermission.Create(name: "admin.role.read",
                     displayName: "Read Role",
                     description: "Allows reading role details").Value;
                 public static AccessPermission Update => AccessPermission.Create(name: "admin.role.update",
@@ -49,7 +49,7 @@ public static partial class Feature
                     displayName: "Unassign Permission from Role",
                     description: "Allows unassigning permissions from a role").Value;
 
-                public static AccessPermission[] All => [Create, Read, Update, Delete, List, Assign, ViewUsers, AssignUser, UnassignUser, ViewPermissions, AssignPermission, UnassignPermission];
+                public static AccessPermission[] All => [Create, View, Update, Delete, List, Assign, ViewUsers, AssignUser, UnassignUser, ViewPermissions, AssignPermission, UnassignPermission];
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.RegularExpressions;
 
 using FluentStorage.Utils.Extensions;
 
@@ -27,8 +28,7 @@ public static class SwaggerConfiguration
                 Description = "An API for managing fashion shop operations."
             });
 
-            o.CustomSchemaIds(schemaIdSelector: id => id.FullName!.Replace(oldChar: '+',
-                newChar: '-'));
+            o.CustomSchemaIds(type => SchemaIdStrategy.GenerateSchemaId(type));
             o.SchemaFilter<SnakeCaseSchemaFilter>();
             o.ParameterFilter<SnakeCaseParameterFilter>();
 
@@ -65,21 +65,21 @@ public static class SwaggerConfiguration
                 name: "Stellar FashionShop API V1");
             c.RoutePrefix = string.Empty;
             
-            // OAuth2 configuration for Google (uses PKCE)
-            c.OAuthClientId(value: googleOptions.ClientId);
-            c.OAuthAppName(value: "Stellar FashionShop API");
-            c.OAuthUsePkce();
-            c.OAuthScopeSeparator(value: " ");
+            //// OAuth2 configuration for Google (uses PKCE)
+            //c.OAuthClientId(value: googleOptions.ClientId);
+            //c.OAuthAppName(value: "Stellar FashionShop API");
+            //c.OAuthUsePkce();
+            //c.OAuthScopeSeparator(value: " ");
             
-            // OAuth2 configuration for Facebook
-            c.OAuthAdditionalQueryStringParams(value: new Dictionary<string, string>
-            {
-                { "response_type", "code" },
-                { "client_id", facebookOptions.AppId }
-            });
+            //// OAuth2 configuration for Facebook
+            //c.OAuthAdditionalQueryStringParams(value: new Dictionary<string, string>
+            //{
+            //    { "response_type", "code" },
+            //    { "client_id", facebookOptions.AppId }
+            //});
             
-            // Set OAuth2 redirect URL (adjust based on your configuration)
-            c.OAuth2RedirectUrl(url: $"{app.Configuration[key: "BaseUrl"] ?? "https://localhost"}/swagger/oauth2-redirect.html");
+            //// Set OAuth2 redirect URL (adjust based on your configuration)
+            //c.OAuth2RedirectUrl(url: $"{app.Configuration[key: "BaseUrl"] ?? "https://localhost"}/swagger/oauth2-redirect.html");
             
             // For Facebook, if you need client secret (not recommended for public clients)
             // c.OAuthClientSecret(facebookOptions.ClientSecret);
@@ -247,5 +247,61 @@ public static class SwaggerConfiguration
                 parameter.Name = JsonNamingPolicy.SnakeCaseLower.ConvertName(name: parameter.Name);
             }
         }
+    }
+}
+
+public static class SchemaIdStrategy
+{
+    public static string GenerateSchemaId(Type type)
+    {
+        // Handle generic types
+        if (type.IsGenericType)
+        {
+            var genericTypeName = type.Name.Split('`')[0];
+            var genericArguments = type.GetGenericArguments()
+                .Select(GenerateSchemaId) // Recursively simplify generic argument names
+                .ToArray();
+
+            return $"{genericTypeName}Of{string.Join("", genericArguments)}";
+        }
+
+        // Handle nested types by combining parent names
+        var nameParts = new List<string>();
+        Type? currentType = type; // Use nullable Type
+        while (currentType != null && currentType != typeof(object))
+        {
+            string part = currentType.Name;
+            // Remove generic type indicators (`1, `2, etc.) from the name part
+            part = Regex.Replace(part, @"`\d+", string.Empty);
+            // Replace '+' (used for nested types in FullName) with empty string to concatenate smoothly
+            part = part.Replace("+", "");
+
+            if (!string.IsNullOrEmpty(part)) // Only add non-empty parts
+            {
+                nameParts.Insert(0, part); // Insert at the beginning to maintain order from outermost to innermost
+            }
+            currentType = currentType.DeclaringType;
+        }
+
+        // Filter out empty parts and join them
+        string result = string.Join("", nameParts.Where(p => !string.IsNullOrEmpty(p)));
+        
+        // Fallback if the generated result is empty
+        if (string.IsNullOrEmpty(result))
+        {
+            // Try to use type.FullName as a fallback, being null-safe
+            string? fullName = type.FullName;
+            if (fullName != null)
+            {
+                return fullName.Replace(".", "_").Replace("+", "_").Replace("`", "_").Replace("[", "").Replace("]", "");
+            }
+            else
+            {
+                // Ultimate fallback if FullName is also null
+                return "UnknownSchema";
+            }
+        }
+        
+        return result;
     }
 }

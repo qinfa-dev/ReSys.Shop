@@ -74,7 +74,7 @@ public sealed class IdentityDataSeeder(IServiceProvider serviceProvider) : IData
         _logger.Information(messageTemplate: "Ensuring all permissions exist in database.");
 
         // Get all predefined permissions
-        AccessPermission[] allPermissions = Feature.AllPermissions;
+        AccessPermission[] allPermissions = FeaturePermission.AllPermissions;
         _logger.Information(messageTemplate: "Found {Count} predefined permissions.",
             propertyValue: allPermissions.Length);
 
@@ -308,7 +308,7 @@ public sealed class IdentityDataSeeder(IServiceProvider serviceProvider) : IData
             return;
         }
 
-        AccessPermission[] allPermissions = Feature.AllPermissions;
+        AccessPermission[] allPermissions = FeaturePermission.AllPermissions;
         IList<Claim> existingClaims = await roleManager.GetClaimsAsync(role: systemAdminRole);
 
         int addedCount = 0;

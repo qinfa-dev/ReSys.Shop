@@ -1,6 +1,4 @@
-﻿using ErrorOr;
-
-namespace ReSys.Core.Feature.Common.Storage.Models;
+﻿namespace ReSys.Core.Feature.Common.Storage.Models;
 
 public static class StorageErrors
 {

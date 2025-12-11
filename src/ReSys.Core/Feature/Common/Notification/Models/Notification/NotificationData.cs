@@ -1,7 +1,5 @@
 using System.Text.RegularExpressions;
 
-using ErrorOr;
-
 using ReSys.Core.Feature.Common.Notification.Constants;
 
 namespace ReSys.Core.Feature.Common.Notification.Models.Notification;

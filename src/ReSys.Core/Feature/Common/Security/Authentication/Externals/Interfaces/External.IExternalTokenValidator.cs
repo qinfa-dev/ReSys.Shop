@@ -1,6 +1,4 @@
-﻿using ErrorOr;
-
-using ReSys.Core.Feature.Common.Security.Authentication.Externals.Models;
+﻿using ReSys.Core.Feature.Common.Security.Authentication.Externals.Models;
 
 namespace ReSys.Core.Feature.Common.Security.Authentication.Externals.Interfaces;
 public interface IExternalTokenValidator

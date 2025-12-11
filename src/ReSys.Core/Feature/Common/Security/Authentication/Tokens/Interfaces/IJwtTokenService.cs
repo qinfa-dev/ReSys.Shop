@@ -1,8 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
-using ErrorOr;
-
 using ReSys.Core.Domain.Identity.Users;
 using ReSys.Core.Feature.Common.Security.Authentication.Tokens.Models;
 

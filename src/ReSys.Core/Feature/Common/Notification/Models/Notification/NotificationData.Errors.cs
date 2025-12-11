@@ -1,5 +1,3 @@
-using ErrorOr;
-
 namespace ReSys.Core.Feature.Common.Notification.Models.Notification;
 
 public partial class NotificationData

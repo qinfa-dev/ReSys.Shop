@@ -1,5 +1,3 @@
-using ErrorOr;
-
 using Microsoft.AspNetCore.Identity;
 
 using ReSys.Core.Domain.Identity.Users;

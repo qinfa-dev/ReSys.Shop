@@ -1,21 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 
-using FluentValidation;
-
 using Mapster;
-
 using MapsterMapper;
-
 using MediatR;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
-using ReSys.Core.Common.Constants;
-using ReSys.Core.Feature.Common.Behaviors;
 using ReSys.Core.Domain.Inventories.Locations.FulfillmentStrategies;
-
+using ReSys.Core.Feature.Common.Behaviors;
 using Serilog;
 
 namespace ReSys.Core;

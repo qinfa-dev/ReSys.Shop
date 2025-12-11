@@ -1,6 +1,4 @@
-﻿using ErrorOr;
-
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 
 using ReSys.Core.Feature.Common.Storage.Models;
 

@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-using ReSys.Core.Common.Constants;
 using ReSys.Core.Feature.Common.Systems.Options;
 
 using Serilog;

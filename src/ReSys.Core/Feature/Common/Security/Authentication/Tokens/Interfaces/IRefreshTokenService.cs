@@ -1,6 +1,4 @@
-﻿using ErrorOr;
-
-using ReSys.Core.Feature.Common.Security.Authentication.Tokens.Models;
+﻿using ReSys.Core.Feature.Common.Security.Authentication.Tokens.Models;
 
 namespace ReSys.Core.Feature.Common.Security.Authentication.Tokens.Interfaces;
 

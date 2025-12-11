@@ -1,5 +1,3 @@
-using ErrorOr;
-
 namespace ReSys.Core.Feature.Common.Notification.Models.Sms;
 
 public partial class SmsNotificationData

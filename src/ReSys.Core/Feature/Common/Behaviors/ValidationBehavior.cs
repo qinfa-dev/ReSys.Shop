@@ -1,7 +1,4 @@
-﻿using ErrorOr;
-
-using FluentValidation;
-using FluentValidation.Results;
+﻿using FluentValidation.Results;
 
 using MediatR;
 
@@ -9,7 +6,7 @@ namespace ReSys.Core.Feature.Common.Behaviors;
 
 /// <summary>
 /// Pipeline behavior that runs FluentValidation validators before handling a request.
-/// If validation fails, returns a list of <see cref="Error.Validation"/> instead of executing the handler.
+/// If validation fails, returns a list of <see cref="DbLoggerCategory.Model.Validation"/> instead of executing the handler.
 /// </summary>
 public sealed class ValidationBehavior<TRequest, TResponse>(IValidator<TRequest>? validator = null)
     : IPipelineBehavior<TRequest, TResponse>
