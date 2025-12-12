@@ -2,13 +2,17 @@
 using System.Reflection;
 
 using Mapster;
+
 using MapsterMapper;
+
 using MediatR;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
-using ReSys.Core.Domain.Inventories.Locations.FulfillmentStrategies;
+using ReSys.Core.Feature.Catalog.Taxons;
 using ReSys.Core.Feature.Common.Behaviors;
+
 using Serilog;
 
 namespace ReSys.Core;
@@ -311,6 +315,21 @@ public static class DependencyInjection
     /// </summary>
     private static void AddDomainServices(this IServiceCollection services)
     {
+        // Register: Taxon Hierarchy services
+        services.AddScoped<TaxonModule.Services.IHierarchy, TaxonModule.Services.HierarchyService>();
+        services.AddScoped<TaxonModule.Services.IRegeneration, TaxonModule.Services.RegenerationService>();
+
+        Log.Debug(
+            messageTemplate: LogTemplates.ServiceRegistered,
+            propertyValue0: "TaxonModule.Services.HierarchyService",
+            propertyValue1: "Scoped");
+
+        Log.Debug(
+            messageTemplate: LogTemplates.ServiceRegistered,
+            propertyValue0: "TaxonModule.Services.RegenerationService",
+            propertyValue1: "Scoped");
+
+
         // Register: Fulfillment Strategy Factory
         //services.AddScoped<IFulfillmentStrategyFactory, FulfillmentStrategyFactory>();
 
