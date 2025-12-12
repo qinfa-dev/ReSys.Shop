@@ -1,8 +1,7 @@
-using Carter;
 using Microsoft.AspNetCore.Http;
 
-using ReSys.Core.Common.Models.Wrappers.Responses; // For StatusCodes
-using ReSys.Core.Feature.Common.Security.Authentication.Externals.Models; // For ApiResponse and relevant Result types
+using ReSys.Core.Common.Models.Wrappers.Responses;
+
 
 namespace ReSys.Core.Feature.Accounts.Auth.Externals;
 

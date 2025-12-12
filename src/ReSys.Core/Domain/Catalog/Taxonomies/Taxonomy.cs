@@ -268,7 +268,7 @@ public sealed class Taxonomy :
     /// </para>
     /// </remarks>
     public static ErrorOr<Taxonomy> Create(
-        Guid storeId,
+        Guid? storeId,
        string name,
        string presentation,
        int position = 0,
