@@ -37,7 +37,7 @@ public static partial class PropertyTypeModule
                 {
                     var param = command.Request;
                     PagedList<Result> pagedResult = await dbContext.Set<PropertyType>().AsQueryable()
-                        .Include(m => m.ProductProperties
+                        .Include(m => m.ProductPropertyTypes
                             .Where(m =>
                                 param.ProductId == null ||
                                 param.ProductId.Length == 0 ||

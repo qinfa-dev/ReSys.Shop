@@ -29,7 +29,7 @@ public static partial class PropertyTypeModule
             {
                 // Fetch: 
                 var property = await unitOfWork.Context.Set<PropertyType>()
-                    .Include(navigationPropertyPath: p => p.ProductProperties)
+                    .Include(navigationPropertyPath: p => p.ProductPropertyTypes)
                     .FirstOrDefaultAsync(predicate: m => m.Id == command.Id, cancellationToken: cancellationToken);
 
                 // Check: existence

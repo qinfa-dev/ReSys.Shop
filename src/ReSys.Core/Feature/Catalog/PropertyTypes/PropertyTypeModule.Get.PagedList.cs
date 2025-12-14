@@ -33,7 +33,7 @@ public static partial class PropertyTypeModule
                 {
 
                     var pagedResult = await dbContext.Set<PropertyType>()
-                        .Include(navigationPropertyPath: p => p.ProductProperties)
+                        .Include(navigationPropertyPath: p => p.ProductPropertyTypes)
                         .AsQueryable()
                         .AsNoTracking()
                         .ApplySearch(searchParams: command.Request)

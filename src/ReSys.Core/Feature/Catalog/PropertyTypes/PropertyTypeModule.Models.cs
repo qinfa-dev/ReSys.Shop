@@ -103,7 +103,7 @@ public static partial class PropertyTypeModule
                     .Map(member: dest => dest.DisplayOn, source: src => src.DisplayOn)
                     .Map(member: dest => dest.Position, source: src => src.Position)
                     .Map(member: dest => dest.Filterable, source: src => src.Filterable)
-                    .Map(member: dest => dest.ProductPropertyCount, source: src => src.ProductProperties.Count)
+                    .Map(member: dest => dest.ProductPropertyCount, source: src => src.ProductPropertyTypes.Count)
                     .Map(member: dest => dest.CreatedAt, source: src => src.CreatedAt)
                     .Map(member: dest => dest.UpdatedAt, source: src => src.UpdatedAt);
 
