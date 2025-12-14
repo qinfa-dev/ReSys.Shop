@@ -39,11 +39,14 @@ public static partial class OptionValueModule
         }
 
         // Result:
-        public record SelectItem
+        public record SelectItem : IHasParameterizableName, IHasIdentity<Guid>
         {
             public Guid Id { get; set; }
             public string Name { get; set; } = string.Empty;
             public string Presentation { get; set; } = string.Empty;
+            public Guid? OptionTypeId { get; set; }
+            public string? OptionTypeName { get; set; }
+            public string? OptionTypePresentation{ get; set; }
         }
 
         public record ListItem
@@ -74,7 +77,10 @@ public static partial class OptionValueModule
                 config.NewConfig<OptionValue, SelectItem>()
                     .Map(member: dest => dest.Id, source: src => src.Id)
                     .Map(member: dest => dest.Name, source: src => src.Name)
-                    .Map(member: dest => dest.Presentation, source: src => src.Presentation);
+                    .Map(member: dest => dest.Presentation, source: src => src.Presentation)
+                    .Map(member: dest => dest.OptionTypeId, source: src => src.OptionType.Id)
+                    .Map(member: dest => dest.OptionTypeName, source: src => src.OptionType.Name)
+                    .Map(member: dest => dest.OptionTypePresentation, source: src => src.OptionType.Presentation);
 
                 // OptionValue -> ListItem
                 config.NewConfig<OptionValue, ListItem>()

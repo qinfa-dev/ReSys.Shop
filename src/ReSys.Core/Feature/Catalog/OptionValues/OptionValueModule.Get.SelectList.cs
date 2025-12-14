@@ -2,6 +2,8 @@
 
 using MapsterMapper;
 
+using Microsoft.AspNetCore.Mvc;
+
 using ReSys.Core.Common.Models.Filter;
 using ReSys.Core.Common.Models.Search;
 using ReSys.Core.Common.Models.Sort;
@@ -18,7 +20,11 @@ public static partial class OptionValueModule
     {
         public static class SelectList
         {
-            public sealed class Request : QueryableParams;
+            public sealed class Request : QueryableParams
+            {
+                [FromQuery] public Guid[]? OptionTypeId { get; set; }
+                [FromQuery] public Guid[]? VariantId { get; set; }
+            }
             public sealed record Result : Models.SelectItem;
 
             public sealed record Query(Request Request) : IQuery<PagedList<Result>>;
@@ -30,10 +36,17 @@ public static partial class OptionValueModule
             {
                 public async Task<ErrorOr<PagedList<Result>>> Handle(Query command, CancellationToken cancellationToken)
                 {
-
+                    var param = command.Request;
                     PagedList<Result> pagedResult = await dbContext.Set<OptionValue>().AsQueryable()
-                        .AsNoTracking()
                         .Include(navigationPropertyPath: ov => ov.OptionType)
+                        .Include(m => m.VariantOptionValues.Where(m =>
+                                    param.VariantId == null ||
+                                    param.VariantId.Length == 0 ||
+                                    param.VariantId.ToList().Contains(m.VariantId)))
+                        .AsNoTracking()
+                        .Where(m => param.OptionTypeId == null ||
+                                    param.OptionTypeId.Length == 0 ||
+                                    param.OptionTypeId.ToList().Contains(m.OptionTypeId))
                         .ApplySearch(searchParams: command.Request)
                         .ApplyFilters(filterParams: command.Request)
                         .ApplySort(sortParams: command.Request)
