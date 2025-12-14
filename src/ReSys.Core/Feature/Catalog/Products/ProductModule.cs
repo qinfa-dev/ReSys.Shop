@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Routing;
 
 using ReSys.Core.Common.Models.Wrappers.PagedLists;
 using ReSys.Core.Common.Models.Wrappers.Responses;
-using ReSys.Core.Feature.Catalog.OptionTypes;
-using ReSys.Core.Feature.Catalog.PropertyTypes;
 using ReSys.Core.Feature.Catalog.Taxons;
 using ReSys.Core.Feature.Common.Security.Authorization.Attributes.Extensions;
 using ReSys.Core.Feature.Common.Security.Authorization.Permissions.Constants;
@@ -103,7 +101,7 @@ public static partial class ProductModule
             // Classifications Management
             group.MapGet(pattern: "classifications", handler: GetClassificationHandler)
                 .UseEndpointMeta(meta: Annotations.Classifications.Get)
-                .RequireAccessPermissions(permissions: FeaturePermission.Admin.Catalog.Taxon.List);
+                .RequireAccessPermissions(permissions: FeaturePermission.Admin.Catalog.Product.List);
 
             group.MapPut(pattern: "{id:guid}/classifications", handler: ManageClassificationsHandler)
                 .UseEndpointMeta(meta: Annotations.Classifications.Manage)
@@ -112,7 +110,7 @@ public static partial class ProductModule
             // Option Types Management
             group.MapGet(pattern: "option-types", handler: GetOptionTypesHandler)
                 .UseEndpointMeta(meta: Annotations.OptionTypes.Get)
-                .RequireAccessPermissions(permissions: FeaturePermission.Admin.Catalog.Taxon.List);
+                .RequireAccessPermissions(permissions: FeaturePermission.Admin.Catalog.Product.List);
 
             group.MapPut(pattern: "{id:guid}/option-types", handler: ManageOptionTypesHandler)
                 .UseEndpointMeta(meta: Annotations.OptionTypes.Manage)
@@ -125,18 +123,6 @@ public static partial class ProductModule
 
             group.MapPut(pattern: "{id:guid}/properties", handler: ManageProductPropertyTypesHandler)
                 .UseEndpointMeta(meta: Annotations.Properties.Manage)
-                .RequireAccessPermission(permission: FeaturePermission.Admin.Catalog.Product.Update);
-
-            group.MapPost(pattern: "{id:guid}/properties/{propertyId:guid}", handler: AddProductPropertyTypesHandler)
-                .UseEndpointMeta(meta: Annotations.Properties.Add)
-                .RequireAccessPermission(permission: FeaturePermission.Admin.Catalog.Product.Update);
-
-            group.MapPatch(pattern: "{id:guid}/properties/{propertyId:guid}", handler: UpdateProductPropertyTypesHandler)
-                .UseEndpointMeta(meta: Annotations.Properties.Edit)
-                .RequireAccessPermission(permission: FeaturePermission.Admin.Catalog.Product.Update);
-
-            group.MapDelete(pattern: "{id:guid}/properties/{propertyId:guid}", handler: DeleteProductPropertyTypesHandler)
-                .UseEndpointMeta(meta: Annotations.Properties.Remove)
                 .RequireAccessPermission(permission: FeaturePermission.Admin.Catalog.Product.Update);
         }
 
@@ -290,12 +276,12 @@ public static partial class ProductModule
 
         // ==================== Classification Handlers ====================
 
-        private static async Task<Ok<ApiResponse<PagedList<TaxonModule.Get.SelectList.Result>>>> GetClassificationHandler(
-            [AsParameters] TaxonModule.Get.SelectList.Request request,
+        private static async Task<Ok<ApiResponse<PagedList<Classifications.Get.SelectList.Result>>>> GetClassificationHandler(
+            [AsParameters] Classifications.Get.SelectList.Request request,
             [FromServices] ISender mediator,
             CancellationToken ct)
         {
-            var result = await mediator.Send(request: new TaxonModule.Get.SelectList.Query(Request: request), cancellationToken: ct);
+            var result = await mediator.Send(request: new Classifications.Get.SelectList.Query(Request: request), cancellationToken: ct);
             return TypedResults.Ok(value: result.ToApiResponse(message: "Classifications retrieved successfully"));
         }
 
@@ -311,12 +297,12 @@ public static partial class ProductModule
 
         // ==================== Option Type Handlers ====================
 
-        private static async Task<Ok<ApiResponse<PagedList<OptionTypeModule.Get.SelectList.Result>>>> GetOptionTypesHandler(
-            [AsParameters] OptionTypeModule.Get.SelectList.Request request,
+        private static async Task<Ok<ApiResponse<PagedList<OptionTypes.Get.SelectList.Result>>>> GetOptionTypesHandler(
+            [AsParameters] OptionTypes.Get.SelectList.Request request,
             [FromServices] ISender mediator,
             CancellationToken ct)
         {
-            var result = await mediator.Send(request: new OptionTypeModule.Get.SelectList.Query(Request: request), cancellationToken: ct);
+            var result = await mediator.Send(request: new OptionTypes.Get.SelectList.Query(Request: request), cancellationToken: ct);
             return TypedResults.Ok(value: result.ToApiResponse(message: "Option types retrieved successfully"));
         }
 
@@ -332,55 +318,23 @@ public static partial class ProductModule
 
         // ==================== Property Type Handlers ====================
 
-        private static async Task<Ok<ApiResponse<PagedList<PropertyTypeModule.Get.SelectList.Result>>>> GetProductPropertyTypesListHandler(
-            [AsParameters] PropertyTypeModule.Get.SelectList.Request request,
+        private static async Task<Ok<ApiResponse<PagedList<PropertyType.Get.SelectList.Result>>>> GetProductPropertyTypesListHandler(
+            [AsParameters] PropertyType.Get.SelectList.Request request,
             [FromServices] ISender mediator,
             CancellationToken ct)
         {
-            var result = await mediator.Send(request: new PropertyTypeModule.Get.SelectList.Query(Request: request), cancellationToken: ct);
+            var result = await mediator.Send(request: new PropertyType.Get.SelectList.Query(Request: request), cancellationToken: ct);
             return TypedResults.Ok(value: result.ToApiResponse(message: "Properties retrieved successfully"));
         }
 
-        private static async Task<Ok<ApiResponse<List<Properties.Manage.SelectItemResult>>>> ManageProductPropertyTypesHandler(
+        private static async Task<Ok<ApiResponse<List<PropertyType.Manage.Result>>>> ManageProductPropertyTypesHandler(
             [FromRoute] Guid id,
-            [FromBody] Properties.Manage.Request request,
+            [FromBody] PropertyType.Manage.Request request,
             [FromServices] ISender mediator,
             CancellationToken ct)
         {
-            var result = await mediator.Send(request: new Properties.Manage.Command(ProductId: id, Request: request), cancellationToken: ct);
+            var result = await mediator.Send(request: new PropertyType.Manage.Command(ProductId: id, Request: request), cancellationToken: ct);
             return TypedResults.Ok(value: result.ToApiResponse(message: "Product properties updated successfully"));
-        }
-
-        private static async Task<Ok<ApiResponse<Properties.Add.Result>>> AddProductPropertyTypesHandler(
-            [FromRoute] Guid id,
-            [FromRoute] Guid propertyId,
-            [FromBody] Properties.Add.Request request,
-            [FromServices] ISender mediator,
-            CancellationToken ct)
-        {
-            var result = await mediator.Send(request: new Properties.Add.Command(ProductId: id, PropertyId: propertyId, Request: request), cancellationToken: ct);
-            return TypedResults.Ok(value: result.ToApiResponse(message: "Product property added successfully"));
-        }
-
-        private static async Task<Ok<ApiResponse<Properties.Edit.Result>>> UpdateProductPropertyTypesHandler(
-            [FromRoute] Guid id,
-            [FromRoute] Guid propertyId,
-            [FromBody] Properties.Edit.Request request,
-            [FromServices] ISender mediator,
-            CancellationToken ct)
-        {
-            var result = await mediator.Send(request: new Properties.Edit.Command(ProductId: id, PropertyId: propertyId, Request: request), cancellationToken: ct);
-            return TypedResults.Ok(value: result.ToApiResponse(message: "Product property updated successfully"));
-        }
-
-        private static async Task<Ok<ApiResponse<Success>>> DeleteProductPropertyTypesHandler(
-            [FromRoute] Guid id,
-            [FromRoute] Guid propertyId,
-            [FromServices] ISender mediator,
-            CancellationToken ct)
-        {
-            var result = await mediator.Send(request: new Properties.Remove.Command(ProductId: id, PropertyId: propertyId), cancellationToken: ct);
-            return TypedResults.Ok(value: result.ToApiResponse(message: "Product property removed successfully"));
         }
     }
 }

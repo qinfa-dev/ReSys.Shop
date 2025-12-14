@@ -10,9 +10,10 @@ public static partial class ProductModule
     {
         public static class Manage
         {
+            public record Parameter : Models.ProductOptionTypeParameter;
             public sealed record Request
             {
-                public List<Guid> OptionTypeIds { get; set; } = new List<Guid>();
+                public List<Parameter> Data { get; set; } = new List<Parameter>();
             }
 
             public sealed record Command(Guid ProductId, Request Request) : ICommand<Success>;
@@ -22,7 +23,8 @@ public static partial class ProductModule
                 public CommandValidator()
                 {
                     RuleFor(expression: x => x.ProductId).NotEmpty();
-                    RuleFor(expression: x => x.Request.OptionTypeIds).NotNull();
+                    RuleForEach(m => m.Request.Data)
+                        .SetValidator(new Models.ProductOptionTypeParameterValidator());
                 }
             }
 
@@ -40,26 +42,52 @@ public static partial class ProductModule
 
                     await unitOfWork.BeginTransactionAsync(cancellationToken: ct);
 
-                    // Remove option types not in the new list
-                    var toRemove = product.ProductOptionTypes
-                        .Where(predicate: pot => !command.Request.OptionTypeIds.Contains(item: pot.OptionTypeId))
+                    var requestedOptionTypes = command.Request.Data
+                        .ToDictionary(m => m.OptionTypeId, m => m.Position);
+
+                    var existingOptionTypes = product.ProductOptionTypes
+                        .ToDictionary(pot => pot.OptionTypeId);
+
+                    var toRemove = existingOptionTypes
+                        .Where(x => !requestedOptionTypes.ContainsKey(x.Key))
+                        .Select(x => x.Value)
                         .ToList();
 
                     foreach (var pot in toRemove)
                     {
-                        product.ProductOptionTypes.Remove(item: pot);
+                        var removeResult = product.RemoveOptionType(pot.OptionTypeId);
+                        if (removeResult.IsError) return removeResult.FirstError;
+
+                        unitOfWork.Context.Set<ProductOptionType>()
+                            .Remove(removeResult.Value);
                     }
 
-                    // Add new option types
-                    var existingIds = product.ProductOptionTypes.Select(selector: pot => pot.OptionTypeId).ToHashSet();
-                    foreach (var optionTypeId in command.Request.OptionTypeIds)
+                    foreach (var requested in requestedOptionTypes)
                     {
-                        if (!existingIds.Contains(item: optionTypeId))
+                        if (!existingOptionTypes.TryGetValue(requested.Key, out var existing))
                         {
-                            var createResult = ProductOptionType.Create(productId: command.ProductId, optionTypeId: optionTypeId);
+                            // ADD
+                            var createResult = ProductOptionType.Create(
+                                productId: command.ProductId,
+                                optionTypeId: requested.Key,
+                                position: requested.Value
+                            );
+
                             if (createResult.IsError) return createResult.FirstError;
 
-                            product.ProductOptionTypes.Add(item: createResult.Value);
+                            var addResult = product.AddOptionType(createResult.Value);
+                            if (addResult.IsError) return addResult.FirstError;
+
+                            unitOfWork.Context.Set<ProductOptionType>()
+                                .Add(createResult.Value);
+                        }
+                        else
+                        {
+                            // UPDATE
+                            var updateResult = existing.UpdatePosition(requested.Value);
+                            if (updateResult.IsError)
+                                return updateResult.FirstError;
+                            unitOfWork.Context.Set<ProductOptionType>().Update(updateResult.Value);
                         }
                     }
 

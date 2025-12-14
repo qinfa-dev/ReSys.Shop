@@ -2,7 +2,7 @@
 
 public static partial class ProductModule
 {
-    public static partial class Properties
+    public static partial class PropertyType
     {
     }
 }

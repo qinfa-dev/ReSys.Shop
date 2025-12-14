@@ -10,68 +10,95 @@ public static partial class ProductModule
     {
         public static class Manage
         {
+            public record Parameter
+                : Models.ProductClassificationParameter;
+
             public sealed record Request
             {
-                public List<Guid> TaxonIds { get; init; } = new();
+                public List<Parameter> Data { get; set; } = new();
             }
 
-            public sealed record Command(Guid ProductId, Request Request) : ICommand<Success>;
+            public sealed record Command(Guid ProductId, Request Request)
+                : ICommand<Success>;
 
-            public sealed class CommandValidator : AbstractValidator<Command>
+            public sealed class CommandValidator
+                : AbstractValidator<Command>
             {
                 public CommandValidator()
                 {
-                    RuleFor(expression: x => x.ProductId).NotEmpty();
-                    RuleFor(expression: x => x.Request.TaxonIds).NotNull();
-
-                    var idRequired = CommonInput.Errors.Required(prefix: nameof(Classification),
-                        field: nameof(Classification.TaxonId));
-                    RuleForEach(expression: x => x.Request.TaxonIds)
-                        .NotEmpty()
-                        .WithMessage(idRequired.Description)
-                        .WithErrorCode(idRequired.Code);
+                    RuleFor(x => x.ProductId).NotEmpty();
+                    RuleForEach(x => x.Request.Data)
+                        .SetValidator(new Models.ProductClassificationParameterValidator());
                 }
             }
 
             public sealed class CommandHandler(IUnitOfWork unitOfWork)
                 : ICommandHandler<Command, Success>
             {
-                public async Task<ErrorOr<Success>> Handle(Command command, CancellationToken ct)
+                public async Task<ErrorOr<Success>> Handle(
+                    Command command,
+                    CancellationToken ct)
                 {
                     var product = await unitOfWork.Context.Set<Product>()
-                        .Include(navigationPropertyPath: p => p.Classifications)
-                        .FirstOrDefaultAsync(predicate: p => p.Id == command.ProductId, cancellationToken: ct);
+                        .Include(p => p.Classifications)
+                        .FirstOrDefaultAsync(
+                            p => p.Id == command.ProductId,
+                            ct);
 
                     if (product == null)
-                        return Product.Errors.NotFound(id: command.ProductId);
+                        return Product.Errors.NotFound(command.ProductId);
 
-                    await unitOfWork.BeginTransactionAsync(cancellationToken: ct);
+                    await unitOfWork.BeginTransactionAsync(ct);
 
-                    // Remove classifications not in the new list
-                    var toRemove = product.Classifications
-                        .Where(predicate: c => !command.Request.TaxonIds.Contains(item: c.TaxonId))
+                    var requested = command.Request.Data
+                        .ToDictionary(x => x.TaxonId, x => x.Position);
+
+                    var existing = product.Classifications
+                        .ToDictionary(x => x.TaxonId);
+
+                    // REMOVE
+                    var toRemove = existing
+                        .Where(x => !requested.ContainsKey(x.Key))
+                        .Select(x => x.Value)
                         .ToList();
 
                     foreach (var classification in toRemove)
                     {
-                        product.Classifications.Remove(item: classification);
+                        var remove = product.RemoveClassification(classification.TaxonId);
+                        if (remove.IsError) return remove.FirstError;
+
+                        unitOfWork.Context.Set<Classification>()
+                            .Remove(remove.Value);
                     }
 
-                    // Add new classifications
-                    var existingIds = product.Classifications.Select(selector: c => c.TaxonId).ToHashSet();
-                    foreach (var taxonId in command.Request.TaxonIds)
+                    // ADD / UPDATE
+                    foreach (var item in requested)
                     {
-                        if (!existingIds.Contains(item: taxonId))
+                        if (!existing.TryGetValue(item.Key, out var current))
                         {
-                            var createResult = Classification.Create(productId: command.ProductId, taxonId: taxonId);
-                            if (createResult.IsError) return createResult.FirstError;
+                            var create = Classification.Create(
+                                command.ProductId,
+                                item.Key,
+                                item.Value);
 
-                            product.Classifications.Add(item: createResult.Value);
+                            if (create.IsError) return create.FirstError;
+
+                            var add = product.AddClassification(create.Value);
+                            if (add.IsError) return add.FirstError;
+
+                            unitOfWork.Context.Set<Classification>()
+                                .Add(create.Value);
+                        }
+                        else
+                        {
+                            current.Position = item.Value;
+                            unitOfWork.Context.Set<Classification>()
+                                .Update(current);
                         }
                     }
 
-                    await unitOfWork.SaveChangesAsync(cancellationToken: ct);
-                    await unitOfWork.CommitTransactionAsync(cancellationToken: ct);
+                    await unitOfWork.SaveChangesAsync(ct);
+                    await unitOfWork.CommitTransactionAsync(ct);
 
                     return Result.Success;
                 }
