@@ -1,4 +1,6 @@
-﻿using Mapster;
+﻿using System.Text.Json.Serialization;
+
+using Mapster;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -46,7 +48,7 @@ public static partial class TaxonModule
             public int? MaxDepth { get; init; }
         }
 
-        public record ImageParameter
+        public class ImageParameter : IAsset
         {
             [FromForm(Name = "id")] public Guid? Id { get; set; }
             [FromForm(Name = "type")] public string Type { get; set; } = string.Empty;
@@ -54,6 +56,9 @@ public static partial class TaxonModule
             [FromForm(Name = "url")] public string? Url { get; set; }
             [FromForm(Name = "position")] public int Position { get; set; }
             [FromForm(Name = "file")] public IFormFile? File { get; init; }
+
+            [JsonIgnore]
+            public bool Attached => !string.IsNullOrWhiteSpace(value: Url);
         }
 
         public record RuleParameter
@@ -97,22 +102,7 @@ public static partial class TaxonModule
         {
             public ImageParameterValidator()
             {
-                RuleFor(expression: x => x.Type)
-                    .NotEmpty()
-                    .MaximumLength(maximumLength: HasAsset.Constraints.TypeMaxLength)
-                    .Matches(expression: HasAsset.Constraints.TypeAllowedPattern);
-
-                RuleFor(expression: x => x.Url)
-                    .MaximumLength(maximumLength: HasAsset.Constraints.UrlMaxLength)
-                    .When(predicate: x => !string.IsNullOrWhiteSpace(value: x.Url));
-
-                RuleFor(expression: x => x.Position)
-                    .InclusiveBetween(from: HasBaseImageAsset.Constraints.PositionMin, to: HasBaseImageAsset.Constraints.PositionMax);
-
-                RuleFor(expression: x => x.Alt)
-                    .MaximumLength(maximumLength: HasBaseImageAsset.Constraints.AltTextMaxLength)
-                    .When(predicate: x => !string.IsNullOrEmpty(value: x.Alt));
-
+               this.AddAssetRules(prefix: nameof(TaxonImage));
                 RuleFor(expression: x => x.File)
                     .ApplyImageFileRules(condition: m => string.IsNullOrEmpty(value: m.Url));
             }

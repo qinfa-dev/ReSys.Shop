@@ -53,7 +53,7 @@ public static partial class TaxonModule
             group.MapPost(pattern: "{id:guid}/images", handler: GetImagesHandler)
             .DisableAntiforgery()
             .UseEndpointMeta(meta: Annotations.Images.Update)
-            .Accepts<Images.Update.Request>(contentType: "multipart/form-data")
+            .Accepts<Images.Batch.Request>(contentType: "multipart/form-data")
             .RequireAccessPermission(permission: FeaturePermission.Admin.Catalog.Taxon.Update)
             .ProducesValidationProblem();
 
@@ -130,9 +130,9 @@ public static partial class TaxonModule
             return TypedResults.Ok(value: result.ToApiResponse(message: "Taxon images retrieved successfully"));
         }
 
-        private async Task<Ok<ApiResponse<List<Images.Update.Result>>>> GetImagesHandler([FromRoute] Guid id, [FromForm] Images.Update.Request request, ISender mediator, CancellationToken ct)
+        private async Task<Ok<ApiResponse<List<Images.Batch.Result>>>> GetImagesHandler([FromRoute] Guid id, [FromForm] Images.Batch.Request request, ISender mediator, CancellationToken ct)
         {
-            var result = await mediator.Send(request: new Images.Update.Command(TaxonId: id, Request: request), cancellationToken: ct);
+            var result = await mediator.Send(request: new Images.Batch.Command(TaxonId: id, Request: request), cancellationToken: ct);
             return TypedResults.Ok(value: result.ToApiResponse(message: "Taxon images updated successfully"));
         }
 

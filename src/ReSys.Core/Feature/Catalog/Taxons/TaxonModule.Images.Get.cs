@@ -21,7 +21,7 @@ public static partial class TaxonModule
         public static class Get
         {
             public sealed class Request : QueryableParams;
-            public sealed record Result : Models.ImageItem;
+            public sealed class Result : Models.UploadImageParameter;
             public sealed record Query(Guid TaxonId, Request Request) : IQuery<PagedList<Result>>;
 
             public sealed class QueryHandler(IUnitOfWork unitOfWork, IMapper mapper, ILogger<QueryHandler> logger)

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using ReSys.Core.Domain.Catalog.Taxonomies.Images;
 using ReSys.Core.Domain.Catalog.Taxonomies.Taxa;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
+using ReSys.Core.Feature.Common.Storage.Models;
 using ReSys.Core.Feature.Common.Storage.Services;
 
 namespace ReSys.Core.Feature.Catalog.Taxons;
@@ -14,14 +15,17 @@ public static partial class TaxonModule
 {
     public static partial class Images
     {
-        public static class Update
+        public static class Batch
         {
+            public class Parameter : Models.UploadImageParameter
+            {
+                [FromForm(Name = "id")] public Guid? Id { get; set; }
+            }
             public sealed class Request
             {
-                [FromForm(Name = "images")] public List<Models.ImageParameter> Images { get; set; } = new();
+                [FromForm(Name = "data")] public List<Parameter> Data { get; set; } = new();
             }
-
-            public sealed record Result : Models.ImageItem;
+            public sealed class Result : Models.ImageResult;
             public sealed record Command(Guid TaxonId, Request Request) : ICommand<List<Result>>;
 
             public sealed class CommandValidator : AbstractValidator<Command>
@@ -29,8 +33,8 @@ public static partial class TaxonModule
                 public CommandValidator()
                 {
                     RuleFor(expression: x => x.TaxonId).NotEmpty();
-                    RuleFor(expression: x => x.Request.Images).NotNull().NotEmpty();
-                    RuleForEach(expression: x => x.Request.Images).SetValidator(validator: new Models.ImageParameterValidator());
+                    RuleFor(expression: x => x.Request.Data).NotNull().NotEmpty();
+                    RuleForEach(expression: x => x.Request.Data).SetValidator(validator: new Models.ImageParameterValidator());
                 }
             }
 
@@ -56,21 +60,23 @@ public static partial class TaxonModule
                         if (taxon == null)
                             return Taxon.Errors.NotFound(id: command.TaxonId);
 
-                        var existingImages = taxon.TaxonImages.ToDictionary(keySelector: i => i.Id);
-                        var incomingIds = command.Request.Images
+                        var existingImages = taxon.TaxonImages
+                            .ToDictionary(keySelector: i => i.Id);
+
+                        var incomingIds = command.Request.Data
                             .Where(predicate: p => p.Id.HasValue)
                             .Select(selector: p => p.Id!.Value)
                             .ToHashSet();
 
                         var filesToDelete = new List<string>();
 
-                        foreach (var param in command.Request.Images)
+                        foreach (var param in command.Request.Data)
                         {
                             if (param.Id.HasValue && existingImages.TryGetValue(key: param.Id.Value, value: out var existing))
                             {
                                 if (param.File != null)
                                 {
-                                    var upload = await storageService.UploadFileAsync(file: param.File, path: $"taxons/{command.TaxonId}", cancellationToken: ct);
+                                    var upload = await storageService.UploadFileAsync(file: param.File, options: new UploadOptions { Folder = $"taxons/{command.TaxonId}" }, cancellationToken: ct);
                                     if (upload.IsError) return upload.Errors;
 
                                     if (!string.IsNullOrEmpty(value: existing.Url))
@@ -90,7 +96,7 @@ public static partial class TaxonModule
                             }
                             else if (!param.Id.HasValue && param.File != null)
                             {
-                                var upload = await storageService.UploadFileAsync(file: param.File, path: $"taxons/{command.TaxonId}", cancellationToken: ct);
+                                var upload = await storageService.UploadFileAsync(file: param.File, options: new UploadOptions { Folder = $"taxons/{command.TaxonId}" }, cancellationToken: ct);
                                 if (upload.IsError) return upload.Errors;
 
                                 var createResult = TaxonImage.Create(

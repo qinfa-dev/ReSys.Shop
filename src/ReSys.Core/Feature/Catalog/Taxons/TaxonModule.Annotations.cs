@@ -82,7 +82,7 @@ public static partial class TaxonModule
                 Name = "Admin.Catalog.Taxon.Images.Update",
                 Summary = "Synchronize taxon images",
                 Description = "Fully synchronize (add/update/delete) taxon images in one request.",
-                ResponseType = typeof(ApiResponse<List<TaxonModule.Images.Update.Result>>),
+                ResponseType = typeof(ApiResponse<List<TaxonModule.Images.Batch.Result>>),
                 StatusCode = StatusCodes.Status200OK
             };
 
