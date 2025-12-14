@@ -5,10 +5,10 @@ using ReSys.Core.Domain.Catalog.OptionTypes;
 using ReSys.Core.Domain.Catalog.Products.Classifications;
 using ReSys.Core.Domain.Catalog.Products.Images;
 using ReSys.Core.Domain.Catalog.Products.OptionTypes;
-using ReSys.Core.Domain.Catalog.Products.Properties;
+using ReSys.Core.Domain.Catalog.Products.PropertyTypes;
 using ReSys.Core.Domain.Catalog.Products.Reviews;
 using ReSys.Core.Domain.Catalog.Products.Variants;
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Domain.Catalog.Taxonomies;
 using ReSys.Core.Domain.Catalog.Taxonomies.Taxa;
 using ReSys.Core.Domain.Orders;
@@ -414,11 +414,11 @@ public sealed class Product : Aggregate,
     /// <summary>
     /// Collection of product properties associated with the product.
     /// </summary>
-    public ICollection<ProductProperty> ProductProperties { get; set; } = new List<ProductProperty>();
+    public ICollection<ProductPropertyType> ProductProperties { get; set; } = new List<ProductPropertyType>();
     /// <summary>
     /// Collection of properties associated with the product.
     /// </summary>
-    public ICollection<Property> Properties => ProductProperties.Select(selector: pp => pp.Property).ToList();
+    public ICollection<PropertyType> Properties => ProductProperties.Select(selector: pp => pp.PropertyType).ToList();
     /// <summary>
     /// Collection of classifications (categories) associated with the product.
     /// </summary>
@@ -1134,9 +1134,9 @@ public sealed class Product : Aggregate,
     /// <summary>
     /// Adds a product property to the product.
     /// </summary>
-    /// <param name="productProperty">The <see cref="ProductProperty"/> to add.</param>
+    /// <param name="productProperty">The <see cref="ProductPropertyType"/> to add.</param>
     /// <returns>An <see cref="ErrorOr{Product}"/> indicating success with the updated product, or an error if validation fails.</returns>
-    public ErrorOr<Product> AddProductProperty(ProductProperty? productProperty)
+    public ErrorOr<Product> AddProductProperty(ProductPropertyType? productProperty)
     {
         // Guard: null productProperty
         if (productProperty == null)
@@ -1162,7 +1162,7 @@ public sealed class Product : Aggregate,
     {
         var productProperty = ProductProperties.FirstOrDefault(predicate: pp => pp.PropertyId == propertyId);
         if (productProperty == null)
-            return ProductProperty.Errors.NotFound(id: propertyId);
+            return ProductPropertyType.Errors.NotFound(id: propertyId);
 
         ProductProperties.Remove(item: productProperty);
         UpdatedAt = DateTimeOffset.UtcNow;
@@ -1189,7 +1189,7 @@ public sealed class Product : Aggregate,
         }
         else
         {
-            var createResult = ProductProperty.Create(productId: Id, propertyId: propertyId, value: value);
+            var createResult = ProductPropertyType.Create(productId: Id, propertyId: propertyId, value: value);
             if (createResult.IsError)
                 return createResult.FirstError;
 

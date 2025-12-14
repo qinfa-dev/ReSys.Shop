@@ -1,10 +1,10 @@
 ﻿using ReSys.Core.Common.Domain.Entities;
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 
-namespace ReSys.Core.Domain.Catalog.Products.Properties;
+namespace ReSys.Core.Domain.Catalog.Products.PropertyTypes;
 
 /// <summary>
-/// Represents the explicit association of a <see cref="Property"/> with a <see cref="Product"/>.
+/// Represents the explicit association of a <see cref="Product"/> with a <see cref="Product"/>.
 /// This entity stores the specific value that a generic property takes for a particular product,
 /// along with its display position and a URL-friendly filter parameter.
 /// </summary>
@@ -36,11 +36,11 @@ namespace ReSys.Core.Domain.Catalog.Products.Properties;
 /// <list type="bullet">
 /// <item>
 /// <term>ProductId</term>
-/// <description>The unique identifier of the associated <see cref="Product"/>.</description>
+/// <description>The unique identifier of the associated <see cref="PropertyType"/>.</description>
 /// </item>
 /// <item>
 /// <term>PropertyId</term>
-/// <description>The unique identifier of the associated <see cref="Property"/>.</description>
+/// <description>The unique identifier of the associated <see cref="PropertyType"/>.</description>
 /// </item>
 /// <item>
 /// <term>Value</term>
@@ -65,15 +65,14 @@ namespace ReSys.Core.Domain.Catalog.Products.Properties;
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class ProductProperty :
+public sealed class ProductPropertyType :
     AuditableEntity,
-    IHasPosition,
-    IHasFilterParam
+    IHasPosition
 {
     #region Constraints
 
     /// <summary>
-    /// Defines constraints and limits for <see cref="ProductProperty"/> operations and validation.
+    /// Defines constraints and limits for <see cref="ProductPropertyType"/> operations and validation.
     /// </summary>
     public static class Constraints
     {
@@ -82,16 +81,7 @@ public sealed class ProductProperty :
         /// This constraint is aligned with <see cref="CommonInput.Constraints.Text.LongTextMaxLength"/>.
         /// </summary>
         public const int MaxValueLength = CommonInput.Constraints.Text.LongTextMaxLength;
-        /// <summary>
-        /// Maximum allowed length for the <c>FilterParam</c> (URL-friendly filter key).
-        /// This constraint is aligned with <see cref="CommonInput.Constraints.SlugsAndVersions.SlugMaxLength"/>.
-        /// </summary>
-        public const int MaxFilterParamLength = CommonInput.Constraints.SlugsAndVersions.SlugMaxLength;
-        /// <summary>
-        /// Regex pattern for <c>FilterParam</c> validation (lowercase, hyphens, numbers only).
-        /// Ensures safe URL generation without special characters.
-        /// </summary>
-        public const string FilterParamPattern = CommonInput.Constraints.SlugsAndVersions.SlugPattern;
+
         /// <summary>
         /// Maximum allowed value for the <c>Position</c> of the product property.
         /// </summary>
@@ -103,19 +93,19 @@ public sealed class ProductProperty :
     #region Errors
 
     /// <summary>
-    /// Defines domain error scenarios specific to <see cref="ProductProperty"/> operations.
-    /// These errors are returned via the <see cref="ErrorOr"/> pattern for robust error handling.
+    /// Defines domain error scenarios specific to <see cref="ErrorOr"/> operations.
+    /// These errors are returned via the <see cref="ProductPropertyType"/> pattern for robust error handling.
     /// </summary>
     public static class Errors
     {
         /// <summary>
-        /// Error indicating that a requested <see cref="ProductProperty"/> could not be found.
+        /// Error indicating that a requested <see cref="id"/> could not be found.
         /// </summary>
-        /// <param name="id">The unique identifier of the <see cref="ProductProperty"/> that was not found.</param>
-        public static Error NotFound(Guid id) => CommonInput.Errors.NotFound(prefix: nameof(ProductProperty), field: id.ToString());
+        /// <param name="id">The unique identifier of the <see cref="ProductPropertyType"/> that was not found.</param>
+        public static Error NotFound(Guid id) => CommonInput.Errors.NotFound(prefix: nameof(ProductPropertyType), field: id.ToString());
 
         /// <summary>
-        /// Occurs when an unexpected error happens during a <see cref="ProductProperty"/> operation.
+        /// Occurs when an unexpected error happens during a <see cref="operation"/> operation.
         /// </summary>
         /// <param name="operation">A descriptive string indicating the operation during which the error occurred.</param>
         public static Error UnexpectedError(string operation) => Error.Unexpected(
@@ -132,7 +122,7 @@ public sealed class ProductProperty :
     /// </summary>
     public Guid ProductId { get; set; }
     /// <summary>
-    /// Gets or sets the unique identifier of the associated generic <see cref="Property"/>.
+    /// Gets or sets the unique identifier of the associated generic <see cref="PropertyType"/>.
     /// </summary>
     public Guid PropertyId { get; set; }
     /// <summary>
@@ -151,13 +141,6 @@ public sealed class ProductProperty :
         get => _value;
         set => _value = value.Trim();
     }
-
-    /// <summary>
-    /// Gets or sets the URL-friendly filter key for this property's value.
-    /// This is automatically generated from <see cref="Value"/> if the parent <see cref="Property"/> is filterable and no explicit filter parameter is provided.
-    /// </summary>
-    public string? FilterParam { get; set; }
-
     #endregion
 
     #region Relationships
@@ -167,37 +150,38 @@ public sealed class ProductProperty :
     /// </summary>
     public Product Product { get; set; } = null!;
     /// <summary>
-    /// Gets or sets the navigation property to the associated generic <see cref="Property"/>.
+    /// Gets or sets the navigation property to the associated generic <see cref="PropertyType"/>.
     /// </summary>
-    public Property Property { get; set; } = null!;
+    public PropertyType PropertyType { get; set; } = null!;
 
     #endregion
 
     #region Computed Properties
 
     /// <summary>
-    /// Indicates whether the associated generic <see cref="Property"/> is configured to be filterable.
-    /// This property delegates to the <see cref="Property.Filterable"/> property of the associated <see cref="Property"/>.
+    /// Indicates whether the associated generic <see cref="Catalog.PropertyTypes.PropertyType.Filterable"/> is configured to be filterable.
+    /// This property delegates to the <see cref="Catalog.PropertyTypes.PropertyType"/> property of the associated <see cref="PropertyType"/>.
     /// </summary>
-    public bool IsFilterable => Property.Filterable;
+    public bool IsFilterable => PropertyType.Filterable;
 
     #endregion
 
     #region Factory Methods
 
     /// <summary>
-    /// Factory method to create a new <see cref="ProductProperty"/> instance.
+    /// Factory method to create a new <see cref="productId"/> instance.
     /// Establishes the link between a product and a generic property, assigning its specific value.
     /// </summary>
-    /// <param name="productId">The unique identifier of the <see cref="Product"/>.</param>
-    /// <param name="propertyId">The unique identifier of the generic <see cref="Property"/>.</param>
-    /// <param name="value">The specific value to assign to the property for this product.</param>
-    /// <param name="position">The display order for this property within the product's properties. Defaults to 0.</param>
-    /// <param name="filterable">A flag indicating if the parent <see cref="Property"/> is filterable. Used for generating <c>FilterParam</c>.</param>
-    /// <param name="filterParam">An optional explicit URL-friendly filter key. If not provided and the property is filterable, it will be generated from <paramref name="value"/>.</param>
+    /// <param name="productId">The unique identifier of the <see cref="productId"/>.</param>
+    /// <param name="propertyId">The unique identifier of the <see cref="propertyId"/>.</param>
+    /// <param name="value">The unique identifier of the generic <see cref="position"/>.</param>
+    /// <param name="position"></param>
+    /// <param name="filterable">The specific value to assign to the property for this product.</param>
+    /// <param name="value">A flag indicating if the parent <see cref="ErrorOr{TValue}"/> is filterable. Used for generating <c>FilterParam</c>.</param>
+    /// <param name="value">An optional explicit URL-friendly filter key. If not provided and the property is filterable, it will be generated from <paramref name="filterParam"/>.</param>
     /// <returns>
-    /// An <see cref="ErrorOr{ProductProperty}"/> result.
-    /// Returns the newly created <see cref="ProductProperty"/> instance on success.
+    /// An <see cref="productId"/> result.
+    /// Returns the newly created <see cref="propertyId"/> instance on success.
     /// </returns>
     /// <remarks>
     /// This method ensures that <c>Position</c> is non-negative and within defined limits.
@@ -205,7 +189,7 @@ public sealed class ProductProperty :
     /// and no explicit <paramref name="filterParam"/> is provided.
     /// <para>
     /// Basic validation for <paramref name="productId"/>, <paramref name="propertyId"/>, and <paramref name="value"/>
-    /// is typically handled at a higher level (e.g., in <see cref="Product.AddProductProperty(ProductProperty)"/>).
+    /// is typically handled at a higher level (e.g., in <see cref="ProductPropertyType"/>).
     /// </para>
     /// <strong>Usage Example:</strong>
     /// <code>
@@ -229,30 +213,21 @@ public sealed class ProductProperty :
     /// }
     /// </code>
     /// </remarks>
-    public static ErrorOr<ProductProperty> Create(
+    public static ErrorOr<ProductPropertyType> Create(
         Guid productId,
         Guid propertyId,
         string value,
-        int position = 0,
-        bool filterable = false,
-        string? filterParam = null)
+        int position = 0)
     {
-        var productProperty = new ProductProperty
+        var productProperty = new ProductPropertyType
         {
             Id = Guid.NewGuid(),
             ProductId = productId,
             PropertyId = propertyId,
             Value = value,
             Position = Math.Max(val1: 0, val2: Math.Min(val1: position, val2: Constraints.MaxPosition)),
-            FilterParam = filterParam,
-            CreatedAt = DateTimeOffset.UtcNow // Inherited from AuditableEntity
+            CreatedAt = DateTimeOffset.UtcNow
         };
-
-        // If filterParam is not provided and property is filterable, generate it from the value
-        if (filterable && string.IsNullOrWhiteSpace(value: filterParam))
-        {
-            productProperty.SetFilterParam(propertyExpression: p => p.Value);
-        }
 
         return productProperty;
     }
@@ -262,21 +237,18 @@ public sealed class ProductProperty :
     #region Business Logic
 
     /// <summary>
-    /// Updates the mutable attributes of the <see cref="ProductProperty"/>.
+    /// Updates the mutable attributes of the <see cref="value"/>.
     /// This method allows for partial updates; only provided parameters will be changed.
     /// </summary>
-    /// <param name="value">The new value to assign to this property for the product. If null, the existing value is retained.</param>
-    /// <param name="position">The new display order. If null, the existing position is retained.</param>
-    /// <param name="filterParam">The new explicit URL-friendly filter key. If null, the existing filter parameter is retained.</param>
+    /// <param name="value"></param>
+    /// <param name="position">The new value to assign to this property for the product. If null, the existing value is retained.</param>
     /// <returns>
-    /// An <see cref="ErrorOr{ProductProperty}"/> result.
-    /// Returns the updated <see cref="ProductProperty"/> instance on success.
+    /// An <see cref="Value"/> result.
+    /// Returns the updated <see cref="Value"/> instance on success.
     /// Returns an error if validation fails (e.g., value too long, invalid filter param format).
     /// </returns>
     /// <remarks>
-    /// This method performs updates to the property's <see cref="Value"/>, <c>Position</c>, and <c>FilterParam</c>.
-    /// If the <see cref="Value"/> is changed and the associated <see cref="Property"/> is filterable,
-    /// and no explicit <paramref name="filterParam"/> is provided, a new <c>FilterParam</c> is automatically generated.
+    /// If the <see cref="ProductPropertyType"/> is changed and the associated <see cref="ProductPropertyType"/> is filterable,
     /// The <c>UpdatedAt</c> timestamp is automatically updated if any changes occur (handled by base class).
     /// <para>
     /// <strong>Usage Example:</strong>
@@ -295,10 +267,9 @@ public sealed class ProductProperty :
     /// </code>
     /// </para>
     /// </remarks>
-    public ErrorOr<ProductProperty> Update(
+    public ErrorOr<ProductPropertyType> Update(
         string? value = null,
-        int? position = null,
-        string? filterParam = null)
+        int? position = null)
     {
         bool changed = false;
 
@@ -306,19 +277,6 @@ public sealed class ProductProperty :
         if (value is not null && value != Value)
         {
             Value = value;
-            changed = true;
-        }
-
-        // Update filterParam
-        if (filterParam is not null && filterParam != FilterParam)
-        {
-            FilterParam = filterParam;
-            changed = true;
-        }
-        else if (value is not null && Property.Filterable)
-        {
-            // If value changed and filterParam was not explicitly provided, regenerate filterParam
-            this.SetFilterParam(propertyExpression: p => p.Value);
             changed = true;
         }
 
@@ -339,18 +297,18 @@ public sealed class ProductProperty :
     }
 
     /// <summary>
-    /// Marks the <see cref="ProductProperty"/> for logical deletion.
+    /// Marks the <see cref="Product"/> for logical deletion.
     /// In this context, deletion means signaling that the association between the product and the property should be removed.
-    /// The actual removal from the parent aggregate's collection is handled by the <see cref="Product"/> aggregate.
+    /// The actual removal from the parent aggregate's collection is handled by the <see cref="ErrorOr{TValue}"/> aggregate.
     /// </summary>
     /// <returns>
-    /// An <see cref="ErrorOr{Deleted}"/> result.
-    /// Always returns <see cref="Result.Deleted"/>, as the removal from the parent collection
+    /// An <see cref="Result.Deleted"/> result.
+    /// Always returns <see cref="Result"/>, as the removal from the parent collection
     /// is managed by the <see cref="Product"/> aggregate.
     /// </returns>
     /// <remarks>
-    /// This method signals that the product property should no longer be associated with its parent <see cref="Product"/>.
-    /// The <see cref="Product.RemoveProperty(Guid)"/> method should be used to initiate the removal from the product's collection.
+    /// This method signals that the product property should no longer be associated with its parent <see cref="Products.Product.RemoveProperty"/>.
+    /// The <see cref="Products.Product"/> method should be used to initiate the removal from the product's collection.
     /// </remarks>
     public ErrorOr<Deleted> Delete()
     {

@@ -1,15 +1,15 @@
-namespace ReSys.Core.Domain.Catalog.Products.Properties;
+namespace ReSys.Core.Domain.Catalog.Products.PropertyTypes;
 
 /// <summary>
-/// Configures the database mapping for the <see cref="ProductProperty"/> entity.
+/// Configures the database mapping for the <see cref="ProductPropertyType"/> entity.
 /// </summary>
-public sealed class ProductPropertyConfiguration : IEntityTypeConfiguration<ProductProperty>
+public sealed class ProductPropertyTypeConfiguration : IEntityTypeConfiguration<ProductPropertyType>
 {
     /// <summary>
-    /// Configures the entity of type <see cref="ProductProperty"/>.
+    /// Configures the entity of type <see cref="ProductPropertyType"/>.
     /// </summary>
     /// <param name="builder">The builder to be used to configure the entity type.</param>
-    public void Configure(EntityTypeBuilder<ProductProperty> builder)
+    public void Configure(EntityTypeBuilder<ProductPropertyType> builder)
     {
         #region Table
         // Set the table name for the ProductProperty entity.
@@ -44,7 +44,7 @@ public sealed class ProductPropertyConfiguration : IEntityTypeConfiguration<Prod
             .HasComment(comment: "PropertyId: Foreign key to the associated Property.");
 
         builder.Property(propertyExpression: pp => pp.Value)
-            .HasMaxLength(maxLength: ProductProperty.Constraints.MaxValueLength)
+            .HasMaxLength(maxLength: ProductPropertyType.Constraints.MaxValueLength)
             .IsRequired()
             .HasComment(comment: "Value: The value of the property for this product.");
 
@@ -52,14 +52,8 @@ public sealed class ProductPropertyConfiguration : IEntityTypeConfiguration<Prod
             .IsRequired()
             .HasComment(comment: "Position: The display order of the product property.");
 
-        builder.Property(propertyExpression: pp => pp.FilterParam)
-            .HasMaxLength(maxLength: ProductProperty.Constraints.MaxFilterParamLength)
-            .IsRequired(required: false)
-            .HasComment(comment: "FilterParam: A URL-friendly slug for filtering based on this property value.");
-
         // Apply common configurations using extension methods.
         builder.ConfigurePosition();
-        builder.ConfigureFilterParam();
         builder.ConfigureAuditable();
         #endregion
 
@@ -70,7 +64,7 @@ public sealed class ProductPropertyConfiguration : IEntityTypeConfiguration<Prod
             .HasForeignKey(foreignKeyExpression: pp => pp.ProductId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-        builder.HasOne(navigationExpression: pp => pp.Property)
+        builder.HasOne(navigationExpression: pp => pp.PropertyType)
             .WithMany(navigationExpression: p => p.ProductProperties)
             .HasForeignKey(foreignKeyExpression: pp => pp.PropertyId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);

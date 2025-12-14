@@ -50,7 +50,7 @@ public sealed class VariantOptionValueConfiguration : IEntityTypeConfiguration<V
         #region Relationships
         // Configure relationships for the VariantOptionValue entity.
         builder.HasOne(navigationExpression: ovv => ovv.Variant)
-            .WithMany(navigationExpression: v => v.OptionValueVariants)
+            .WithMany(navigationExpression: v => v.VariantOptionValues)
             .HasForeignKey(foreignKeyExpression: ovv => ovv.VariantId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 

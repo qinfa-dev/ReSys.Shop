@@ -51,9 +51,10 @@ namespace ReSys.Core.Domain.Catalog.Products.Images;
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class ProductImage : BaseImageAsset
+public sealed class ProductImage : BaseImageAsset, IHasIdentity<Guid>
 {
     #region Constraints
+
     /// <summary>
     /// Defines constraints and constant values specific to <see cref="ProductImage"/> operations and properties.
     /// </summary>
@@ -63,18 +64,22 @@ public sealed class ProductImage : BaseImageAsset
         /// Maximum allowed length for the image URL.
         /// </summary>
         public const int UrlMaxLength = CommonInput.Constraints.UrlAndUri.UrlMaxLength;
+
         /// <summary>
         /// Maximum allowed length for the image alt text.
         /// </summary>
         public const int AltMaxLength = CommonInput.Constraints.Text.ShortTextMaxLength;
+
         /// <summary>
         /// The base path prefix for catalog-related storage.
         /// </summary>
         public const string PathPrefix = "catalog";
+
         /// <summary>
         /// The folder name for image assets within the storage path.
         /// </summary>
         public const string ImageFolder = "images";
+
         /// <summary>
         /// A collection of valid image types (e.g., "Default", "Square", "Thumbnail", "Gallery").
         /// </summary>
@@ -83,7 +88,8 @@ public sealed class ProductImage : BaseImageAsset
             nameof(ProductImageType.Default),
             nameof(ProductImageType.Square),
             nameof(ProductImageType.Thumbnail),
-            nameof(ProductImageType.Gallery)
+            nameof(ProductImageType.Gallery),
+            nameof(ProductImageType.Search)
         ];
 
         /// <summary>
@@ -108,22 +114,33 @@ public sealed class ProductImage : BaseImageAsset
             "ft"
         ];
 
+        #endregion
+
         /// <summary>
         /// Generates a standardized storage path for a product image based on its associated entities and type.
         /// </summary>
         /// <param name="productId">Optional: The ID of the product the image belongs to.</param>
         /// <param name="variantId">Optional: The ID of the variant the image belongs to.</param>
         /// <param name="type">The <see cref="ProductImageType"/> of the image.</param>
-        /// <param name="contentType">The MIME content type of the image (e.g., "image/jpeg").</param>
         /// <returns>A formatted string representing the suggested storage path for the image file.</returns>
-        public static string GetStoragePath(Guid? productId, Guid? variantId, string type, string contentType)
+        public static string GetStorageFolder(Guid? productId, Guid? variantId, string type)
         {
-            var timestamp = DateTimeOffset.UtcNow.ToString(format: "yyyyMMddHHmmss");
-            var fileType = contentType.Split(separator: '/')[1];
             var entityType = variantId.HasValue ? "variants" : "products";
             var id = variantId ?? productId;
+            return $"{PathPrefix}/{ImageFolder}/{entityType}/{id}/{type.ToLower()}";
+        }
 
-            return $"{PathPrefix}/{ImageFolder}/{entityType}/{id}/{type.ToLower()}/{timestamp}_{type.ToLower()}.{fileType}";
+        /// <summary>
+        /// Generates a standardized storage path for a product image based on its associated entities and type.
+        /// </summary>
+        /// <param name="type">The <see cref="ProductImageType"/> of the image.</param>
+        /// <param name="contentType">The MIME content type of the image (e.g., "image/jpeg").</param>
+        /// <returns>A formatted string representing the suggested storage path for the image file.</returns>
+        public static string GetStorageFileName(string type, string contentType)
+        {
+            var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss");
+            var fileExtension = contentType.Split('/')[1];
+            return $"{timestamp}_{type.ToLower()}.{fileExtension}";
         }
     }
 
@@ -134,18 +151,27 @@ public sealed class ProductImage : BaseImageAsset
     {
         /// <summary>No specific type assigned.</summary>
         None = 0,
+
         /// <summary>The primary or default image for a product/variant.</summary>
         Default = 1,
+
         /// <summary>An image optimized for square display (e.g., product grids).</summary>
         Square = 2,
+
         /// <summary>A small preview image.</summary>
         Thumbnail = 3,
+
         /// <summary>An image part of a product's main gallery.</summary>
-        Gallery = 4
+        Gallery = 4,
+
+        /// <summary>
+        /// A specialized image used for search and discovery features, often optimized for visual similarity algorithms.
+        /// </summary>
+        Search = 5
     }
-    #endregion
 
     #region Errors
+
     /// <summary>
     /// Defines domain error scenarios specific to <see cref="ProductImage"/> operations.
     /// These errors are returned via the <see cref="ErrorOr"/> pattern for robust error handling.
@@ -166,7 +192,9 @@ public sealed class ProductImage : BaseImageAsset
         /// <param name="variantId">The optional ID of the variant.</param>
         /// <param name="type">The type of the image (e.g., <see cref="ProductImageType.Default"/>).</param>
         public static Error AlreadyExists(Guid productId, Guid? variantId, string type) =>
-            Error.Conflict(code: "ProductImage.AlreadyExists", description: $"Product image of type '{type}' for product '{productId}'{(variantId.HasValue ? $" and variant '{variantId}'" : string.Empty)} already exists.");
+            Error.Conflict(code: "ProductImage.AlreadyExists",
+                description:
+                $"Product image of type '{type}' for product '{productId}'{(variantId.HasValue ? $" and variant '{variantId}'" : string.Empty)} already exists.");
 
         /// <summary>
         /// Error indicating that a requested product image could not be found.
@@ -179,25 +207,31 @@ public sealed class ProductImage : BaseImageAsset
         /// Error indicating that the provided image type is invalid (not one of <see cref="Constraints.ValidTypes"/>).
         /// </summary>
         public static Error InvalidType =>
-            Error.Validation(code: "ProductImage.InvalidType", description: $"Type must be one of: {string.Join(separator: ", ", value: Constraints.ValidTypes)}.");
+            Error.Validation(code: "ProductImage.InvalidType",
+                description: $"Type must be one of: {string.Join(separator: ", ", value: Constraints.ValidTypes)}.");
 
         /// <summary>
         /// Error indicating that the provided content type is invalid (not one of <see cref="Constraints.ValidContentTypes"/>).
         /// </summary>
         public static Error InvalidContentType =>
-            Error.Validation(code: "ProductImage.InvalidContentType", description: $"Content type must be one of: {string.Join(separator: ", ", value: Constraints.ValidContentTypes)}.");
+            Error.Validation(code: "ProductImage.InvalidContentType",
+                description:
+                $"Content type must be one of: {string.Join(separator: ", ", value: Constraints.ValidContentTypes)}.");
 
         /// <summary>
         /// Error indicating that the provided dimension unit is invalid (not one of <see cref="Constraints.ValidDimensionUnits"/>).
         /// </summary>
         public static Error InvalidDimensionUnit =>
-            Error.Validation(code: "ProductImage.InvalidDimensionUnit", description: $"Dimension unit must be one of: {string.Join(separator: ", ", value: Constraints.ValidDimensionUnits)}.");
+            Error.Validation(code: "ProductImage.InvalidDimensionUnit",
+                description:
+                $"Dimension unit must be one of: {string.Join(separator: ", ", value: Constraints.ValidDimensionUnits)}.");
 
         /// <summary>
         /// Error indicating that the image URL is invalid (e.g., empty, too long).
         /// </summary>
         public static Error InvalidUrl =>
-            Error.Validation(code: "ProductImage.InvalidUrl", description: $"URL must not exceed {Constraints.UrlMaxLength} characters and cannot be empty.");
+            Error.Validation(code: "ProductImage.InvalidUrl",
+                description: $"URL must not exceed {Constraints.UrlMaxLength} characters and cannot be empty.");
 
         /// <summary>
         /// Error indicating that the provided image embedding vector for a specific model has an invalid dimension.
@@ -206,37 +240,48 @@ public sealed class ProductImage : BaseImageAsset
         /// <param name="expectedDimension">The expected dimension for the model's embedding.</param>
         /// <param name="actualDimension">The actual dimension of the provided embedding.</param>
         public static Error InvalidEmbeddingDimension(string modelName, int expectedDimension, int actualDimension) =>
-            Error.Validation(code: "ProductImage.InvalidEmbeddingDimension", description: $"Embedding for model '{modelName}' must be {expectedDimension}-dimensional, but received {actualDimension}.");
+            Error.Validation(code: "ProductImage.InvalidEmbeddingDimension",
+                description:
+                $"Embedding for model '{modelName}' must be {expectedDimension}-dimensional, but received {actualDimension}.");
 
         /// <summary>
         /// Error indicating that an operation requiring an image embedding for a specific model was attempted, but no embedding has been generated for that model yet.
         /// </summary>
         /// <param name="modelName">The name of the embedding model.</param>
         public static Error EmbeddingNotGenerated(string modelName) =>
-            Error.Validation(code: "ProductImage.EmbeddingNotGenerated", description: $"Image embedding for model '{modelName}' has not been generated yet.");
+            Error.Validation(code: "ProductImage.EmbeddingNotGenerated",
+                description: $"Image embedding for model '{modelName}' has not been generated yet.");
 
         /// <summary>
         /// Error indicating that an invalid or unsupported model name was provided for an embedding operation.
         /// </summary>
         /// <param name="modelName">The invalid model name provided.</param>
         public static Error InvalidModelNameForEmbedding(string modelName) =>
-            Error.Validation(code: "ProductImage.InvalidModelNameForEmbedding", description: $"Invalid or unsupported model name '{modelName}' for embedding operation.");
+            Error.Validation(code: "ProductImage.InvalidModelNameForEmbedding",
+                description: $"Invalid or unsupported model name '{modelName}' for embedding operation.");
     }
+
     #endregion
 
     #region Core Properties
+
+    public Guid Id { get; set; }
+
     /// <summary>
     /// Gets or sets the MIME type of the image content (e.g., "image/jpeg", "image/png").
     /// </summary>
     public string ContentType { get; set; } = "image/jpeg";
+
     /// <summary>
     /// Gets or sets the width of the image in pixels. Nullable if dimensions are unknown.
     /// </summary>
     public int? Width { get; set; }
+
     /// <summary>
     /// Gets or sets the height of the image in pixels. Nullable if dimensions are unknown.
     /// </summary>
     public int? Height { get; set; }
+
     /// <summary>
     /// Gets or sets the unit of measurement for physical dimensions, if applicable (e.g., "cm", "in").
     /// </summary>
@@ -288,73 +333,106 @@ public sealed class ProductImage : BaseImageAsset
     /// Gets or sets the timestamp indicating when the <see cref="EmbeddingBLIP2"/> was last generated.
     /// </summary>
     public DateTimeOffset? EmbeddingBLIP2GeneratedAt { get; set; }
+
     #endregion
 
     #region Relationships
+
     /// <summary>
     /// Gets or sets the unique identifier of the <see cref="Product"/> this image is associated with.
     /// Null if the image is associated directly with a <see cref="Variant"/>.
     /// </summary>
     public Guid? ProductId { get; set; }
+
     /// <summary>
     /// Gets or sets the unique identifier of the <see cref="Variant"/> this image is associated with.
     /// Null if the image is associated directly with a <see cref="Product"/>.
     /// </summary>
     public Guid? VariantId { get; set; }
+
     /// <summary>
     /// Gets or sets the navigation property to the associated <see cref="Product"/>.
     /// </summary>
     public Product? Product { get; set; }
+
     /// <summary>
     /// Gets or sets the navigation property to the associated <see cref="Variant"/>.
     /// </summary>
     public Variant? Variant { get; set; }
+
     #endregion
 
     #region Computed Properties
+
     /// <summary>
     /// Indicates if this image is of type <see cref="ProductImageType.Default"/>.
     /// </summary>
     public new bool IsDefault => Type == nameof(ProductImageType.Default);
+
     /// <summary>
     /// Indicates if this image is of type <see cref="ProductImageType.Square"/>.
     /// </summary>
     public bool IsSquare => Type == nameof(ProductImageType.Square);
+
     /// <summary>
     /// Indicates if this image is of type <see cref="ProductImageType.Thumbnail"/>.
     /// </summary>
     public bool IsThumbnail => Type == nameof(ProductImageType.Thumbnail);
+
     /// <summary>
     /// Gets the aspect ratio of the image as a string (e.g., "16:9", "1:1").
     /// Returns "unknown" if dimensions are not available or height is zero.
     /// </summary>
     public string AspectRatio => Width.HasValue && Height.HasValue && Height > 0 ? $"{Width}:{Height}" : "unknown";
+
     /// <summary>
     /// Indicates if the image has a generated <see cref="EmbeddingOpenCLIP"/>.
     /// </summary>
     public bool HasEmbeddingOpenCLIP => EmbeddingOpenCLIP != null;
+
     /// <summary>
     /// Indicates if the image has a generated <see cref="EmbeddingDinoV2"/>.
     /// </summary>
     public bool HasEmbeddingDinoV2 => EmbeddingDinoV2 != null;
+
     /// <summary>
     /// Indicates if the image has a generated <see cref="EmbeddingBLIP2"/>.
     /// </summary>
     public bool HasEmbeddingBLIP2 => EmbeddingBLIP2 != null;
+
     /// <summary>
     /// Indicates if the image has any generated embedding from any model.
     /// </summary>
     public bool HasAnyEmbedding => HasEmbeddingOpenCLIP || HasEmbeddingDinoV2 || HasEmbeddingBLIP2;
+
+    public double? CalculatedAspectRatio =>
+        Width.HasValue && Height.HasValue && Height > 0
+            ? Math.Round((double)Width.Value / Height.Value, 4)
+            : null;
+
+    public bool MatchesExpectedAspectRatio(double tolerance = 0.02)
+    {
+        var spec = GetSizeSpec(Enum.Parse<ProductImageType>(Type));
+
+        if (!spec.AspectRatio.HasValue || !CalculatedAspectRatio.HasValue)
+            return true;
+
+        return Math.Abs(CalculatedAspectRatio.Value - spec.AspectRatio.Value) <= tolerance;
+    }
+
     #endregion
 
     #region Constructors
+
     /// <summary>
     /// Private constructor for ORM (Entity Framework Core) materialization.
     /// </summary>
     private ProductImage() { }
+
     #endregion
 
     #region Factory
+
     /// <summary>
     /// Factory method to create a new <see cref="ProductImage"/> instance.
     /// Performs validation on URL, content type, dimensions unit, and image type.
@@ -442,16 +520,20 @@ public sealed class ProductImage : BaseImageAsset
             Width = width,
             Height = height,
             DimensionsUnit = dimensionsUnit,
-            PublicMetadata = new Dictionary<string, object?>(dictionary: publicMetadata ?? new Dictionary<string, object?>()),
-            PrivateMetadata = new Dictionary<string, object?>(dictionary: privateMetadata ?? new Dictionary<string, object?>()),
+            PublicMetadata =
+                new Dictionary<string, object?>(dictionary: publicMetadata ?? new Dictionary<string, object?>()),
+            PrivateMetadata =
+                new Dictionary<string, object?>(dictionary: privateMetadata ?? new Dictionary<string, object?>()),
             CreatedAt = DateTimeOffset.UtcNow
         };
 
         return image;
     }
+
     #endregion
 
     #region Business Logic
+
     /// <summary>
     /// Marks the <see cref="ProductImage"/> for logical deletion.
     /// In this context, deletion typically means removing it from the collection of its parent <see cref="Product"/> or <see cref="Variant"/>.
@@ -472,6 +554,7 @@ public sealed class ProductImage : BaseImageAsset
     /// Updates the properties of the <see cref="ProductImage"/>.
     /// This method allows for partial updates; only provided parameters will be changed.
     /// </summary>
+    /// <param name="variantId"></param>
     /// <param name="url">The new URL for the image. If null, the existing URL is retained.</param>
     /// <param name="alt">The new alt text for the image. If null, the existing alt text is retained.</param>
     /// <param name="position">The new position for the image. If null, the existing position is retained.</param>
@@ -514,6 +597,7 @@ public sealed class ProductImage : BaseImageAsset
     /// </para>
     /// </remarks>
     public ErrorOr<ProductImage> Update(
+        Guid? variantId = null,
         string? url = null,
         string? alt = null,
         int? position = null,
@@ -543,6 +627,12 @@ public sealed class ProductImage : BaseImageAsset
             EmbeddingDinoV2GeneratedAt = null;
             EmbeddingBLIP2 = null;
             EmbeddingBLIP2GeneratedAt = null;
+            changed = true;
+        }
+
+        if (variantId != null && variantId != VariantId)
+        {
+            VariantId = variantId;
             changed = true;
         }
 
@@ -620,7 +710,8 @@ public sealed class ProductImage : BaseImageAsset
     /// Returns <see cref="Errors.InvalidEmbeddingDimension"/> if the provided embedding array has an incorrect dimension.
     /// Returns <see cref="Errors.InvalidModelNameForEmbedding"/> if the model name is not supported.
     /// </returns>
-    public ErrorOr<ProductImage> SetEmbedding(string modelName, float[] embedding, int expectedDimension, string? modelVersion = null)
+    public ErrorOr<ProductImage> SetEmbedding(string modelName, float[] embedding, int expectedDimension,
+        string? modelVersion = null)
     {
         if (embedding.Length != expectedDimension)
             return Errors.InvalidEmbeddingDimension(modelName, expectedDimension, embedding.Length);
@@ -683,14 +774,85 @@ public sealed class ProductImage : BaseImageAsset
                 otherEmbedding = other.EmbeddingBLIP2;
                 break;
             default:
-                throw new ArgumentException($"Unsupported model name '{modelName}' for similarity calculation.", nameof(modelName));
+                throw new ArgumentException($"Unsupported model name '{modelName}' for similarity calculation.",
+                    nameof(modelName));
         }
 
         if (thisEmbedding == null || otherEmbedding == null)
-            throw new InvalidOperationException($"Both images must have embeddings generated by the '{modelName}' model to calculate similarity.");
+            throw new InvalidOperationException(
+                $"Both images must have embeddings generated by the '{modelName}' model to calculate similarity.");
 
         // Cosine distance is 1 - cosine similarity. So similarity = 1 - distance.
         return 1 - thisEmbedding.CosineDistance(b: otherEmbedding);
+    }
+
+    #endregion
+
+    #region Helpers
+
+    public sealed record ImageSizeSpec(
+        int? TargetWidth,
+        int? TargetHeight,
+        double? AspectRatio,
+        bool AllowUpscale,
+        bool CropToFit)
+    {
+        public bool IsFixedSize => TargetWidth.HasValue && TargetHeight.HasValue;
+    }
+
+
+    public static ImageSizeSpec GetSizeSpec(ProductImageType type)
+    {
+        return type switch
+        {
+            ProductImageType.Default => new ImageSizeSpec(
+                TargetWidth: 1200,
+                TargetHeight: null,
+                AspectRatio: null,
+                AllowUpscale: false,
+                CropToFit: false
+            ),
+
+            ProductImageType.Square => new ImageSizeSpec(
+                TargetWidth: 1024,
+                TargetHeight: 1024,
+                AspectRatio: 1d,
+                AllowUpscale: false,
+                CropToFit: true
+            ),
+
+            ProductImageType.Thumbnail => new ImageSizeSpec(
+                TargetWidth: 300,
+                TargetHeight: 300,
+                AspectRatio: 1d,
+                AllowUpscale: false,
+                CropToFit: true
+            ),
+
+            ProductImageType.Gallery => new ImageSizeSpec(
+                TargetWidth: 1600,
+                TargetHeight: null,
+                AspectRatio: null,
+                AllowUpscale: false,
+                CropToFit: false
+            ),
+
+            ProductImageType.Search => new ImageSizeSpec(
+                TargetWidth: 512,
+                TargetHeight: 512,
+                AspectRatio: 1d,
+                AllowUpscale: true,
+                CropToFit: true
+            ),
+
+            _ => new ImageSizeSpec(
+                TargetWidth: null,
+                TargetHeight: null,
+                AspectRatio: null,
+                AllowUpscale: true,
+                CropToFit: false
+            )
+        };
     }
 
     #endregion

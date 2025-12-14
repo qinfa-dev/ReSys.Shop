@@ -110,10 +110,10 @@ public sealed class StockItem : Aggregate, IHasMetadata
     public string Sku { get; set; } = string.Empty;
 
     /// <summary>Gets the current physical quantity on hand at this location.</summary>
-    public int QuantityOnHand { get; private set; } // FIXED: private setter for encapsulation
+    public int QuantityOnHand { get; set; }
 
     /// <summary>Gets the quantity currently reserved for pending orders.</summary>
-    public int QuantityReserved { get; private set; } // FIXED: private setter
+    public int QuantityReserved { get; set; } 
 
     /// <summary>
     /// Gets a value indicating whether this item can be backordered (ordered when out of stock).

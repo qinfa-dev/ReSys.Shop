@@ -3,9 +3,9 @@
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Common.Extensions;
-using ReSys.Core.Domain.Catalog.Products.Properties;
+using ReSys.Core.Domain.Catalog.Products.PropertyTypes;
 
-namespace ReSys.Core.Domain.Catalog.Properties;
+namespace ReSys.Core.Domain.Catalog.PropertyTypes;
 
 /// <summary>
 /// Represents a reusable product property or attribute (e.g., Color, Size, Material, Brand, Weight).
@@ -141,7 +141,7 @@ namespace ReSys.Core.Domain.Catalog.Properties;
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class Property :
+public sealed class PropertyType :
     Aggregate,
     IHasParameterizableName,
     IHasPosition,
@@ -297,7 +297,7 @@ public sealed class Property :
     /// Each ProductProperty represents the property assignment to a specific product.
     /// Example: Property "Color" has ProductProperties for "Red Shirt", "Blue Jeans", "Green Hat".
     /// </summary>
-    public ICollection<ProductProperty> ProductProperties { get; set; } = new List<ProductProperty>();
+    public ICollection<ProductPropertyType> ProductProperties { get; set; } = new List<ProductPropertyType>();
     //public IEnumerable<Product> Products => ProductProperties.Select(selector: pp => pp.Product);
 
     #endregion
@@ -321,7 +321,7 @@ public sealed class Property :
     #endregion
 
     #region Constructors
-    private Property() { }
+    private PropertyType() { }
 
     #endregion
 
@@ -370,7 +370,7 @@ public sealed class Property :
     ///     position: 15);
     /// </code>
     /// </remarks>
-    public static ErrorOr<Property> Create(
+    public static ErrorOr<PropertyType> Create(
         string name,
         string presentation,
         PropertyKind? kind = null,
@@ -385,7 +385,7 @@ public sealed class Property :
         var actualDisplayOn = displayOn ?? DisplayOn.Both;
         (name, presentation) = HasParameterizableName.NormalizeParams(name: name, presentation: presentation);
 
-        var property = new Property
+        var property = new PropertyType
         {
             Name = name,
             Presentation = presentation,
@@ -444,7 +444,7 @@ public sealed class Property :
     /// <item>EnsureProductPropertiesHaveFilterParams - When Filterable becomes true</item>
     /// </list>
     /// </remarks>
-    public ErrorOr<Property> Update(
+    public ErrorOr<PropertyType> Update(
         string? name = null,
         string? presentation = null,
         PropertyKind? kind = null,
@@ -534,7 +534,7 @@ public sealed class Property :
     #region Delete
     /// <summary>
     /// Deletes the property from the system.
-    /// This operation is only permitted if there are no <see cref="ProductProperty"/> associations with any products.
+    /// This operation is only permitted if there are no <see cref="ProductPropertyType"/> associations with any products.
     /// If associated product properties exist, the deletion will fail to prevent data inconsistencies.
     /// </summary>
     /// <returns>
@@ -565,7 +565,7 @@ public sealed class Property :
     /// Provides validation constraints (minimum length, maximum length, and optional regular expression)
     /// applicable to property values based on their <see cref="PropertyKind"/>.
     /// This is crucial for consistent data validation across the system, especially when
-    /// assigning values to <see cref="ProductProperty"/> entities.
+    /// assigning values to <see cref="ProductPropertyType"/> entities.
     /// </summary>
     /// <param name="kind">The <see cref="PropertyKind"/> for which to retrieve validation constraints.</param>
     /// <returns>A tuple containing:
@@ -576,7 +576,7 @@ public sealed class Property :
     /// </list>
     /// </returns>
     /// <remarks>
-    /// This method is typically used by validators for <see cref="ProductProperty"/> to enforce
+    /// This method is typically used by validators for <see cref="ProductPropertyType"/> to enforce
     /// type-specific rules. For example, a validator might use the returned values like this:
     /// <code>
     /// var (minLen, maxLen, regex) = Property.GetValidationConditionForKind(propertyKind);

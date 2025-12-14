@@ -82,7 +82,6 @@ public sealed class VariantConfiguration : IEntityTypeConfiguration<Variant>
 
         builder.Property(propertyExpression: v => v.RowVersion)
             .IsRowVersion()
-            .IsRequired(required: false)
             .HasComment(comment: "RowVersion: Concurrency token for optimistic locking.");
 
         builder.ConfigureMetadata();
@@ -95,7 +94,7 @@ public sealed class VariantConfiguration : IEntityTypeConfiguration<Variant>
             .HasForeignKey(foreignKeyExpression: v => v.ProductId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-        builder.HasMany(navigationExpression: v => v.OptionValueVariants)
+        builder.HasMany(navigationExpression: v => v.VariantOptionValues)
             .WithOne(navigationExpression: ovv => ovv.Variant)
             .HasForeignKey(foreignKeyExpression: ovv => ovv.VariantId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
@@ -115,8 +114,6 @@ public sealed class VariantConfiguration : IEntityTypeConfiguration<Variant>
 
         #region Indexes
         builder.HasIndex(indexExpression: v => v.ProductId);
-        builder.HasIndex(indexExpression: v => v.Sku).IsUnique(unique: false); // SKU can be null, so not unique
-        builder.HasIndex(indexExpression: v => v.Barcode).IsUnique(unique: false); // Barcode can be null, so not unique
         #endregion
 
         #region Ignored Properties

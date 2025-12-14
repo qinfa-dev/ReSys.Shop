@@ -42,8 +42,7 @@ public sealed class TaxonImageConfiguration : IEntityTypeConfiguration<TaxonImag
             .HasComment(comment: "Type: The type of the image (e.g., 'default', 'square').");
         
         builder.Property(propertyExpression: pi => pi.Alt)
-            .HasMaxLength(maxLength: HasBaseImageAsset.Constraints.AltTextMaxLength)
-            .IsRequired(required: false)
+            .ConfigureTitleOptional()
             .HasComment(comment: "Alt: Alternative text for the image.");
 
         builder.Property(propertyExpression: ti => ti.Url)

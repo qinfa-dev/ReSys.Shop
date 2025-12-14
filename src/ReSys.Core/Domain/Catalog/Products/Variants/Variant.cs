@@ -306,205 +306,205 @@ public sealed class Variant :
         /// </summary>
         public static Error DuplicateAssetType =>
             CommonInput.Errors.Conflict(prefix: nameof(Variant), field: "Asset type");
-  
+
     }
     #endregion
 
-        #region Properties
+    #region Properties
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the unique identifier of the parent <see cref="Product"/> this variant belongs to.
+    /// Gets or sets the unique identifier of the parent <see cref="Product"/> this variant belongs to.
 
-        /// </summary>
+    /// </summary>
 
-        public Guid ProductId { get; set; }
+    public Guid ProductId { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets a value indicating whether this variant is the master variant for its product.
+    /// Gets or sets a value indicating whether this variant is the master variant for its product.
 
-        /// A master variant represents the default configuration and cannot have option values.
+    /// A master variant represents the default configuration and cannot have option values.
 
-        /// </summary>
+    /// </summary>
 
-        public bool IsMaster { get; set; }
+    public bool IsMaster { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the Stock Keeping Unit (SKU) for this variant.
+    /// Gets or sets the Stock Keeping Unit (SKU) for this variant.
 
-        /// SKU is a unique identifier used for inventory tracking and ordering.
+    /// SKU is a unique identifier used for inventory tracking and ordering.
 
-        /// </summary>
+    /// </summary>
 
-        public string? Sku { get; set; }
+    public string? Sku { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the barcode (e.g., UPC, EAN) for this variant, used for scanning.
+    /// Gets or sets the barcode (e.g., UPC, EAN) for this variant, used for scanning.
 
-        /// </summary>
+    /// </summary>
 
-        public string? Barcode { get; set; }
+    public string? Barcode { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the weight of the variant, used for shipping calculations.
+    /// Gets or sets the weight of the variant, used for shipping calculations.
 
-        /// </summary>
+    /// </summary>
 
-        public decimal? Weight { get; set; }
+    public decimal? Weight { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the height of the variant, used for shipping calculations.
+    /// Gets or sets the height of the variant, used for shipping calculations.
 
-        /// </summary>
+    /// </summary>
 
-        public decimal? Height { get; set; }
+    public decimal? Height { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the width of the variant, used for shipping calculations.
+    /// Gets or sets the width of the variant, used for shipping calculations.
 
-        /// </summary>
+    /// </summary>
 
-        public decimal? Width { get; set; }
+    public decimal? Width { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the depth of the variant, used for shipping calculations.
+    /// Gets or sets the depth of the variant, used for shipping calculations.
 
-        /// </summary>
+    /// </summary>
 
-        public decimal? Depth { get; set; }
+    public decimal? Depth { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the unit of measurement for dimensions (e.g., "mm", "cm", "in").
+    /// Gets or sets the unit of measurement for dimensions (e.g., "mm", "cm", "in").
 
-        /// </summary>
+    /// </summary>
 
-        public string? DimensionsUnit { get; set; }
+    public string? DimensionsUnit { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the unit of measurement for weight (e.g., "g", "kg", "lb").
+    /// Gets or sets the unit of measurement for weight (e.g., "g", "kg", "lb").
 
-        /// </summary>
+    /// </summary>
 
-        public string? WeightUnit { get; set; }
+    public string? WeightUnit { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets a value indicating whether inventory should be tracked for this variant.
+    /// Gets or sets a value indicating whether inventory should be tracked for this variant.
 
-        /// Typically true for physical products and false for digital products.
+    /// Typically true for physical products and false for digital products.
 
-        /// </summary>
+    /// </summary>
 
-        public bool TrackInventory { get; set; } = true;
+    public bool TrackInventory { get; set; } = true;
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the cost price of acquiring or producing this variant.
+    /// Gets or sets the cost price of acquiring or producing this variant.
 
-        /// </summary>
+    /// </summary>
 
-        public decimal? CostPrice { get; set; }
+    public decimal? CostPrice { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the currency of the cost price (e.g., "USD").
+    /// Gets or sets the currency of the cost price (e.g., "USD").
 
-        /// </summary>
+    /// </summary>
 
-        public string? CostCurrency { get; set; }
+    public string? CostCurrency { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the display order of this variant among others in the same product.
+    /// Gets or sets the display order of this variant among others in the same product.
 
-        /// Lower values typically appear first.
+    /// Lower values typically appear first.
 
-        /// </summary>
+    /// </summary>
 
-        public int Position { get; set; }
+    public int Position { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the date and time when the variant was soft-deleted.
+    /// Gets or sets the date and time when the variant was soft-deleted.
 
-        /// </summary>
+    /// </summary>
 
-        public DateTimeOffset? DeletedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the identifier of the user who soft-deleted the variant.
+    /// Gets or sets the identifier of the user who soft-deleted the variant.
 
-        /// </summary>
+    /// </summary>
 
-        public string? DeletedBy { get; set; }
+    public string? DeletedBy { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets a value indicating whether the variant is soft-deleted.
+    /// Gets or sets a value indicating whether the variant is soft-deleted.
 
-        /// </summary>
+    /// </summary>
 
-        public bool IsDeleted { get; set; }
+    public bool IsDeleted { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets the date and time when the variant should be discontinued and no longer available for purchase.
+    /// Gets or sets the date and time when the variant should be discontinued and no longer available for purchase.
 
-        /// </summary>
+    /// </summary>
 
-        public DateTimeOffset? DiscontinueOn { get; set; }
+    public DateTimeOffset? DiscontinueOn { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets public-facing metadata associated with the variant.
+    /// Gets or sets public-facing metadata associated with the variant.
 
-        /// This dictionary can store flexible key-value pairs visible to customers.
+    /// This dictionary can store flexible key-value pairs visible to customers.
 
-        /// </summary>
+    /// </summary>
 
-        public IDictionary<string, object?>? PublicMetadata { get; set; }
+    public IDictionary<string, object?>? PublicMetadata { get; set; }
 
-        /// <summary>
+    /// <summary>
 
-        /// Gets or sets private metadata associated with the variant.
+    /// Gets or sets private metadata associated with the variant.
 
-        /// This dictionary can store internal-only key-value pairs not visible to customers.
+    /// This dictionary can store internal-only key-value pairs not visible to customers.
 
-        /// </summary>
+    /// </summary>
 
-        public IDictionary<string, object?>? PrivateMetadata { get; set; }
+    public IDictionary<string, object?>? PrivateMetadata { get; set; }
 
-    
 
-        /// <summary>
 
-        /// Gets or sets the row version timestamp for optimistic concurrency control.
+    /// <summary>
 
-        /// </summary>
+    /// Gets or sets the row version timestamp for optimistic concurrency control.
 
-        [Timestamp]
+    /// </summary>
 
-        public byte[]? RowVersion { get; set; }
+    [Timestamp]
 
-        #endregion
+    public byte[]? RowVersion { get; set; }
+
+    #endregion
 
     #region Relationships
     public Product Product { get; set; } = null!;
     public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
     public ICollection<Price> Prices { get; set; } = new List<Price>();
     public ICollection<StockItem> StockItems { get; set; } = new List<StockItem>();
-    public ICollection<VariantOptionValue> OptionValueVariants { get; set; } = new List<VariantOptionValue>();
-    public ICollection<OptionValue> OptionValues => OptionValueVariants.Select(selector: ovv => ovv.OptionValue).ToList();
+    public ICollection<VariantOptionValue> VariantOptionValues { get; set; } = new List<VariantOptionValue>();
+    public ICollection<OptionValue> OptionValues => VariantOptionValues.Select(selector: ovv => ovv.OptionValue).ToList();
     public ICollection<LineItem> LineItems { get; set; } = new List<LineItem>();
     public ICollection<Order> Orders => LineItems.Select(selector: li => li.Order).ToList();
 
@@ -988,14 +988,14 @@ public sealed class Variant :
         if (Product.ProductOptionTypes.All(predicate: pot => pot.OptionTypeId != optionValue.OptionTypeId))
             return Error.Validation(code: "Variant.InvalidOptionValue", description: "Option type is not associated with the product.");
 
-        if (OptionValueVariants.Any(predicate: ovv => ovv.OptionValueId == optionValue.Id))
+        if (VariantOptionValues.Any(predicate: ovv => ovv.OptionValueId == optionValue.Id))
             return this; // Already linked
 
         var ovvResult = VariantOptionValue.Create(variantId: Id, optionValueId: optionValue.Id);
         if (ovvResult.IsError)
             return ovvResult.FirstError;
 
-        OptionValueVariants.Add(item: ovvResult.Value);
+        VariantOptionValues.Add(item: ovvResult.Value);
 
         AddDomainEvent(domainEvent: new Events.Updated(VariantId: Id));
         AddDomainEvent(domainEvent: new Events.OptionAdded(VariantId: Id, OptionId: optionValue.Id));
@@ -1039,11 +1039,11 @@ public sealed class Variant :
         if (IsMaster)
             return Errors.MasterCannotHaveOptionValues;
 
-        var ovv = OptionValueVariants.FirstOrDefault(predicate: ov => ov.OptionValueId == optionValueId);
+        var ovv = VariantOptionValues.FirstOrDefault(predicate: ov => ov.OptionValueId == optionValueId);
         if (ovv is null)
             return OptionValue.Errors.NotFound(id: optionValueId);
 
-        OptionValueVariants.Remove(item: ovv);
+        VariantOptionValues.Remove(item: ovv);
 
         AddDomainEvent(domainEvent: new Events.Updated(VariantId: Id));
         AddDomainEvent(domainEvent: new Events.OptionRemoved(VariantId: Id, OptionId: optionValueId));
@@ -1342,6 +1342,4 @@ public sealed class Variant :
         public sealed record VariantPriceRemoved(Guid VariantId, Guid PriceId, decimal Amount, string Currency) : DomainEvent;
     }
     #endregion
-
-
 }

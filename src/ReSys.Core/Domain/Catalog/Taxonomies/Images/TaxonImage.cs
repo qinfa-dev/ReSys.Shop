@@ -43,7 +43,7 @@ namespace ReSys.Core.Domain.Catalog.Taxonomies.Images;
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class TaxonImage : BaseImageAsset
+public sealed class TaxonImage : BaseImageAsset, IHasIdentity<Guid>
 {
     #region Errors
     /// <summary>
@@ -61,6 +61,7 @@ public sealed class TaxonImage : BaseImageAsset
     #endregion
 
     #region Properties
+    public Guid Id { get; set; }
     /// <summary>
     /// Gets or sets the unique identifier of the associated <see cref="Taxon"/>.
     /// </summary>
@@ -234,4 +235,5 @@ public sealed class TaxonImage : BaseImageAsset
     }
 
     #endregion
+
 }

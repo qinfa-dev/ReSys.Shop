@@ -1,12 +1,12 @@
-namespace ReSys.Core.Domain.Catalog.Properties;
+namespace ReSys.Core.Domain.Catalog.PropertyTypes;
 
 /// <summary>
-/// Configures the database mapping for the <see cref="Property"/> entity using Entity Framework Core's Fluent API.
-/// This configuration ensures that the <see cref="Property"/> aggregate is correctly mapped to the database schema,
+/// Configures the database mapping for the <see cref="PropertyType"/> entity using Entity Framework Core's Fluent API.
+/// This configuration ensures that the <see cref="PropertyType"/> aggregate is correctly mapped to the database schema,
 /// including table name, primary key, indexes, property constraints, and relationships.
 /// </summary>
 /// <remarks>
-/// This class plays a crucial role in defining how the <see cref="Property"/> domain model is persisted.
+/// This class plays a crucial role in defining how the <see cref="PropertyType"/> domain model is persisted.
 /// It sets up:
 /// <list type="bullet">
 /// <item><term>Table Name</term><description>Maps the entity to the 'properties' table in the database.</description></item>
@@ -19,10 +19,10 @@ namespace ReSys.Core.Domain.Catalog.Properties;
 /// <item><term>Relationships</term><description>Configures the one-to-many relationship with <c>ProductProperty</c> and sets up cascade delete behavior.</description></item>
 /// </list>
 /// </remarks>
-public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
+public sealed class PropertyTypeConfiguration : IEntityTypeConfiguration<PropertyType>
 {
     /// <summary>
-    /// Configures the database mapping for the <see cref="Property"/> entity.
+    /// Configures the database mapping for the <see cref="PropertyType"/> entity.
     /// This method is part of the Entity Framework Core <see cref="IEntityTypeConfiguration{TEntity}"/> interface
     /// and is automatically invoked by EF Core during model creation.
     /// </summary>
@@ -32,13 +32,13 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
     /// <list type="bullet">
     /// <item><term>Table and Primary Key Definition</term><description>Sets the table name to <c>Schema.Properties</c> and defines <c>Id</c> as the primary key.</description></item>
     /// <item><term>Index Creation</term><description>Establishes indexes on <c>Name</c>, <c>Position</c>, and <c>FilterParam</c> to optimize data retrieval, with <c>Name</c> and <c>FilterParam</c> being unique.</description></item>
-    /// <item><term>Property Mapping Details</term><description>Specifies detailed mapping for each property of the <see cref="Property"/> entity, including column names, max lengths, required status, and database comments. Enum properties (<c>Kind</c>, <c>DisplayOn</c>) are configured to be stored as strings.</description></item>
+    /// <item><term>Property Mapping Details</term><description>Specifies detailed mapping for each property of the <see cref="PropertyType"/> entity, including column names, max lengths, required status, and database comments. Enum properties (<c>Kind</c>, <c>DisplayOn</c>) are configured to be stored as strings.</description></item>
     /// <item><term>Metadata Storage</term><description><c>PublicMetadata</c> and <c>PrivateMetadata</c> are mapped as 'jsonb' columns, suitable for storing flexible JSON data in PostgreSQL.</description></item>
     /// <item><term>Reusable Configuration Concerns</term><description>Utilizes extension methods (e.g., <c>ConfigureAuditable()</c>, <c>ConfigureUniqueName()</c>) to apply common EF Core mapping patterns inherited from domain concerns.</description></item>
-    /// <item><term>Relationships</term><description>Defines the one-to-many relationship with <c>ProductProperties</c>, ensuring referential integrity and specifying cascade delete behavior, meaning that if a <see cref="Property"/> is deleted, all its associated <c>ProductProperty</c> entries will also be removed.</description></item>
+    /// <item><term>Relationships</term><description>Defines the one-to-many relationship with <c>ProductProperties</c>, ensuring referential integrity and specifying cascade delete behavior, meaning that if a <see cref="PropertyType"/> is deleted, all its associated <c>ProductProperty</c> entries will also be removed.</description></item>
     /// </list>
     /// </remarks>
-    public void Configure(EntityTypeBuilder<Property> builder)
+    public void Configure(EntityTypeBuilder<PropertyType> builder)
     {
         #region Table
         // Set the table name for the Property entity.
@@ -94,7 +94,7 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
             .HasComment(comment: "Position: The display order of the property.");
 
         builder.Property(propertyExpression: p => p.FilterParam)
-            .HasMaxLength(maxLength: Property.Constraints.FilterParamMaxLength)
+            .HasMaxLength(maxLength: PropertyType.Constraints.FilterParamMaxLength)
             .IsRequired(required: false)
             .HasComment(comment: "FilterParam: A URL-friendly slug for filtering based on this property.");
 
@@ -121,7 +121,7 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         #region Relationships
         // Configure relationships for the Property entity.
         builder.HasMany(navigationExpression: p => p.ProductProperties)
-            .WithOne(navigationExpression: pp => pp.Property)
+            .WithOne(navigationExpression: pp => pp.PropertyType)
             .HasForeignKey(foreignKeyExpression: pp => pp.PropertyId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
