@@ -1,13 +1,12 @@
-﻿using System.Text.Json;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using FluentStorage.Utils.Extensions;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
-
-using ReSys.Infrastructure.Security.Authentication.Externals.Options;
 
 using Serilog;
 
@@ -21,16 +20,18 @@ public static class SwaggerConfiguration
     {
         services.AddSwaggerGen(setupAction: o =>
         {
-            o.SwaggerDoc(name: "v1", info: new OpenApiInfo
-            {
-                Title = "Stellar FashionShop API",
-                Version = "v1",
-                Description = "An API for managing fashion shop operations."
-            });
+            o.SwaggerDoc(name: "v1",
+                info: new OpenApiInfo
+                {
+                    Title = "Stellar FashionShop API",
+                    Version = "v1",
+                    Description = "An API for managing fashion shop operations."
+                });
 
             o.CustomSchemaIds(type => SchemaIdStrategy.GenerateSchemaId(type));
             o.SchemaFilter<SnakeCaseSchemaFilter>();
             o.ParameterFilter<SnakeCaseParameterFilter>();
+            o.OperationFilter<MultipartFormDataOperationFilter>();
 
             // Add security schemes
             o.AddSecurityDefinition(name: JwtBearerDefaults.AuthenticationScheme,
@@ -49,38 +50,40 @@ public static class SwaggerConfiguration
             o.DocumentFilter<AuthEndpointOrderDocumentFilter>();
         });
 
-        Log.Information(messageTemplate: "Register: Swagger with JWT, Google OAuth2, and Facebook OAuth2 authentication configuration.");
+        Log.Information(
+            messageTemplate:
+            "Register: Swagger with JWT, Google OAuth2, and Facebook OAuth2 authentication configuration.");
         return services;
     }
 
     internal static IApplicationBuilder UseSwaggerWithUi(this WebApplication app)
     {
-        GoogleOption googleOptions = app.Services.GetRequiredService<IOptions<GoogleOption>>().Value;
-        FacebookOption facebookOptions = app.Services.GetRequiredService<IOptions<FacebookOption>>().Value;
-        
+        // GoogleOption googleOptions = app.Services.GetRequiredService<IOptions<GoogleOption>>().Value;
+        // FacebookOption facebookOptions = app.Services.GetRequiredService<IOptions<FacebookOption>>().Value;
+
         app.UseSwagger(setupAction: options => options.RouteTemplate = "/openapi/{documentName}.json");
         app.UseSwaggerUI(setupAction: c =>
         {
             c.SwaggerEndpoint(url: "/openapi/v1.json",
                 name: "Stellar FashionShop API V1");
             c.RoutePrefix = string.Empty;
-            
+
             //// OAuth2 configuration for Google (uses PKCE)
             //c.OAuthClientId(value: googleOptions.ClientId);
             //c.OAuthAppName(value: "Stellar FashionShop API");
             //c.OAuthUsePkce();
             //c.OAuthScopeSeparator(value: " ");
-            
+
             //// OAuth2 configuration for Facebook
             //c.OAuthAdditionalQueryStringParams(value: new Dictionary<string, string>
             //{
             //    { "response_type", "code" },
             //    { "client_id", facebookOptions.AppId }
             //});
-            
+
             //// Set OAuth2 redirect URL (adjust based on your configuration)
             //c.OAuth2RedirectUrl(url: $"{app.Configuration[key: "BaseUrl"] ?? "https://localhost"}/swagger/oauth2-redirect.html");
-            
+
             // For Facebook, if you need client secret (not recommended for public clients)
             // c.OAuthClientSecret(facebookOptions.ClientSecret);
         });
@@ -157,8 +160,7 @@ public static class SwaggerConfiguration
                 {
                     Reference = new OpenApiReference
                     {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = JwtBearerDefaults.AuthenticationScheme
+                        Type = ReferenceType.SecurityScheme, Id = JwtBearerDefaults.AuthenticationScheme
                     }
                 },
                 new List<string>()
@@ -173,11 +175,7 @@ public static class SwaggerConfiguration
             {
                 new OpenApiSecurityScheme
                 {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Google"
-                    }
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Google" }
                 },
                 new List<string> { "openid", "profile", "email" }
             }
@@ -191,16 +189,13 @@ public static class SwaggerConfiguration
             {
                 new OpenApiSecurityScheme
                 {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Facebook"
-                    }
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Facebook" }
                 },
                 new List<string> { "email", "public_profile" }
             }
         };
     }
+
     public sealed class AuthEndpointOrderDocumentFilter : IDocumentFilter
     {
         public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
@@ -215,12 +210,14 @@ public static class SwaggerConfiguration
                     int index = tagOrder.IndexOf(item: tag.Name);
                     return index == -1 ? int.MaxValue : index; // Place unlisted tags at the end
                 })
-                .ThenBy(keySelector: tag => tag.Name) // Alphabetical sort for tags with the same priority or unlisted tags
-                .ToList()  ?? [];
+                .ThenBy(keySelector: tag =>
+                    tag.Name) // Alphabetical sort for tags with the same priority or unlisted tags
+                .ToList() ?? [];
 
             swaggerDoc.Tags.AddRange(source: orderedTags);
         }
     }
+
     public sealed class SnakeCaseSchemaFilter : ISchemaFilter
     {
         public void Apply(OpenApiSchema schema, SchemaFilterContext context)
@@ -246,6 +243,376 @@ public static class SwaggerConfiguration
             {
                 parameter.Name = JsonNamingPolicy.SnakeCaseLower.ConvertName(name: parameter.Name);
             }
+        }
+    }
+
+    public sealed class MultipartFormDataOperationFilter : IOperationFilter
+{
+    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    {
+        if (!ConsumesMultipartFormData(operation))
+            return;
+
+        var formParameters = GetFormParameters(context);
+        if (!formParameters.Any())
+            return;
+
+        if (!HasFileUploads(formParameters))
+            return;
+
+        ConfigureMultipartFormData(operation, formParameters, context);
+    }
+
+    private bool ConsumesMultipartFormData(OpenApiOperation operation)
+    {
+        return operation.RequestBody?.Content?.ContainsKey("multipart/form-data") ?? false;
+    }
+
+    private List<ParameterInfo> GetFormParameters(OperationFilterContext context)
+    {
+        return context.MethodInfo.GetParameters()
+            .Where(p => p.GetCustomAttribute<Microsoft.AspNetCore.Mvc.FromFormAttribute>() != null)
+            .ToList();
+    }
+
+    private bool HasFileUploads(List<ParameterInfo> formParameters)
+    {
+        return formParameters.Any(p => ContainsFileUpload(p.ParameterType));
+    }
+
+    private void ConfigureMultipartFormData(
+        OpenApiOperation operation,
+        List<ParameterInfo> formParameters,
+        OperationFilterContext context)
+    {
+        var mediaType = operation.RequestBody.Content["multipart/form-data"];
+
+        mediaType.Schema = new OpenApiSchema
+        {
+            Type = "object",
+            Properties = new Dictionary<string, OpenApiSchema>(),
+            Required = new HashSet<string>()
+        };
+
+        operation.Parameters = operation.Parameters
+            .Where(p => p.In == ParameterLocation.Path)
+            .ToList();
+
+        foreach (var param in formParameters)
+        {
+            ProcessFormParameter(param, mediaType.Schema, context);
+        }
+
+        if (!mediaType.Schema.Properties.Any())
+        {
+            operation.RequestBody = null;
+        }
+    }
+
+    private void ProcessFormParameter(
+        ParameterInfo parameter,
+        OpenApiSchema schema,
+        OperationFilterContext context)
+    {
+        var paramType = parameter.ParameterType;
+        var paramName = JsonNamingPolicy.SnakeCaseLower.ConvertName(parameter.Name ?? "parameter");
+
+        // Direct IFormFile
+        if (paramType == typeof(IFormFile))
+        {
+            schema.Properties[paramName] = CreateFileSchema();
+            if (IsParameterRequired(parameter))
+                schema.Required.Add(paramName);
+            return;
+        }
+
+        // List<IFormFile>
+        if (IsListOfFiles(paramType))
+        {
+            schema.Properties[paramName] = CreateFileArraySchema();
+            return;
+        }
+
+        // Complex types
+        ProcessComplexType(paramType, schema, context);
+    }
+
+    private void ProcessComplexType(Type type, OpenApiSchema schema, OperationFilterContext context)
+    {
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        foreach (var property in properties)
+        {
+            var propertyName = GetPropertyName(property);
+
+            if (schema.Properties.ContainsKey(propertyName))
+                continue;
+
+            var propertySchema = CreatePropertySchema(property, context);
+            if (propertySchema != null)
+            {
+                schema.Properties[propertyName] = propertySchema;
+
+                if (IsPropertyRequired(property))
+                {
+                    schema.Required.Add(propertyName);
+                }
+            }
+        }
+    }
+
+    private OpenApiSchema? CreatePropertySchema(PropertyInfo property, OperationFilterContext context)
+    {
+        var propType = property.PropertyType;
+
+        // IFormFile
+        if (propType == typeof(IFormFile))
+        {
+            return CreateFileSchema(property.Name);
+        }
+
+        // List<IFormFile>
+        if (IsListOfFiles(propType))
+        {
+            return CreateFileArraySchema(property.Name);
+        }
+
+        // List<ComplexType> - KEY FIX: Handle nested lists with file uploads
+        if (IsGenericList(propType))
+        {
+            var itemType = propType.GetGenericArguments()[0];
+            
+            // Check if list items contain file uploads
+            if (ContainsFileUpload(itemType))
+            {
+                return new OpenApiSchema
+                {
+                    Type = "array",
+                    Items = CreateSchemaForComplexType(itemType, context),
+                    Description = $"Array of {itemType.Name}"
+                };
+            }
+            
+            // Simple type array
+            return new OpenApiSchema
+            {
+                Type = "array",
+                Items = CreateSimpleTypeSchema(itemType, context) ?? new OpenApiSchema { Type = "string" },
+                Description = $"Array of {itemType.Name}"
+            };
+        }
+
+        // Nested complex types
+        if (IsComplexType(propType))
+        {
+            return CreateSchemaForComplexType(propType, context);
+        }
+
+        // Simple types
+        return CreateSimpleTypeSchema(propType, context);
+    }
+
+    private OpenApiSchema CreateSchemaForComplexType(Type type, OperationFilterContext context)
+    {
+        var schema = new OpenApiSchema
+        {
+            Type = "object",
+            Properties = new Dictionary<string, OpenApiSchema>(),
+            Required = new HashSet<string>()
+        };
+
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        foreach (var property in properties)
+        {
+            var propertyName = GetPropertyName(property);
+            var propertySchema = CreatePropertySchema(property, context);
+
+            if (propertySchema != null)
+            {
+                schema.Properties[propertyName] = propertySchema;
+
+                if (IsPropertyRequired(property))
+                {
+                    schema.Required.Add(propertyName);
+                }
+            }
+        }
+
+        return schema;
+    }
+
+    private OpenApiSchema? CreateSimpleTypeSchema(Type type, OperationFilterContext context)
+    {
+        try
+        {
+            return context.SchemaGenerator.GenerateSchema(type, context.SchemaRepository);
+        }
+        catch
+        {
+            return new OpenApiSchema { Type = "string" };
+        }
+    }
+
+    private OpenApiSchema CreateFileSchema(string? description = null)
+    {
+        return new OpenApiSchema
+        {
+            Type = "string",
+            Format = "binary",
+            Description = description != null ? $"File upload for {description}" : "File upload"
+        };
+    }
+
+    private OpenApiSchema CreateFileArraySchema(string? description = null)
+    {
+        return new OpenApiSchema
+        {
+            Type = "array",
+            Items = new OpenApiSchema { Type = "string", Format = "binary" },
+            Description = description != null
+                ? $"Multiple file uploads for {description}"
+                : "Multiple file uploads"
+        };
+    }
+
+    private string GetPropertyName(PropertyInfo property)
+    {
+        var fromFormAttr = property.GetCustomAttribute<Microsoft.AspNetCore.Mvc.FromFormAttribute>();
+        var name = fromFormAttr?.Name ?? property.Name;
+        
+        // Apply snake_case conversion
+        return JsonNamingPolicy.SnakeCaseLower.ConvertName(name);
+    }
+
+    private bool IsParameterRequired(ParameterInfo parameter)
+    {
+        if (parameter.GetCustomAttribute<RequiredAttribute>() != null)
+            return true;
+
+        if (parameter.ParameterType.IsValueType && 
+            Nullable.GetUnderlyingType(parameter.ParameterType) == null)
+            return true;
+
+        return false;
+    }
+
+    private bool IsPropertyRequired(PropertyInfo property)
+    {
+        if (property.GetCustomAttribute<RequiredAttribute>() != null)
+            return true;
+
+        if (property.PropertyType.IsValueType && 
+            Nullable.GetUnderlyingType(property.PropertyType) == null)
+            return true;
+
+        try
+        {
+            var nullabilityContext = new NullabilityInfoContext();
+            var nullabilityInfo = nullabilityContext.Create(property);
+            return nullabilityInfo.WriteState == NullabilityState.NotNull;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool ContainsFileUpload(Type type)
+    {
+        if (type == typeof(IFormFile))
+            return true;
+
+        if (IsListOfFiles(type))
+            return true;
+
+        if (type.IsGenericType)
+        {
+            var genericArgs = type.GetGenericArguments();
+            if (genericArgs.Any(ContainsFileUpload))
+                return true;
+        }
+
+        if (!IsComplexType(type))
+            return false;
+
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        return properties.Any(prop => ContainsFileUpload(prop.PropertyType));
+    }
+
+    private bool IsComplexType(Type type)
+    {
+        if (type.IsPrimitive || type.IsEnum)
+            return false;
+
+        if (type == typeof(string) ||
+            type == typeof(decimal) ||
+            type == typeof(DateTime) ||
+            type == typeof(DateTimeOffset) ||
+            type == typeof(TimeSpan) ||
+            type == typeof(Guid) ||
+            type == typeof(byte[]))
+            return false;
+
+        var underlyingType = Nullable.GetUnderlyingType(type);
+        if (underlyingType != null)
+            return IsComplexType(underlyingType);
+
+        return true;
+    }
+
+    private bool IsGenericList(Type type)
+    {
+        if (!type.IsGenericType)
+            return false;
+
+        var genericDef = type.GetGenericTypeDefinition();
+        return genericDef == typeof(List<>) ||
+               genericDef == typeof(IList<>) ||
+               genericDef == typeof(IEnumerable<>) ||
+               genericDef == typeof(ICollection<>);
+    }
+
+    private bool IsListOfFiles(Type type)
+    {
+        if (!IsGenericList(type))
+            return false;
+
+        var itemType = type.GetGenericArguments()[0];
+        return itemType == typeof(IFormFile);
+    }
+}
+    private static class StringExtensions
+    {
+        public static string ToLowerCamelCase(string? str)
+        {
+            if (string.IsNullOrEmpty(str) || !char.IsUpper(str[0]))
+                return string.Empty;
+
+            var chars = str.ToCharArray();
+
+            for (int i = 0; i < chars.Length; i++)
+            {
+                // Stop if we hit a lowercase letter after the first character
+                if (i == 1 && !char.IsUpper(chars[i]))
+                    break;
+
+                bool hasNext = (i + 1 < chars.Length);
+
+                // Handle acronyms: HTTPServer -> httpServer
+                if (i > 0 && hasNext && !char.IsUpper(chars[i + 1]))
+                {
+                    if (char.IsLower(chars[i]))
+                        break;
+
+                    chars[i] = char.ToLowerInvariant(chars[i]);
+                    break;
+                }
+
+                chars[i] = char.ToLowerInvariant(chars[i]);
+            }
+
+            return new string(chars);
         }
     }
 }
@@ -280,12 +647,13 @@ public static class SchemaIdStrategy
             {
                 nameParts.Insert(0, part); // Insert at the beginning to maintain order from outermost to innermost
             }
+
             currentType = currentType.DeclaringType;
         }
 
         // Filter out empty parts and join them
         string result = string.Join("", nameParts.Where(p => !string.IsNullOrEmpty(p)));
-        
+
         // Fallback if the generated result is empty
         if (string.IsNullOrEmpty(result))
         {
@@ -301,7 +669,7 @@ public static class SchemaIdStrategy
                 return "UnknownSchema";
             }
         }
-        
+
         return result;
     }
 }

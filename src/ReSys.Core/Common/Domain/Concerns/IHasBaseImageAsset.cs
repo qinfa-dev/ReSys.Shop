@@ -2,10 +2,13 @@
 
 namespace ReSys.Core.Common.Domain.Concerns;
 
-public abstract class BaseImageAsset : BaseAsset, IHasPosition, IHasMetadata
+public abstract class BaseImageAsset : BaseAsset, IHasPosition, IHasMetadata, IHasAuditable
 {
     public int Position { get; set; }
-
+    public DateTimeOffset CreatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
     public IDictionary<string, object?>? PublicMetadata { get; set; }
         = new Dictionary<string, object?>();
 
@@ -24,7 +27,7 @@ public abstract class BaseImageAsset : BaseAsset, IHasPosition, IHasMetadata
 
         if (!HasBaseImageAsset.Constraints.IsValidAltText(Alt))
         {
-            errors.Add(item: HasBaseImageAsset.Errors.AltTextTooLong(p: prefix));
+            errors.Add(item: HasAsset.Errors.AltTextTooLong(p: prefix));
         }
 
         return errors;
@@ -38,7 +41,6 @@ public static class HasBaseImageAsset
     // ======================================================================
     public static class Constraints
     {
-        public const int AltTextMaxLength = HasAsset.Constraints.KeyMaxLength;
         public const int PositionMin = 0;
         public const int PositionMax = 10_000;
 
@@ -66,7 +68,7 @@ public static class HasBaseImageAsset
             pos >= PositionMin && pos <= PositionMax;
 
         public static bool IsValidAltText(string? txt) =>
-            string.IsNullOrWhiteSpace(value: txt) || txt.Length <= AltTextMaxLength;
+            string.IsNullOrWhiteSpace(value: txt) || txt.Length <= HasAsset.Constraints.KeyMaxLength;
     }
 
     // ======================================================================
@@ -78,9 +80,6 @@ public static class HasBaseImageAsset
 
         public static Error InvalidPosition(string? p = Prefix) =>
             CommonInput.Errors.OutOfRange(prefix: p, field: "Position");
-
-        public static Error AltTextTooLong(string? p = Prefix) =>
-            CommonInput.Errors.TooLong(prefix: p, field: "AltText", maxLength: Constraints.AltTextMaxLength);
 
         public static Error InvalidMimeType(string? p = Prefix) =>
             CommonInput.Errors.InvalidValue(prefix: p, field: "MimeType");
@@ -96,18 +95,12 @@ public static class HasBaseImageAsset
         string? prefix = null)
         where TEntity : BaseImageAsset
     {
-        validator.ApplyRules(prefix: prefix);
+        validator.AddAssetRules(prefix: prefix);
 
         validator.RuleFor(expression: x => x.Position)
             .InclusiveBetween(from: Constraints.PositionMin, to: Constraints.PositionMax)
             .WithErrorCode(errorCode: Errors.InvalidPosition(p: prefix).Code)
             .WithMessage(errorMessage: Errors.InvalidPosition(p: prefix).Description);
-
-        validator.RuleFor(expression: x => x.Alt)
-            .MaximumLength(maximumLength: Constraints.AltTextMaxLength)
-            .When(predicate: x => !string.IsNullOrEmpty(x.Alt))
-            .WithErrorCode(errorCode: Errors.AltTextTooLong(p: prefix).Code)
-            .WithMessage(errorMessage: Errors.AltTextTooLong(p: prefix).Description);
     }
 
     public static IRuleBuilderOptions<T, IFormFile?> ApplyImageFileRules<T>(

@@ -8,7 +8,7 @@ public static partial class CommonInput
     {
         public static class General
         {
-            public const bool IsRequiredByDefault = true;
+            public const bool IsRequiredByDefault = false;
             public const string DefaultFieldName = "Name";
         }
 

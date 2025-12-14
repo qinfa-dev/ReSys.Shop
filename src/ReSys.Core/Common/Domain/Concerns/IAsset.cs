@@ -1,7 +1,5 @@
 using System.Text.RegularExpressions;
 
-using ReSys.Core.Common.Domain.Entities;
-
 namespace ReSys.Core.Common.Domain.Concerns;
 
 // ============================================================================
@@ -12,23 +10,17 @@ public interface IAsset
     string Type { get; set; }
     string? Url { get; set; }
     string? Alt { get; set; }
-    bool Attached { get; }
 }
 
-public abstract class BaseAsset : AuditableEntity, IAsset
+public abstract class BaseAsset : IAsset
 {
     public string Type { get; set; } = string.Empty;
     public string? Url { get; set; }
     public string? Alt { get; set; }
-    public bool Attached => !string.IsNullOrWhiteSpace(value: Url);
 }
 
 public static class HasAsset
 {
-
-    public static bool IsAttached(this IAsset? asset) =>
-        asset is { Attached: true };
-
     public static bool Matches(this IAsset? asset, IAsset? right) =>
         asset is null && right is null ||
         asset is not null && right is not null &&
@@ -59,13 +51,11 @@ public static class HasAsset
 
     public static class Constraints
     {
-        public const int MaxAssets = CommonInput.Constraints.Dictionary.MaxEntries;
         public const int TypeMaxLength = CommonInput.Constraints.Dictionary.KeyMaxLength;
         public const string TypeAllowedPattern = CommonInput.Constraints.Dictionary.KeyAllowedPattern;
         public static readonly Regex TypeAllowedRegex = CommonInput.Constraints.Dictionary.KeyAllowedRegex;
 
-        public const int KeyMinLength = CommonInput.Constraints.Text.MinLength;
-        public const int KeyMaxLength = 512;
+        public const int KeyMaxLength = CommonInput.Constraints.Text.TitleMaxLength;
         public const int UrlMaxLength = CommonInput.Constraints.UrlAndUri.UrlMaxLength;
         public const int FilenameMaxLength = 255;
 
@@ -90,22 +80,12 @@ public static class HasAsset
             CommonInput.Errors.InvalidPattern(prefix: p, field: nameof(IAsset.Type), formatDescription: Constraints.TypeAllowedPattern);
         public static Error UrlTooLong(string? p = Prefix) =>
             CommonInput.Errors.TooLong(prefix: p, field: nameof(IAsset.Url), maxLength: Constraints.UrlMaxLength);
-        public static Error TooManyAssets(string? p = Prefix) =>
-            CommonInput.Errors.TooManyItems(prefix: p, max: Constraints.MaxAssets);
-        public static Error KeyRequired(string? p = Prefix) =>
-            CommonInput.Errors.Required(prefix: p, field: "Key");
-        public static Error KeyTooShort(string? p = Prefix) =>
-            CommonInput.Errors.TooShort(prefix: p, field: "Key", minLength: Constraints.KeyMinLength);
-        public static Error KeyTooLong(string? p = Prefix) =>
-            CommonInput.Errors.TooLong(prefix: p, field: "Key", maxLength: Constraints.KeyMaxLength);
-        public static Error FilenameTooLong(string? p = Prefix) =>
-            CommonInput.Errors.TooLong(prefix: p, field: "Filename", maxLength: Constraints.FilenameMaxLength);
-        public static Error InvalidKeyPattern(string? p = Prefix) =>
-            CommonInput.Errors.InvalidPattern(prefix: p, field: "Key", formatDescription: Constraints.TypeAllowedPattern);
+        public static Error AltTextTooLong(string? p = Prefix) =>
+            CommonInput.Errors.TooLong(prefix: p, field: "AltText", maxLength: Constraints.KeyMaxLength);
     }
 
 
-    public static void ApplyRules<TEntity>(
+    public static void AddAssetRules<TEntity>(
         this AbstractValidator<TEntity> validator, string? prefix = null)
         where TEntity : IAsset
     {
@@ -119,6 +99,12 @@ public static class HasAsset
             .Matches(expression: Constraints.TypeAllowedPattern)
             .WithErrorCode(errorCode: Errors.InvalidTypePattern(p: prefix).Code)
             .WithMessage(errorMessage: Errors.InvalidTypePattern(p: prefix).Description);
+
+        validator.RuleFor(expression: x => x.Alt)
+            .MaximumLength(maximumLength: Constraints.KeyMaxLength)
+            .When(predicate: x => !string.IsNullOrEmpty(x.Alt))
+            .WithErrorCode(errorCode: Errors.AltTextTooLong(p: prefix).Code)
+            .WithMessage(errorMessage: Errors.AltTextTooLong(p: prefix).Description);
 
         validator.RuleFor(expression: x => x.Url)
             .MaximumLength(maximumLength: Constraints.UrlMaxLength)
