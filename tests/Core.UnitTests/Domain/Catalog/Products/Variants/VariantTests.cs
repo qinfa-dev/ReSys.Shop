@@ -441,7 +441,7 @@ public class VariantTests
 
         // Assert
         result.IsError.Should().BeFalse();
-        nonMasterVariant.OptionValueVariants.Should().ContainSingle(predicate: ovv => ovv.OptionValueId == optionValue.Id && ovv.VariantId == nonMasterVariant.Id);
+        nonMasterVariant.VariantOptionValues.Should().ContainSingle(predicate: ovv => ovv.OptionValueId == optionValue.Id && ovv.VariantId == nonMasterVariant.Id);
         nonMasterVariant.DomainEvents.Should().Contain(predicate: e => e is Variant.Events.Updated);
         nonMasterVariant.DomainEvents.Should().Contain(predicate: e => e is Variant.Events.OptionAdded);
     }
@@ -466,7 +466,7 @@ public class VariantTests
 
         // Assert
         result.IsError.Should().BeFalse();
-        nonMasterVariant.OptionValueVariants.Should().ContainSingle(predicate: ovv => ovv.OptionValueId == optionValue.Id);
+        nonMasterVariant.VariantOptionValues.Should().ContainSingle(predicate: ovv => ovv.OptionValueId == optionValue.Id);
         nonMasterVariant.DomainEvents.Should().BeEmpty(); // No new events should be raised
     }
 
