@@ -236,7 +236,7 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "properties",
+                name: "property_types",
                 schema: "eshopdb",
                 columns: table => new
                 {
@@ -259,7 +259,7 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_properties", x => x.id);
+                    table.PrimaryKey("pk_property_types", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -457,14 +457,14 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false, comment: "Id: Unique identifier for the product variant. Value generated never."),
                     product_id = table.Column<Guid>(type: "uuid", nullable: false, comment: "ProductId: Foreign key to the associated Product."),
                     is_master = table.Column<bool>(type: "boolean", nullable: false, comment: "IsMaster: Indicates if this is the master variant."),
-                    sku = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, comment: "Sku: Stock Keeping Unit for the variant."),
-                    barcode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false, comment: "Barcode: Unique code printed on product label for internal or store scanning."),
+                    sku = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true, comment: "Sku: Stock Keeping Unit for the variant."),
+                    barcode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true, comment: "Barcode: Unique code printed on product label for internal or store scanning."),
                     weight = table.Column<decimal>(type: "numeric(18,4)", nullable: true, comment: "Weight: The weight of the variant."),
                     height = table.Column<decimal>(type: "numeric(18,4)", nullable: true, comment: "Height: The height of the variant."),
                     width = table.Column<decimal>(type: "numeric(18,4)", nullable: true, comment: "Width: The width of the variant."),
                     depth = table.Column<decimal>(type: "numeric(18,4)", nullable: true, comment: "Depth: The depth of the variant."),
-                    dimensions_unit = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false, comment: "DimensionsUnit: The unit of measurement for dimensions (e.g., mm, cm)."),
-                    weight_unit = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false, comment: "WeightUnit: The unit of measurement for weight (e.g., g, kg)."),
+                    dimensions_unit = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true, comment: "DimensionsUnit: The unit of measurement for dimensions (e.g., mm, cm)."),
+                    weight_unit = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true, comment: "WeightUnit: The unit of measurement for weight (e.g., g, kg)."),
                     track_inventory = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true, comment: "TrackInventory: Indicates if inventory should be tracked for this variant."),
                     cost_price = table.Column<decimal>(type: "numeric(18,4)", nullable: true, comment: "CostPrice: The cost price of the variant."),
                     cost_currency = table.Column<string>(type: "text", nullable: true),
@@ -582,16 +582,15 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "product_properties",
+                name: "product_property_types",
                 schema: "eshopdb",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false, comment: "Id: Unique identifier for the product property. Value generated never."),
                     product_id = table.Column<Guid>(type: "uuid", nullable: false, comment: "ProductId: Foreign key to the associated Product."),
-                    property_id = table.Column<Guid>(type: "uuid", nullable: false, comment: "PropertyId: Foreign key to the associated Property."),
+                    property_type_id = table.Column<Guid>(type: "uuid", nullable: false, comment: "PropertyId: Foreign key to the associated Property."),
                     position = table.Column<int>(type: "integer", nullable: false, defaultValue: 1, comment: "Position: Sortable ordering of the entity, minimum value is 1."),
-                    value = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: false, comment: "Value: The value of the property for this product."),
-                    filter_param = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true, comment: "URL-friendly filter parameter generated from a source property (e.g., Name)."),
+                    property_type_value = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: false, comment: "Value: The value of the property for this product."),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, comment: "CreatedAt: Timestamp of when the record was created."),
                     created_by = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true, comment: "CreatedBy: User who initially created this record."),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true, comment: "UpdatedAt: Timestamp of when the record was last updated."),
@@ -599,19 +598,19 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_product_properties", x => x.id);
+                    table.PrimaryKey("pk_product_property_types", x => x.id);
                     table.ForeignKey(
-                        name: "fk_product_properties_products_product_id",
+                        name: "fk_product_property_types_products_product_id",
                         column: x => x.product_id,
                         principalSchema: "eshopdb",
                         principalTable: "products",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "fk_product_properties_property_property_id",
-                        column: x => x.property_id,
+                        name: "fk_product_property_types_property_type_property_type_id",
+                        column: x => x.property_type_id,
                         principalSchema: "eshopdb",
-                        principalTable: "properties",
+                        principalTable: "property_types",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1084,14 +1083,14 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                     embedding_blip2generated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     product_id = table.Column<Guid>(type: "uuid", nullable: true, comment: "ProductId: Foreign key to Product."),
                     variant_id = table.Column<Guid>(type: "uuid", nullable: true, comment: "VariantId: Foreign key to Variant."),
-                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, comment: "CreatedAt: Timestamp of when the record was created."),
-                    created_by = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true, comment: "CreatedBy: User who initially created this record."),
-                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true, comment: "UpdatedAt: Timestamp of when the record was last updated."),
-                    updated_by = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true, comment: "UpdatedBy: User who last updated this record."),
                     type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false, comment: "Type: Image type (Default, Thumbnail, Gallery)."),
                     url = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false, comment: "Url: The URL of the image asset."),
                     alt = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true, comment: "Alt: Alternative text for the image."),
                     position = table.Column<int>(type: "integer", nullable: false, defaultValue: 1, comment: "Position: Sortable ordering of the entity, minimum value is 1."),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, comment: "CreatedAt: Timestamp of when the record was created."),
+                    created_by = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true, comment: "CreatedBy: User who initially created this record."),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true, comment: "UpdatedAt: Timestamp of when the record was last updated."),
+                    updated_by = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true, comment: "UpdatedBy: User who last updated this record."),
                     public_metadata = table.Column<string>(type: "jsonb", nullable: true, comment: "Public key-value metadata for the entity, stored as JSON."),
                     private_metadata = table.Column<string>(type: "jsonb", nullable: true, comment: "Private key-value metadata for the entity, stored as JSON.")
                 },
@@ -1306,8 +1305,8 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                     adjustment_total_cents = table.Column<decimal>(type: "numeric", nullable: false, defaultValue: 0m, comment: "AdjustmentTotalCents: Total amount for adjustments (e.g., discounts) in cents."),
                     currency = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false, defaultValue: "USD", comment: "Currency: The currency of the order (e.g., USD, EUR)."),
                     email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true, comment: "Email: Customer's email address."),
-                    Name = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false, comment: "SpecialInstructions: Any special instructions for the order."),
-                    promo_code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false, comment: "PromoCode: Promotional code applied to the order."),
+                    Name = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true, comment: "SpecialInstructions: Any special instructions for the order."),
+                    promo_code = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true, comment: "PromoCode: Promotional code applied to the order."),
                     completed_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true, comment: "CompletedAt: Timestamp when the order was completed."),
                     canceled_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true, comment: "CanceledAt: Timestamp when the order was canceled."),
                     public_metadata = table.Column<string>(type: "jsonb", nullable: true, comment: "Public key-value metadata for the entity, stored as JSON."),
@@ -1836,14 +1835,14 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false, comment: "Id: Unique identifier for the taxon image. Value generated never."),
                     taxon_id = table.Column<Guid>(type: "uuid", nullable: false, comment: "TaxonId: Foreign key to the associated Taxon."),
+                    type = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, comment: "Type: The type of the image (e.g., 'default', 'square')."),
+                    url = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true, comment: "Url: The URL of the image asset."),
+                    alt = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true, comment: "Alt: Alternative text for the image."),
+                    position = table.Column<int>(type: "integer", nullable: false, defaultValue: 1, comment: "Position: Sortable ordering of the entity, minimum value is 1."),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, comment: "CreatedAt: Timestamp of when the record was created."),
                     created_by = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true, comment: "CreatedBy: User who initially created this record."),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true, comment: "UpdatedAt: Timestamp of when the record was last updated."),
                     updated_by = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true, comment: "UpdatedBy: User who last updated this record."),
-                    type = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, comment: "Type: The type of the image (e.g., 'default', 'square')."),
-                    url = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true, comment: "Url: The URL of the image asset."),
-                    alt = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true, comment: "Alt: Alternative text for the image."),
-                    position = table.Column<int>(type: "integer", nullable: false, defaultValue: 1, comment: "Position: Sortable ordering of the entity, minimum value is 1."),
                     public_metadata = table.Column<string>(type: "jsonb", nullable: true, comment: "Public key-value metadata for the entity, stored as JSON."),
                     private_metadata = table.Column<string>(type: "jsonb", nullable: true, comment: "Private key-value metadata for the entity, stored as JSON.")
                 },
@@ -2454,35 +2453,35 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "ix_product_properties_created_by",
+                name: "ix_product_property_types_created_by",
                 schema: "eshopdb",
-                table: "product_properties",
+                table: "product_property_types",
                 column: "created_by");
 
             migrationBuilder.CreateIndex(
-                name: "ix_product_properties_position",
+                name: "ix_product_property_types_position",
                 schema: "eshopdb",
-                table: "product_properties",
+                table: "product_property_types",
                 column: "position");
 
             migrationBuilder.CreateIndex(
-                name: "ix_product_properties_product_id",
+                name: "ix_product_property_types_product_id",
                 schema: "eshopdb",
-                table: "product_properties",
+                table: "product_property_types",
                 column: "product_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_product_properties_product_id_property_id",
+                name: "ix_product_property_types_product_id_property_type_id",
                 schema: "eshopdb",
-                table: "product_properties",
-                columns: new[] { "product_id", "property_id" },
+                table: "product_property_types",
+                columns: new[] { "product_id", "property_type_id" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "ix_product_properties_property_id",
+                name: "ix_product_property_types_property_type_id",
                 schema: "eshopdb",
-                table: "product_properties",
-                column: "property_id");
+                table: "product_property_types",
+                column: "property_type_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_products_created_by",
@@ -2621,29 +2620,22 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 columns: new[] { "starts_at", "expires_at", "active" });
 
             migrationBuilder.CreateIndex(
-                name: "ix_properties_created_by",
+                name: "ix_property_types_created_by",
                 schema: "eshopdb",
-                table: "properties",
+                table: "property_types",
                 column: "created_by");
 
             migrationBuilder.CreateIndex(
-                name: "ix_properties_filter_param",
+                name: "ix_property_types_name",
                 schema: "eshopdb",
-                table: "properties",
-                column: "filter_param",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "ix_properties_name",
-                schema: "eshopdb",
-                table: "properties",
+                table: "property_types",
                 column: "name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "ix_properties_position",
+                name: "ix_property_types_position",
                 schema: "eshopdb",
-                table: "properties",
+                table: "property_types",
                 column: "position");
 
             migrationBuilder.CreateIndex(
@@ -3404,12 +3396,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "ix_variants_barcode",
-                schema: "eshopdb",
-                table: "variants",
-                column: "barcode");
-
-            migrationBuilder.CreateIndex(
                 name: "ix_variants_created_by",
                 schema: "eshopdb",
                 table: "variants",
@@ -3432,12 +3418,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 schema: "eshopdb",
                 table: "variants",
                 column: "product_id");
-
-            migrationBuilder.CreateIndex(
-                name: "ix_variants_sku",
-                schema: "eshopdb",
-                table: "variants",
-                column: "sku");
 
             migrationBuilder.AddForeignKey(
                 name: "fk_inventory_units_return_items_return_item_id",
@@ -3563,7 +3543,7 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 schema: "eshopdb");
 
             migrationBuilder.DropTable(
-                name: "product_properties",
+                name: "product_property_types",
                 schema: "eshopdb");
 
             migrationBuilder.DropTable(
@@ -3643,7 +3623,7 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                 schema: "eshopdb");
 
             migrationBuilder.DropTable(
-                name: "properties",
+                name: "property_types",
                 schema: "eshopdb");
 
             migrationBuilder.DropTable(

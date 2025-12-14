@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Ardalis.GuardClauses" />
     <PackageReference Include="AsyncKeyedLock" />
+    <PackageReference Include="Bogus" />
     <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="FluentEmail.Core" />
     <PackageReference Include="FluentEmail.Mailgun" />
@@ -16,8 +17,10 @@
     <PackageReference Include="FluentEmail.Smtp" />
     <PackageReference Include="FluentStorage" />
     <PackageReference Include="FluentStorage.Azure.Blobs" />
+    <PackageReference Include="FluentStorage.GCP" />
     <PackageReference Include="FluentStorage.SFTP" />
     <PackageReference Include="Google.Apis.Auth" />
+    <PackageReference Include="Google.Cloud.Storage.V1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
@@ -35,6 +38,7 @@
     <PackageReference Include="Serilog" />
     <PackageReference Include="Sinch" />
     <PackageReference Include="SixLabors.ImageSharp" />
+    <PackageReference Include="Stripe.net" />
   </ItemGroup>
 
   <ItemGroup>

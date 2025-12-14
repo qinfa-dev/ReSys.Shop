@@ -13,7 +13,7 @@ public sealed class ProductPropertyTypeConfiguration : IEntityTypeConfiguration<
     {
         #region Table
         // Set the table name for the ProductProperty entity.
-        builder.ToTable(name: Schema.ProductProperties);
+        builder.ToTable(name: Schema.ProductPropertyTypes);
         #endregion
 
         #region Primary Key
@@ -24,8 +24,8 @@ public sealed class ProductPropertyTypeConfiguration : IEntityTypeConfiguration<
         #region Indexes
         // Configure indexes for frequently queried columns to improve performance.
         builder.HasIndex(indexExpression: pp => pp.ProductId);
-        builder.HasIndex(indexExpression: pp => pp.PropertyId);
-        builder.HasIndex(indexExpression: pp => new { pp.ProductId, pp.PropertyId }).IsUnique();
+        builder.HasIndex(indexExpression: pp => pp.PropertyTypeId);
+        builder.HasIndex(indexExpression: pp => new { pp.ProductId, PropertyId = pp.PropertyTypeId }).IsUnique();
         builder.HasIndex(indexExpression: pp => pp.Position);
         #endregion
 
@@ -39,11 +39,11 @@ public sealed class ProductPropertyTypeConfiguration : IEntityTypeConfiguration<
             .IsRequired()
             .HasComment(comment: "ProductId: Foreign key to the associated Product.");
 
-        builder.Property(propertyExpression: pp => pp.PropertyId)
+        builder.Property(propertyExpression: pp => pp.PropertyTypeId)
             .IsRequired()
             .HasComment(comment: "PropertyId: Foreign key to the associated Property.");
 
-        builder.Property(propertyExpression: pp => pp.Value)
+        builder.Property(propertyExpression: pp => pp.PropertyTypeValue)
             .HasMaxLength(maxLength: ProductPropertyType.Constraints.MaxValueLength)
             .IsRequired()
             .HasComment(comment: "Value: The value of the property for this product.");
@@ -60,13 +60,13 @@ public sealed class ProductPropertyTypeConfiguration : IEntityTypeConfiguration<
         #region Relationships
         // Configure relationships for the ProductProperty entity.
         builder.HasOne(navigationExpression: pp => pp.Product)
-            .WithMany(navigationExpression: p => p.ProductProperties)
+            .WithMany(navigationExpression: p => p.ProductPropertyTypes)
             .HasForeignKey(foreignKeyExpression: pp => pp.ProductId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
         builder.HasOne(navigationExpression: pp => pp.PropertyType)
-            .WithMany(navigationExpression: p => p.ProductProperties)
-            .HasForeignKey(foreignKeyExpression: pp => pp.PropertyId)
+            .WithMany(navigationExpression: p => p.ProductPropertyTypes)
+            .HasForeignKey(foreignKeyExpression: pp => pp.PropertyTypeId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
     }

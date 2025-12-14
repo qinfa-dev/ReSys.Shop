@@ -42,7 +42,7 @@ public sealed class PropertyTypeConfiguration : IEntityTypeConfiguration<Propert
     {
         #region Table
         // Set the table name for the Property entity.
-        builder.ToTable(name: Schema.Properties);
+        builder.ToTable(name: Schema.PropertyTypes);
         #endregion
 
         #region Primary Key
@@ -120,9 +120,9 @@ public sealed class PropertyTypeConfiguration : IEntityTypeConfiguration<Propert
 
         #region Relationships
         // Configure relationships for the Property entity.
-        builder.HasMany(navigationExpression: p => p.ProductProperties)
+        builder.HasMany(navigationExpression: p => p.ProductPropertyTypes)
             .WithOne(navigationExpression: pp => pp.PropertyType)
-            .HasForeignKey(foreignKeyExpression: pp => pp.PropertyId)
+            .HasForeignKey(foreignKeyExpression: pp => pp.PropertyTypeId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
 

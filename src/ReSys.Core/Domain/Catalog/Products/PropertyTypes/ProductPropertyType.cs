@@ -77,7 +77,7 @@ public sealed class ProductPropertyType :
     public static class Constraints
     {
         /// <summary>
-        /// Maximum allowed length for the <see cref="Value"/> of the product property.
+        /// Maximum allowed length for the <see cref="ProductPropertyType.PropertyTypeValue"/> of the product property.
         /// This constraint is aligned with <see cref="CommonInput.Constraints.Text.LongTextMaxLength"/>.
         /// </summary>
         public const int MaxValueLength = CommonInput.Constraints.Text.LongTextMaxLength;
@@ -124,23 +124,18 @@ public sealed class ProductPropertyType :
     /// <summary>
     /// Gets or sets the unique identifier of the associated generic <see cref="PropertyType"/>.
     /// </summary>
-    public Guid PropertyId { get; set; }
+    public Guid PropertyTypeId { get; set; }
     /// <summary>
     /// Gets or sets the display order of this property within the product's property list.
     /// Lower values typically appear first.
     /// </summary>
     public int Position { get; set; }
 
-    private string _value = string.Empty;
     /// <summary>
     /// Gets or sets the specific value assigned to this property for the product.
     /// The value is trimmed on set to remove leading/trailing whitespace.
     /// </summary>
-    public string Value
-    {
-        get => _value;
-        set => _value = value.Trim();
-    }
+    public string? PropertyTypeValue { get; set; }
     #endregion
 
     #region Relationships
@@ -223,8 +218,8 @@ public sealed class ProductPropertyType :
         {
             Id = Guid.NewGuid(),
             ProductId = productId,
-            PropertyId = propertyId,
-            Value = value,
+            PropertyTypeId = propertyId,
+            PropertyTypeValue = value,
             Position = Math.Max(val1: 0, val2: Math.Min(val1: position, val2: Constraints.MaxPosition)),
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -243,8 +238,8 @@ public sealed class ProductPropertyType :
     /// <param name="value"></param>
     /// <param name="position">The new value to assign to this property for the product. If null, the existing value is retained.</param>
     /// <returns>
-    /// An <see cref="Value"/> result.
-    /// Returns the updated <see cref="Value"/> instance on success.
+    /// An <see cref="PropertyTypeValue"/> result.
+    /// Returns the updated <see cref="PropertyTypeValue"/> instance on success.
     /// Returns an error if validation fails (e.g., value too long, invalid filter param format).
     /// </returns>
     /// <remarks>
@@ -274,9 +269,9 @@ public sealed class ProductPropertyType :
         bool changed = false;
 
         // Update value
-        if (value is not null && value != Value)
+        if (value is not null && value != PropertyTypeValue)
         {
-            Value = value;
+            PropertyTypeValue = value;
             changed = true;
         }
 

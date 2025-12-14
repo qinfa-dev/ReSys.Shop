@@ -14,7 +14,7 @@ using ReSys.Core.Domain.Auditing;
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Images;
 using ReSys.Core.Domain.Catalog.Products.Reviews;
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Domain.Configurations;
 using ReSys.Core.Domain.Identity.Permissions;
 using ReSys.Core.Domain.Identity.UserAddresses;
@@ -218,7 +218,7 @@ internal static class DatabaseServiceCollectionExtensions
                 dataSourceBuilder.MapEnum<ProductImage.ProductImageType>();
                 dataSourceBuilder.MapEnum<Product.ProductStatus>();
                 dataSourceBuilder.MapEnum<Review.ReviewStatus>();
-                dataSourceBuilder.MapEnum<Property.PropertyKind>();
+                dataSourceBuilder.MapEnum<PropertyType.PropertyKind>();
                 dataSourceBuilder.MapEnum<ConfigurationValueType>();
                 dataSourceBuilder.MapEnum<AccessPermission.PermissionCategory>();
                 dataSourceBuilder.MapEnum<AddressType>();

@@ -11,6 +11,7 @@ using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Domain.Catalog.Taxonomies;
 using ReSys.Core.Domain.Catalog.Taxonomies.Taxa;
+using ReSys.Core.Domain.Inventories.Stocks;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Stores;
 using ReSys.Core.Domain.Stores.Products;
@@ -414,11 +415,11 @@ public sealed class Product : Aggregate,
     /// <summary>
     /// Collection of product properties associated with the product.
     /// </summary>
-    public ICollection<ProductPropertyType> ProductProperties { get; set; } = new List<ProductPropertyType>();
+    public ICollection<ProductPropertyType> ProductPropertyTypes { get; set; } = new List<ProductPropertyType>();
     /// <summary>
     /// Collection of properties associated with the product.
     /// </summary>
-    public ICollection<PropertyType> Properties => ProductProperties.Select(selector: pp => pp.PropertyType).ToList();
+    public ICollection<PropertyType> Properties => ProductPropertyTypes.Select(selector: pp => pp.PropertyType).ToList();
     /// <summary>
     /// Collection of classifications (categories) associated with the product.
     /// </summary>
@@ -974,7 +975,7 @@ public sealed class Product : Aggregate,
     /// </summary>
     /// <param name="optionTypeId">The ID of the option type to remove.</param>
     /// <returns>An <see cref="ErrorOr{Product}"/> indicating success with the updated product, or an error if the option type is not found.</returns>
-    public ErrorOr<Product> RemoveOptionType(Guid optionTypeId)
+    public ErrorOr<ProductOptionType> RemoveOptionType(Guid optionTypeId)
     {
         var productOptionType = ProductOptionTypes.FirstOrDefault(predicate: pot => pot.OptionTypeId == optionTypeId);
         if (productOptionType == null)
@@ -984,7 +985,7 @@ public sealed class Product : Aggregate,
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.ProductOptionTypeRemoved(ProductId: Id, OptionTypeId: optionTypeId));
 
-        return this;
+        return productOptionType;
     }
 
     /// <summary>
@@ -1014,7 +1015,7 @@ public sealed class Product : Aggregate,
     /// </summary>
     /// <param name="taxonId">The ID of the taxon (classification) to remove.</param>
     /// <returns>An <see cref="ErrorOr{Product}"/> indicating success with the updated product, or an error if the classification is not found.</returns>
-    public ErrorOr<Product> RemoveClassification(Guid taxonId)
+    public ErrorOr<Classification> RemoveClassification(Guid taxonId)
     {
         var classification = Classifications.FirstOrDefault(predicate: c => c.TaxonId == taxonId);
         if (classification == null)
@@ -1024,7 +1025,7 @@ public sealed class Product : Aggregate,
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.ProductCategoryRemoved(ProductId: Id, TaxonId: taxonId));
 
-        return this;
+        return classification;
     }
 
 
@@ -1143,10 +1144,10 @@ public sealed class Product : Aggregate,
             return Error.Validation(code: "Product.ProductProperty.Null", description: "Product property cannot be null.");
 
         // Guard: duplicate property
-        if (ProductProperties.Any(predicate: pp => pp.PropertyId == productProperty.PropertyId))
-            return Error.Conflict(code: "Product.Property.Duplicate", description: $"Property with ID '{productProperty.PropertyId}' already exists.");
+        if (ProductPropertyTypes.Any(predicate: pp => pp.PropertyTypeId == productProperty.PropertyTypeId))
+            return Error.Conflict(code: "Product.Property.Duplicate", description: $"Property with ID '{productProperty.PropertyTypeId}' already exists.");
 
-        ProductProperties.Add(item: productProperty);
+        ProductPropertyTypes.Add(item: productProperty);
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.ProductPropertyAdded(ProductId: Id, ProductPropertyId: productProperty.Id));
 
@@ -1160,11 +1161,11 @@ public sealed class Product : Aggregate,
     /// <returns>An <see cref="ErrorOr{Product}"/> indicating success with the updated product, or an error if the property is not found.</returns>
     public ErrorOr<Product> RemoveProperty(Guid propertyId)
     {
-        var productProperty = ProductProperties.FirstOrDefault(predicate: pp => pp.PropertyId == propertyId);
+        var productProperty = ProductPropertyTypes.FirstOrDefault(predicate: pp => pp.PropertyTypeId == propertyId);
         if (productProperty == null)
             return ProductPropertyType.Errors.NotFound(id: propertyId);
 
-        ProductProperties.Remove(item: productProperty);
+        ProductPropertyTypes.Remove(item: productProperty);
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.ProductPropertyRemoved(ProductId: Id, PropertyId: propertyId));
 
@@ -1179,7 +1180,7 @@ public sealed class Product : Aggregate,
     /// <returns>An <see cref="ErrorOr{Product}"/> indicating success with the updated product, or an error if validation fails.</returns>
     public ErrorOr<Product> SetPropertyValue(Guid propertyId, string value)
     {
-        var productProperty = ProductProperties.FirstOrDefault(predicate: pp => pp.PropertyId == propertyId);
+        var productProperty = ProductPropertyTypes.FirstOrDefault(predicate: pp => pp.PropertyTypeId == propertyId);
 
         if (productProperty is not null)
         {
@@ -1193,7 +1194,7 @@ public sealed class Product : Aggregate,
             if (createResult.IsError)
                 return createResult.FirstError;
 
-            ProductProperties.Add(item: createResult.Value);
+            ProductPropertyTypes.Add(item: createResult.Value);
             AddDomainEvent(domainEvent: new Events.ProductPropertyAdded(ProductId: Id, ProductPropertyId: createResult.Value.Id));
         }
 

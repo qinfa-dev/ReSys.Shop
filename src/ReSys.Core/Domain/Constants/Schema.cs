@@ -101,9 +101,8 @@ public static class Schema
     public const string ProductImages = "product_images"; // Color-specific images
 
     // Product Attributes & Properties - Fashion-specific
-    public const string Properties = "properties"; // Color, Material, Care Instructions
-    public const string ProductProperties = "product_properties";
-    public const string PropertyValues = "property_values"; // Predefined values
+    public const string PropertyTypes = "property_types"; // Color, Material, Care Instructions
+    public const string ProductPropertyTypes = "product_property_types";
 
     // Product Options System - Size/Color/Style variations  
     public const string OptionTypes = "option_types"; // Size, Color, Material, Fit

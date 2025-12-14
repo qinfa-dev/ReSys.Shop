@@ -99,7 +99,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasForeignKey(foreignKeyExpression: po => po.ProductId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-        builder.HasMany(navigationExpression: p => p.ProductProperties)
+        builder.HasMany(navigationExpression: p => p.ProductPropertyTypes)
             .WithOne(navigationExpression: pp => pp.Product)
             .HasForeignKey(foreignKeyExpression: pp => pp.ProductId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);

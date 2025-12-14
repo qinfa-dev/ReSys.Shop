@@ -297,7 +297,7 @@ public sealed class PropertyType :
     /// Each ProductProperty represents the property assignment to a specific product.
     /// Example: Property "Color" has ProductProperties for "Red Shirt", "Blue Jeans", "Green Hat".
     /// </summary>
-    public ICollection<ProductPropertyType> ProductProperties { get; set; } = new List<ProductPropertyType>();
+    public ICollection<ProductPropertyType> ProductPropertyTypes { get; set; } = new List<ProductPropertyType>();
     //public IEnumerable<Product> Products => ProductProperties.Select(selector: pp => pp.Product);
 
     #endregion
@@ -551,7 +551,7 @@ public sealed class PropertyType :
     /// </remarks>
     public ErrorOr<Deleted> Delete()
     {
-        if (ProductProperties.Any())
+        if (ProductPropertyTypes.Any())
             return Errors.HasProductProperties;
 
         AddDomainEvent(domainEvent: new Events.Deleted(PropertyId: Id));

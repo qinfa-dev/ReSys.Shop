@@ -14,7 +14,7 @@ using ReSys.Infrastructure.Persistence.Contexts;
 namespace ReSys.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251210174127_Initial")]
+    [Migration("20251214142225_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -876,7 +876,7 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                     b.ToTable("products", "eshopdb");
                 });
 
-            modelBuilder.Entity("ReSys.Core.Domain.Catalog.Products.Properties.ProductProperty", b =>
+            modelBuilder.Entity("ReSys.Core.Domain.Catalog.Products.PropertyTypes.ProductPropertyType", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -895,12 +895,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasColumnName("created_by")
                         .HasComment("CreatedBy: User who initially created this record.");
 
-                    b.Property<string>("FilterParam")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("filter_param")
-                        .HasComment("URL-friendly filter parameter generated from a source property (e.g., Name).");
-
                     b.Property<int>("Position")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -913,10 +907,17 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasColumnName("product_id")
                         .HasComment("ProductId: Foreign key to the associated Product.");
 
-                    b.Property<Guid>("PropertyId")
+                    b.Property<Guid>("PropertyTypeId")
                         .HasColumnType("uuid")
-                        .HasColumnName("property_id")
+                        .HasColumnName("property_type_id")
                         .HasComment("PropertyId: Foreign key to the associated Property.");
+
+                    b.Property<string>("PropertyTypeValue")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)")
+                        .HasColumnName("property_type_value")
+                        .HasComment("Value: The value of the property for this product.");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -929,33 +930,26 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_by")
                         .HasComment("UpdatedBy: User who last updated this record.");
 
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)")
-                        .HasColumnName("value")
-                        .HasComment("Value: The value of the property for this product.");
-
                     b.HasKey("Id")
-                        .HasName("pk_product_properties");
+                        .HasName("pk_product_property_types");
 
                     b.HasIndex("CreatedBy")
-                        .HasDatabaseName("ix_product_properties_created_by");
+                        .HasDatabaseName("ix_product_property_types_created_by");
 
                     b.HasIndex("Position")
-                        .HasDatabaseName("ix_product_properties_position");
+                        .HasDatabaseName("ix_product_property_types_position");
 
                     b.HasIndex("ProductId")
-                        .HasDatabaseName("ix_product_properties_product_id");
+                        .HasDatabaseName("ix_product_property_types_product_id");
 
-                    b.HasIndex("PropertyId")
-                        .HasDatabaseName("ix_product_properties_property_id");
+                    b.HasIndex("PropertyTypeId")
+                        .HasDatabaseName("ix_product_property_types_property_type_id");
 
-                    b.HasIndex("ProductId", "PropertyId")
+                    b.HasIndex("ProductId", "PropertyTypeId")
                         .IsUnique()
-                        .HasDatabaseName("ix_product_properties_product_id_property_id");
+                        .HasDatabaseName("ix_product_property_types_product_id_property_type_id");
 
-                    b.ToTable("product_properties", "eshopdb");
+                    b.ToTable("product_property_types", "eshopdb");
                 });
 
             modelBuilder.Entity("ReSys.Core.Domain.Catalog.Products.Reviews.Review", b =>
@@ -1078,7 +1072,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasComment("Id: Unique identifier for the product variant. Value generated never.");
 
                     b.Property<string>("Barcode")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("barcode")
@@ -1123,7 +1116,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasComment("Depth: The depth of the variant.");
 
                     b.Property<string>("DimensionsUnit")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("dimensions_unit")
@@ -1183,7 +1175,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasComment("RowVersion: Concurrency token for optimistic locking.");
 
                     b.Property<string>("Sku")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("sku")
@@ -1219,7 +1210,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasComment("Weight: The weight of the variant.");
 
                     b.Property<string>("WeightUnit")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("weight_unit")
@@ -1235,9 +1225,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_variants");
 
-                    b.HasIndex("Barcode")
-                        .HasDatabaseName("ix_variants_barcode");
-
                     b.HasIndex("CreatedBy")
                         .HasDatabaseName("ix_variants_created_by");
 
@@ -1249,9 +1236,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ProductId")
                         .HasDatabaseName("ix_variants_product_id");
-
-                    b.HasIndex("Sku")
-                        .HasDatabaseName("ix_variants_sku");
 
                     b.ToTable("variants", "eshopdb");
                 });
@@ -1315,7 +1299,7 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                     b.ToTable("variant_option_values", "eshopdb");
                 });
 
-            modelBuilder.Entity("ReSys.Core.Domain.Catalog.Properties.Property", b =>
+            modelBuilder.Entity("ReSys.Core.Domain.Catalog.PropertyTypes.PropertyType", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -1411,23 +1395,19 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasColumnName("version");
 
                     b.HasKey("Id")
-                        .HasName("pk_properties");
+                        .HasName("pk_property_types");
 
                     b.HasIndex("CreatedBy")
-                        .HasDatabaseName("ix_properties_created_by");
-
-                    b.HasIndex("FilterParam")
-                        .IsUnique()
-                        .HasDatabaseName("ix_properties_filter_param");
+                        .HasDatabaseName("ix_property_types_created_by");
 
                     b.HasIndex("Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_properties_name");
+                        .HasDatabaseName("ix_property_types_name");
 
                     b.HasIndex("Position")
-                        .HasDatabaseName("ix_properties_position");
+                        .HasDatabaseName("ix_property_types_position");
 
-                    b.ToTable("properties", "eshopdb");
+                    b.ToTable("property_types", "eshopdb");
                 });
 
             modelBuilder.Entity("ReSys.Core.Domain.Catalog.Taxonomies.Images.TaxonImage", b =>
@@ -1438,8 +1418,8 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasComment("Id: Unique identifier for the taxon image. Value generated never.");
 
                     b.Property<string>("Alt")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("alt")
                         .HasComment("Alt: Alternative text for the image.");
 
@@ -3657,7 +3637,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasComment("Private key-value metadata for the entity, stored as JSON.");
 
                     b.Property<string>("PromoCode")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("promo_code")
@@ -3699,7 +3678,6 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasComment("ShippingMethodId: Foreign key to the associated ShippingMethod.");
 
                     b.Property<string>("SpecialInstructions")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("Name")
@@ -5773,25 +5751,25 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                     b.Navigation("Variant");
                 });
 
-            modelBuilder.Entity("ReSys.Core.Domain.Catalog.Products.Properties.ProductProperty", b =>
+            modelBuilder.Entity("ReSys.Core.Domain.Catalog.Products.PropertyTypes.ProductPropertyType", b =>
                 {
                     b.HasOne("ReSys.Core.Domain.Catalog.Products.Product", "Product")
-                        .WithMany("ProductProperties")
+                        .WithMany("ProductPropertyTypes")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_product_properties_products_product_id");
+                        .HasConstraintName("fk_product_property_types_products_product_id");
 
-                    b.HasOne("ReSys.Core.Domain.Catalog.Properties.Property", "Property")
-                        .WithMany("ProductProperties")
-                        .HasForeignKey("PropertyId")
+                    b.HasOne("ReSys.Core.Domain.Catalog.PropertyTypes.PropertyType", "PropertyType")
+                        .WithMany("ProductPropertyTypes")
+                        .HasForeignKey("PropertyTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_product_properties_property_property_id");
+                        .HasConstraintName("fk_product_property_types_property_type_property_type_id");
 
                     b.Navigation("Product");
 
-                    b.Navigation("Property");
+                    b.Navigation("PropertyType");
                 });
 
             modelBuilder.Entity("ReSys.Core.Domain.Catalog.Products.Reviews.Review", b =>
@@ -5837,7 +5815,7 @@ namespace ReSys.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_variant_option_values_option_values_option_value_id");
 
                     b.HasOne("ReSys.Core.Domain.Catalog.Products.Variants.Variant", "Variant")
-                        .WithMany("OptionValueVariants")
+                        .WithMany("VariantOptionValues")
                         .HasForeignKey("VariantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -6514,7 +6492,7 @@ namespace ReSys.Infrastructure.Persistence.Migrations
 
                     b.Navigation("ProductOptionTypes");
 
-                    b.Navigation("ProductProperties");
+                    b.Navigation("ProductPropertyTypes");
 
                     b.Navigation("Reviews");
 
@@ -6529,16 +6507,16 @@ namespace ReSys.Infrastructure.Persistence.Migrations
 
                     b.Navigation("LineItems");
 
-                    b.Navigation("OptionValueVariants");
-
                     b.Navigation("Prices");
 
                     b.Navigation("StockItems");
+
+                    b.Navigation("VariantOptionValues");
                 });
 
-            modelBuilder.Entity("ReSys.Core.Domain.Catalog.Properties.Property", b =>
+            modelBuilder.Entity("ReSys.Core.Domain.Catalog.PropertyTypes.PropertyType", b =>
                 {
-                    b.Navigation("ProductProperties");
+                    b.Navigation("ProductPropertyTypes");
                 });
 
             modelBuilder.Entity("ReSys.Core.Domain.Catalog.Taxonomies.Taxa.Taxon", b =>
