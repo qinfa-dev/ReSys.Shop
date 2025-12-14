@@ -1,11 +1,11 @@
 ﻿using MapsterMapper;
 
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public static class Update
     {
@@ -19,7 +19,7 @@ public static partial class PropertyModule
         {
             public CommandValidator()
             {
-                var idRequired = CommonInput.Errors.Required(prefix: nameof(Property), nameof(Property.Id));
+                var idRequired = CommonInput.Errors.Required(prefix: nameof(PropertyType), nameof(PropertyType.Id));
                 RuleFor(expression: x => x.Id)
                     .NotEmpty()
                     .WithErrorCode(idRequired.Code)
@@ -39,20 +39,20 @@ public static partial class PropertyModule
             {
                 var request = command.Request;
 
-                Property? property = await unitOfWork.Context.Set<Property>()
+                PropertyType? property = await unitOfWork.Context.Set<PropertyType>()
                     .FindAsync(keyValues: [command.Id], cancellationToken: cancellationToken);
                 if (property == null)
                 {
-                    return Property.Errors.NotFound(id: command.Id);
+                    return PropertyType.Errors.NotFound(id: command.Id);
                 }
 
                 if (property.Name != request.Name)
                 {
-                    var uniqueNameCheck = await unitOfWork.Context.Set<Property>()
+                    var uniqueNameCheck = await unitOfWork.Context.Set<PropertyType>()
                         .Where(predicate: m => m.Id != property.Id)
-                        .CheckNameIsUniqueAsync<Property, Guid>(
+                        .CheckNameIsUniqueAsync<PropertyType, Guid>(
                             name: request.Name,
-                            prefix: nameof(Property),
+                            prefix: nameof(PropertyType),
                             cancellationToken: cancellationToken, 
                             exclusions: [property.Id]);
                     if (uniqueNameCheck.IsError)

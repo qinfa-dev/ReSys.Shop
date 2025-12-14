@@ -1,11 +1,11 @@
 ﻿using MapsterMapper;
 
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public static class Create
     {
@@ -30,16 +30,16 @@ public static partial class PropertyModule
                 var param = command.Request;
                 await unitOfWork.BeginTransactionAsync(cancellationToken: cancellationToken);
 
-                var uniqueNameCheck = await unitOfWork.Context.Set<Property>()
-                    .CheckNameIsUniqueAsync<Property, Guid>(
+                var uniqueNameCheck = await unitOfWork.Context.Set<PropertyType>()
+                    .CheckNameIsUniqueAsync<PropertyType, Guid>(
                         name: param.Name,
-                        prefix: nameof(Property),
+                        prefix: nameof(PropertyType),
                         cancellationToken: cancellationToken);
 
                 if (uniqueNameCheck.IsError)
                     return uniqueNameCheck.Errors;
 
-                var createResult = Property.Create(
+                var createResult = PropertyType.Create(
                     name: param.Name,
                     presentation: param.Presentation,
                     kind: param.Kind,
@@ -53,7 +53,7 @@ public static partial class PropertyModule
                 if (createResult.IsError) return createResult.Errors;
                 var property = createResult.Value;
 
-                unitOfWork.Context.Set<Property>().Add(entity: property);
+                unitOfWork.Context.Set<PropertyType>().Add(entity: property);
                 await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);
 
                 await unitOfWork.CommitTransactionAsync(cancellationToken: cancellationToken);

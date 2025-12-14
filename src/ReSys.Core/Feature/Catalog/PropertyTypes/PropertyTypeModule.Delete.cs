@@ -1,9 +1,9 @@
-﻿using ReSys.Core.Domain.Catalog.Properties;
+﻿using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public static class Delete
     {
@@ -13,7 +13,7 @@ public static partial class PropertyModule
         {
             public CommandValidator()
             {
-                var idRequired = CommonInput.Errors.Required(prefix: nameof(Property), nameof(Property.Id));
+                var idRequired = CommonInput.Errors.Required(prefix: nameof(PropertyType), nameof(PropertyType.Id));
                 RuleFor(expression: x => x.Id)
                     .NotEmpty()
                     .WithErrorCode(idRequired.Code)
@@ -28,20 +28,20 @@ public static partial class PropertyModule
             public async Task<ErrorOr<Deleted>> Handle(Command command, CancellationToken cancellationToken)
             {
                 // Fetch: 
-                var property = await unitOfWork.Context.Set<Property>()
+                var property = await unitOfWork.Context.Set<PropertyType>()
                     .Include(navigationPropertyPath: p => p.ProductProperties)
                     .FirstOrDefaultAsync(predicate: m => m.Id == command.Id, cancellationToken: cancellationToken);
 
                 // Check: existence
                 if (property == null)
-                    return Property.Errors.NotFound(id: command.Id);
+                    return PropertyType.Errors.NotFound(id: command.Id);
 
                 // Check: deletable
                 var deleteResult = property.Delete();
                 if (deleteResult.IsError) return deleteResult.Errors;
 
                 await unitOfWork.BeginTransactionAsync(cancellationToken: cancellationToken);
-                unitOfWork.Context.Set<Property>().Remove(entity: property);
+                unitOfWork.Context.Set<PropertyType>().Remove(entity: property);
                 await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);
                 await unitOfWork.CommitTransactionAsync(cancellationToken: cancellationToken);
 

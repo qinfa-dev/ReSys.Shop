@@ -1,11 +1,11 @@
 ﻿using MapsterMapper;
 
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public static class UpdateDisplayOn
     {
@@ -18,7 +18,7 @@ public static partial class PropertyModule
         {
             public RequestValidator()
             {
-                this.AddDisplayOnRules(prefix: nameof(Property));
+                this.AddDisplayOnRules(prefix: nameof(PropertyType));
             }
         }
 
@@ -30,7 +30,7 @@ public static partial class PropertyModule
         {
             public CommandValidator()
             {
-                var idRequired = CommonInput.Errors.Required(prefix: nameof(Property), nameof(Property.Id));
+                var idRequired = CommonInput.Errors.Required(prefix: nameof(PropertyType), nameof(PropertyType.Id));
                 RuleFor(expression: x => x.Id)
                     .NotEmpty()
                     .WithErrorCode(idRequired.Code)
@@ -50,11 +50,11 @@ public static partial class PropertyModule
             {
                 var request = command.Request;
 
-                Property? property = await unitOfWork.Context.Set<Property>()
+                PropertyType? property = await unitOfWork.Context.Set<PropertyType>()
                     .FindAsync(keyValues: [command.Id], cancellationToken: cancellationToken);
                 if (property == null)
                 {
-                    return Property.Errors.NotFound(id: command.Id);
+                    return PropertyType.Errors.NotFound(id: command.Id);
                 }
 
                 await unitOfWork.BeginTransactionAsync(cancellationToken: cancellationToken);

@@ -7,12 +7,12 @@ using ReSys.Core.Common.Models.Search;
 using ReSys.Core.Common.Models.Sort;
 using ReSys.Core.Common.Models.Wrappers.PagedLists;
 using ReSys.Core.Common.Models.Wrappers.Queryable;
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public static partial class Get
     {
@@ -32,7 +32,7 @@ public static partial class PropertyModule
                     CancellationToken cancellationToken)
                 {
 
-                    var pagedResult = await dbContext.Set<Property>()
+                    var pagedResult = await dbContext.Set<PropertyType>()
                         .Include(navigationPropertyPath: p => p.ProductProperties)
                         .AsQueryable()
                         .AsNoTracking()

@@ -1,10 +1,10 @@
 ﻿using Mapster;
 
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public static class Models
     {
@@ -17,7 +17,7 @@ public static partial class PropertyModule
         {
             public string Name { get; set; } = string.Empty;
             public string Presentation { get; set; } = string.Empty;
-            public Property.PropertyKind Kind { get; set; }
+            public PropertyType.PropertyKind Kind { get; set; }
             public bool Filterable { get; set; }
             public string? FilterParam { get; set; }
             public DisplayOn DisplayOn { get; set; }
@@ -31,7 +31,7 @@ public static partial class PropertyModule
         {
             public ParameterValidator()
             {
-                const string prefix = nameof(Property);
+                const string prefix = nameof(PropertyType);
                 this.AddParameterizableNameRules(prefix: prefix);
                 this.AddMetadataSupportRules(prefix: prefix);
                 this.AddPositionRules(prefix: prefix);
@@ -62,7 +62,7 @@ public static partial class PropertyModule
             public Guid Id { get; set; }
             public string Name { get; set; } = string.Empty;
             public string Presentation { get; set; } = string.Empty;
-            public Property.PropertyKind Kind { get; set; }
+            public PropertyType.PropertyKind Kind { get; set; }
             public string? FilterParam { get; set; }
             public DisplayOn DisplayOn { get; set; }
             public int Position { get; set; }
@@ -88,13 +88,13 @@ public static partial class PropertyModule
             public void Register(TypeAdapterConfig config)
             {
                 // Property -> SelectItem
-                config.NewConfig<Property, SelectItem>()
+                config.NewConfig<PropertyType, SelectItem>()
                     .Map(member: dest => dest.Id, source: src => src.Id)
                     .Map(member: dest => dest.Name, source: src => src.Name)
                     .Map(member: dest => dest.Presentation, source: src => src.Presentation);
 
                 // ListItem
-                config.NewConfig<Property, ListItem>()
+                config.NewConfig<PropertyType, ListItem>()
                     .Map(member: dest => dest.Id, source: src => src.Id)
                     .Map(member: dest => dest.Name, source: src => src.Name)
                     .Map(member: dest => dest.Presentation, source: src => src.Presentation)
@@ -108,8 +108,8 @@ public static partial class PropertyModule
                     .Map(member: dest => dest.UpdatedAt, source: src => src.UpdatedAt);
 
                 // Property -> Detail
-                config.NewConfig<Property, Detail>()
-                    .Inherits<Property, ListItem>()
+                config.NewConfig<PropertyType, Detail>()
+                    .Inherits<PropertyType, ListItem>()
                     .Map(member: dest => dest.PublicMetadata, source: src => src.PublicMetadata)
                     .Map(member: dest => dest.PrivateMetadata, source: src => src.PrivateMetadata);
             }

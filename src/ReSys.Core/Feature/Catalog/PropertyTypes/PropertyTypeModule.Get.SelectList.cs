@@ -2,26 +2,30 @@
 
 using MapsterMapper;
 
+using Microsoft.AspNetCore.Mvc;
+
 using ReSys.Core.Common.Models.Filter;
 using ReSys.Core.Common.Models.Search;
 using ReSys.Core.Common.Models.Sort;
 using ReSys.Core.Common.Models.Wrappers.PagedLists;
 using ReSys.Core.Common.Models.Wrappers.Queryable;
-using ReSys.Core.Domain.Catalog.Properties;
+using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public static partial class Get
     {
         public static class SelectList
         {
-            public sealed class Request : QueryableParams;
+            public sealed class Request : QueryableParams
+            {
+                [FromQuery] public Guid[]? ProductId { get; set; }
+            }
 
             public sealed record Result : Models.SelectItem;
-
             public sealed record Query(Request Request) : IQuery<PagedList<Result>>;
 
             public sealed class QueryHandler(
@@ -31,8 +35,13 @@ public static partial class PropertyModule
             {
                 public async Task<ErrorOr<PagedList<Result>>> Handle(Query command, CancellationToken cancellationToken)
                 {
-
-                    PagedList<Result> pagedResult = await dbContext.Set<Property>().AsQueryable()
+                    var param = command.Request;
+                    PagedList<Result> pagedResult = await dbContext.Set<PropertyType>().AsQueryable()
+                        .Include(m => m.ProductProperties
+                            .Where(m =>
+                                param.ProductId == null ||
+                                param.ProductId.Length == 0 ||
+                                param.ProductId.Contains(m.ProductId)))
                         .AsNoTracking()
                         .ApplySearch(searchParams: command.Request)
                         .ApplyFilters(filterParams: command.Request)

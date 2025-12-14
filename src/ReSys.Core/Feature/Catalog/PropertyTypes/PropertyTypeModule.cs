@@ -11,9 +11,9 @@ using ReSys.Core.Common.Models.Wrappers.Responses;
 using ReSys.Core.Feature.Common.Security.Authorization.Attributes.Extensions;
 using ReSys.Core.Feature.Common.Security.Authorization.Permissions.Constants;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public sealed class Endpoints : ICarterModule
     {

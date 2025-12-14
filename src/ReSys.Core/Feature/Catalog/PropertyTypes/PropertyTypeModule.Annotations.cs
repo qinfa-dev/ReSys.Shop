@@ -2,9 +2,9 @@
 
 using ReSys.Core.Common.Models.Wrappers.Responses;
 
-namespace ReSys.Core.Feature.Catalog.Properties;
+namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     private static class Annotations
     {
@@ -23,7 +23,7 @@ public static partial class PropertyModule
             Name = "Admin.Catalog.Property.Create",
             Summary = "Create a new property",
             Description = "Creates a new catalog property with the specified details.",
-            ResponseType = typeof(ApiResponse<PropertyModule.Create.Result>),
+            ResponseType = typeof(ApiResponse<PropertyTypeModule.Create.Result>),
             StatusCode = StatusCodes.Status201Created
         };
 
@@ -41,7 +41,7 @@ public static partial class PropertyModule
             Name = "Admin.Catalog.Property.Get.ById",
             Summary = "Get property details",
             Description = "Retrieves details of a specific catalog property by ID.",
-            ResponseType = typeof(ApiResponse<PropertyModule.Get.ById.Result>),
+            ResponseType = typeof(ApiResponse<PropertyTypeModule.Get.ById.Result>),
             StatusCode = StatusCodes.Status200OK
         };
 
@@ -50,7 +50,7 @@ public static partial class PropertyModule
             Name = "Admin.Catalog.Property.Get.PagedList",
             Summary = "Get paged list of properties",
             Description = "Retrieves a paginated list of catalog properties.",
-            ResponseType = typeof(ApiResponse<List<PropertyModule.Get.PagedList.Result>>),
+            ResponseType = typeof(ApiResponse<List<PropertyTypeModule.Get.PagedList.Result>>),
             StatusCode = StatusCodes.Status200OK
         };
 
@@ -59,7 +59,7 @@ public static partial class PropertyModule
             Name = "Admin.Catalog.Property.Get.SelectList",
             Summary = "Get selectable list of properties",
             Description = "Retrieves a simplified list of catalog properties for selection purposes.",
-            ResponseType = typeof(ApiResponse<List<PropertyModule.Get.SelectList.Result>>),
+            ResponseType = typeof(ApiResponse<List<PropertyTypeModule.Get.SelectList.Result>>),
             StatusCode = StatusCodes.Status200OK
         };
 

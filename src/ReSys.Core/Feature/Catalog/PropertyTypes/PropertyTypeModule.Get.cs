@@ -1,6 +1,6 @@
-﻿namespace ReSys.Core.Feature.Catalog.Properties;
+﻿namespace ReSys.Core.Feature.Catalog.PropertyTypes;
 
-public static partial class PropertyModule
+public static partial class PropertyTypeModule
 {
     public static partial class Get
     {
