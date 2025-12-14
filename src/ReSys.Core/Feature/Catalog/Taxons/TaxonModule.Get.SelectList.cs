@@ -2,8 +2,6 @@
 
 using MapsterMapper;
 
-using Microsoft.AspNetCore.Mvc;
-
 using ReSys.Core.Common.Models.Filter;
 using ReSys.Core.Common.Models.Search;
 using ReSys.Core.Common.Models.Sort;
@@ -20,10 +18,7 @@ public static partial class TaxonModule
     {
         public static class SelectList
         {
-            public sealed class Request : QueryableParams
-            {
-                [FromQuery] public Guid[]? ProductId { get; set; }
-            }
+            public sealed class Request : QueryableParams;
             public sealed record Result : Models.SelectItem;
             public sealed record Query(Request Request) : IQuery<PagedList<Result>>;
 
@@ -35,11 +30,7 @@ public static partial class TaxonModule
                     var param = command.Request;
                     var pagedResult = await dbContext.Set<Taxon>()
                         .AsNoTracking()
-                        .Include(m => m.Classifications
-                            .Where(m =>
-                                param.ProductId == null ||
-                                param.ProductId.Length == 0 ||
-                                param.ProductId.ToList().Contains(m.ProductId)))
+                        .Include(m => m.Classifications)
                         .Include(navigationPropertyPath: t => t.Taxonomy)
                         .Include(navigationPropertyPath: t => t.Parent)
                         .ApplySearch(searchParams: command.Request)
