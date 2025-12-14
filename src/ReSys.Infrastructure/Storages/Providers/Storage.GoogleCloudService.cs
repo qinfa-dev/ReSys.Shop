@@ -1,26 +1,32 @@
 ﻿using ErrorOr;
-using FluentStorage;
-using FluentStorage.Blobs;
+using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using ReSys.Core.Feature.Common.Storage.Models;
 using ReSys.Core.Feature.Common.Storage.Services;
-using ReSys.Infrastructure.Storages.Options;
 using ReSys.Infrastructure.Storages.Helpers;
+using ReSys.Infrastructure.Storages.Options;
 using Serilog;
 
 namespace ReSys.Infrastructure.Storages.Providers;
 
-public sealed class AzureStorageService : IStorageService
+public sealed class GoogleCloudStorageService : IStorageService
 {
-    private readonly IBlobStorage _storage;
+    private readonly StorageClient _client;
     private readonly StorageOptions _options;
 
-    public AzureStorageService(IOptions<StorageOptions> options)
+    public GoogleCloudStorageService(IOptions<StorageOptions> options)
     {
         _options = options.Value;
-        var (name, key) = ParseConnectionString(_options.AzureConnectionString!);
-        _storage = StorageFactory.Blobs.AzureBlobStorageWithSharedKey(name, key);
+
+        if (!string.IsNullOrEmpty(_options.GoogleCredentialsPath))
+        {
+            Environment.SetEnvironmentVariable(
+                "GOOGLE_APPLICATION_CREDENTIALS",
+                _options.GoogleCredentialsPath);
+        }
+
+        _client = StorageClient.Create();
     }
 
     // ======================================================
@@ -33,7 +39,7 @@ public sealed class AzureStorageService : IStorageService
     {
         options ??= UploadOptions.Default;
 
-        if (file == null)
+        if (file is null)
             return StorageErrors.FileEmpty;
 
         if (file.Length == 0)
@@ -70,11 +76,12 @@ public sealed class AzureStorageService : IStorageService
                 contentType = processed.ContentType;
             }
 
-            await _storage.WriteAsync(
+            await _client.UploadObjectAsync(
+                _options.GoogleBucketName!,
                 path,
+                contentType,
                 uploadStream,
-                options.Overwrite,
-                cancellationToken);
+                cancellationToken: cancellationToken);
 
             var thumbnails = await UploadThumbnailsAsync(
                 input,
@@ -97,49 +104,31 @@ public sealed class AzureStorageService : IStorageService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Azure upload failed");
+            Log.Error(ex, "Google Cloud upload failed");
             return StorageErrors.UploadFailed(ex.Message);
         }
     }
 
     // ======================================================
-    // Batch
+    // Batch upload
     // ======================================================
     public async Task<ErrorOr<IReadOnlyList<StorageFileInfo>>> UploadBatchAsync(
         IEnumerable<IFormFile> files,
         UploadOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var list = new List<StorageFileInfo>();
+        var results = new List<StorageFileInfo>();
 
         foreach (var file in files)
         {
-            var result = await UploadFileAsync(file, options, cancellationToken);
-            if (result.IsError)
-                return result.Errors;
+            var r = await UploadFileAsync(file, options, cancellationToken);
+            if (r.IsError)
+                return r.Errors;
 
-            list.Add(result.Value);
+            results.Add(r.Value);
         }
 
-        return list.AsReadOnly();
-    }
-
-    // ======================================================
-    // Read
-    // ======================================================
-    public async Task<ErrorOr<Stream>> GetFileStreamAsync(
-        string fileUrl,
-        CancellationToken cancellationToken = default)
-    {
-        var path = GetBlobPath(fileUrl);
-
-        if (!await _storage.ExistsAsync(path, cancellationToken))
-            return StorageErrors.FileNotFound(path);
-
-        var ms = new MemoryStream();
-        await _storage.ReadToStreamAsync(path, ms, cancellationToken);
-        ms.Position = 0;
-        return ms;
+        return results.AsReadOnly();
     }
 
     // ======================================================
@@ -149,13 +138,21 @@ public sealed class AzureStorageService : IStorageService
         string fileUrl,
         CancellationToken cancellationToken = default)
     {
-        var path = GetBlobPath(fileUrl);
+        var path = ExtractPath(fileUrl);
 
-        if (!await _storage.ExistsAsync(path, cancellationToken))
+        try
+        {
+            await _client.DeleteObjectAsync(
+                _options.GoogleBucketName!,
+                path,
+                cancellationToken: cancellationToken);
+
+            return Result.Success;
+        }
+        catch (Google.GoogleApiException ex) when (ex.Error?.Code == 404)
+        {
             return StorageErrors.FileNotFound(path);
-
-        await _storage.DeleteAsync(path, cancellationToken);
-        return Result.Success;
+        }
     }
 
     public async Task<ErrorOr<Success>> DeleteBatchAsync(
@@ -168,7 +165,35 @@ public sealed class AzureStorageService : IStorageService
             if (r.IsError)
                 return r.Errors;
         }
+
         return Result.Success;
+    }
+
+    // ======================================================
+    // Read
+    // ======================================================
+    public async Task<ErrorOr<Stream>> GetFileStreamAsync(
+        string fileUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var path = ExtractPath(fileUrl);
+        var ms = new MemoryStream();
+
+        try
+        {
+            await _client.DownloadObjectAsync(
+                _options.GoogleBucketName!,
+                path,
+                ms,
+                cancellationToken: cancellationToken);
+
+            ms.Position = 0;
+            return ms;
+        }
+        catch (Google.GoogleApiException ex) when (ex.Error?.Code == 404)
+        {
+            return StorageErrors.FileNotFound(path);
+        }
     }
 
     // ======================================================
@@ -178,34 +203,54 @@ public sealed class AzureStorageService : IStorageService
         string fileUrl,
         CancellationToken cancellationToken = default)
     {
-        return await _storage.ExistsAsync(
-            GetBlobPath(fileUrl),
-            cancellationToken);
+        var path = ExtractPath(fileUrl);
+
+        try
+        {
+            await _client.GetObjectAsync(
+                _options.GoogleBucketName!,
+                path,
+                cancellationToken: cancellationToken);
+
+            return true;
+        }
+        catch (Google.GoogleApiException ex) when (ex.Error?.Code == 404)
+        {
+            return false;
+        }
     }
 
     // ======================================================
     // List
     // ======================================================
-    public async Task<ErrorOr<IReadOnlyList<StorageFileMetadata>>> ListFilesAsync(
+    public Task<ErrorOr<IReadOnlyList<StorageFileMetadata>>> ListFilesAsync(
         string? prefix = null,
         bool recursive = false,
         CancellationToken cancellationToken = default)
     {
-        var blobs = await _storage.ListAsync(
-            folderPath: prefix,
-            recurse: recursive, cancellationToken: cancellationToken);
+        var results = new List<StorageFileMetadata>();
 
-        return blobs
-            .Where(b => !b.IsFolder)
-            .Select(b => new StorageFileMetadata
+        var objects = _client.ListObjects(
+            _options.GoogleBucketName!,
+            prefix);
+
+        foreach (var obj in objects)
+        {
+            if (!recursive && obj.Name.Contains('/'))
+                continue;
+
+            results.Add(new StorageFileMetadata
             {
-                Path = b.FullPath,
-                Url = GetFileUrl(b.FullPath),
-                Length = b.Size ?? 0,
-                LastModified = b.LastModificationTime.GetValueOrDefault()
-            })
-            .ToList()
-            .AsReadOnly();
+                Path = obj.Name,
+                Url = GetFileUrl(obj.Name),
+                Length = (long)(obj.Size ?? 0UL),
+                LastModified = obj.UpdatedDateTimeOffset ?? DateTimeOffset.UtcNow,
+                ContentType = obj.ContentType
+            });
+        }
+
+        return Task.FromResult<ErrorOr<IReadOnlyList<StorageFileMetadata>>>(
+            results.AsReadOnly());
     }
 
 
@@ -215,38 +260,39 @@ public sealed class AzureStorageService : IStorageService
     public async Task<ErrorOr<StorageFileInfo>> CopyFileAsync(
         string sourceUrl,
         string destinationPath,
-        bool overwrite,
+        bool overwrite = false,
         CancellationToken cancellationToken = default)
     {
-        var src = GetBlobPath(sourceUrl);
+        var sourcePath = ExtractPath(sourceUrl);
 
-        if (!await _storage.ExistsAsync(src, cancellationToken))
-            return StorageErrors.FileNotFound(src);
-
-        await using var ms = new MemoryStream();
-        await _storage.ReadToStreamAsync(src, ms, cancellationToken);
-        ms.Position = 0;
-
-        await _storage.WriteAsync(
-            destinationPath,
-            ms,
-            overwrite,
-            cancellationToken);
-
-        return new StorageFileInfo
+        try
         {
-            Path = destinationPath,
-            Url = GetFileUrl(destinationPath),
-            ContentType = "application/octet-stream",
-            Length = ms.Length,
-            LastModified = DateTimeOffset.UtcNow
-        };
+            var obj = await _client.CopyObjectAsync(
+                _options.GoogleBucketName!,
+                sourcePath,
+                _options.GoogleBucketName!,
+                destinationPath,
+                cancellationToken: cancellationToken);
+
+            return new StorageFileInfo
+            {
+                Path = destinationPath,
+                Url = GetFileUrl(destinationPath),
+                ContentType = obj.ContentType ?? "application/octet-stream",
+                Length = (long)(obj.Size ?? 0UL),
+                LastModified = obj.UpdatedDateTimeOffset ?? DateTimeOffset.UtcNow
+            };
+        }
+        catch (Google.GoogleApiException ex) when (ex.Error?.Code == 404)
+        {
+            return StorageErrors.FileNotFound(sourcePath);
+        }
     }
 
     public async Task<ErrorOr<StorageFileInfo>> MoveFileAsync(
         string sourceUrl,
         string destinationPath,
-        bool overwrite,
+        bool overwrite = false,
         CancellationToken cancellationToken = default)
     {
         var copy = await CopyFileAsync(
@@ -263,14 +309,34 @@ public sealed class AzureStorageService : IStorageService
     }
 
     // ======================================================
-    // Metadata (not supported by FluentStorage)
+    // Metadata
     // ======================================================
-    public Task<ErrorOr<StorageFileInfo>> GetMetadataAsync(
+    public async Task<ErrorOr<StorageFileInfo>> GetMetadataAsync(
         string fileUrl,
         CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<ErrorOr<StorageFileInfo>>(
-            StorageErrors.OperationFailed("Metadata", "Not supported"));
+        var path = ExtractPath(fileUrl);
+
+        try
+        {
+            var obj = await _client.GetObjectAsync(
+                _options.GoogleBucketName!,
+                path,
+                cancellationToken: cancellationToken);
+
+            return new StorageFileInfo
+            {
+                Path = obj.Name,
+                Url = GetFileUrl(obj.Name),
+                ContentType = obj.ContentType ?? "application/octet-stream",
+                Length = (long)(obj.Size ?? 0UL),
+                LastModified = obj.UpdatedDateTimeOffset ?? DateTimeOffset.UtcNow
+            };
+        }
+        catch (Google.GoogleApiException ex) when (ex.Error?.Code == 404)
+        {
+            return StorageErrors.FileNotFound(path);
+        }
     }
 
     // ======================================================
@@ -291,12 +357,18 @@ public sealed class AzureStorageService : IStorageService
         {
             original.Position = 0;
 
-            using var thumb = await ImageProcessingHelper.GenerateThumbnailAsync(
-                original, w, options.Quality, ct);
+            using var thumb =
+                await ImageProcessingHelper.GenerateThumbnailAsync(
+                    original, w, options.Quality, ct);
 
-            var thumbPath = Path.ChangeExtension(basePath, null) + $"_{w}" + Path.GetExtension(basePath);
+            var thumbPath = basePath.Replace(".", $"_{w}.");
 
-            await _storage.WriteAsync(thumbPath, thumb, options.Overwrite, ct);
+            await _client.UploadObjectAsync(
+                _options.GoogleBucketName!,
+                thumbPath,
+                "image/webp",
+                thumb,
+                cancellationToken: ct);
 
             dict[w] = GetFileUrl(thumbPath);
         }
@@ -305,23 +377,20 @@ public sealed class AzureStorageService : IStorageService
     }
 
     private string GetFileUrl(string path)
-        => $"{_options.AzureCdnUrl?.TrimEnd('/')}/{path}";
-
-    private string GetBlobPath(string url)
     {
-        if (string.IsNullOrEmpty(_options.AzureCdnUrl))
-            return url.Trim('/');
+        if (!string.IsNullOrEmpty(_options.GoogleBaseUrl))
+            return $"{_options.GoogleBaseUrl.TrimEnd('/')}/{path}";
 
-        return url
-            .Replace(_options.AzureCdnUrl, "", StringComparison.OrdinalIgnoreCase)
-            .Trim('/');
+        return $"https://storage.googleapis.com/{_options.GoogleBucketName}/{path}";
     }
 
-    private static (string, string) ParseConnectionString(string cs)
+    private string ExtractPath(string fileUrl)
     {
-        var parts = cs.Split(';', StringSplitOptions.RemoveEmptyEntries);
-        var name = parts.First(p => p.StartsWith("AccountName="))[12..];
-        var key = parts.First(p => p.StartsWith("AccountKey="))[11..];
-        return (name, key);
+        if (!string.IsNullOrEmpty(_options.GoogleBaseUrl))
+            return fileUrl.Replace(_options.GoogleBaseUrl, "").Trim('/');
+
+        return fileUrl
+            .Replace($"https://storage.googleapis.com/{_options.GoogleBucketName}/", "")
+            .Trim('/');
     }
 }

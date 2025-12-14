@@ -5,22 +5,31 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using ReSys.Core.Feature.Common.Storage.Models;
 using ReSys.Core.Feature.Common.Storage.Services;
-using ReSys.Infrastructure.Storages.Options;
 using ReSys.Infrastructure.Storages.Helpers;
+using ReSys.Infrastructure.Storages.Options;
 using Serilog;
 
 namespace ReSys.Infrastructure.Storages.Providers;
 
-public sealed class AzureStorageService : IStorageService
+public sealed class LocalStorageService : IStorageService
 {
     private readonly IBlobStorage _storage;
     private readonly StorageOptions _options;
 
-    public AzureStorageService(IOptions<StorageOptions> options)
+    public LocalStorageService(IOptions<StorageOptions> options)
     {
         _options = options.Value;
-        var (name, key) = ParseConnectionString(_options.AzureConnectionString!);
-        _storage = StorageFactory.Blobs.AzureBlobStorageWithSharedKey(name, key);
+
+        try
+        {
+            Directory.CreateDirectory(_options.LocalPath);
+            _storage = StorageFactory.Blobs.DirectoryFiles(_options.LocalPath);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to initialize local storage");
+            throw;
+        }
     }
 
     // ======================================================
@@ -33,7 +42,7 @@ public sealed class AzureStorageService : IStorageService
     {
         options ??= UploadOptions.Default;
 
-        if (file == null)
+        if (file is null)
             return StorageErrors.FileEmpty;
 
         if (file.Length == 0)
@@ -62,7 +71,8 @@ public sealed class AzureStorageService : IStorageService
                 && options.OptimizeImage)
             {
                 var processed =
-                    await ImageProcessingHelper.ProcessImageAsync(input, options, cancellationToken);
+                    await ImageProcessingHelper.ProcessImageAsync(
+                        input, options, cancellationToken);
 
                 uploadStream = processed.ProcessedStream;
                 width = processed.Width;
@@ -97,7 +107,7 @@ public sealed class AzureStorageService : IStorageService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Azure upload failed");
+            Log.Error(ex, "Local upload failed");
             return StorageErrors.UploadFailed(ex.Message);
         }
     }
@@ -168,6 +178,7 @@ public sealed class AzureStorageService : IStorageService
             if (r.IsError)
                 return r.Errors;
         }
+
         return Result.Success;
     }
 
@@ -193,7 +204,7 @@ public sealed class AzureStorageService : IStorageService
     {
         var blobs = await _storage.ListAsync(
             folderPath: prefix,
-            recurse: recursive, cancellationToken: cancellationToken);
+            recurse: recursive);
 
         return blobs
             .Where(b => !b.IsFolder)
@@ -207,7 +218,6 @@ public sealed class AzureStorageService : IStorageService
             .ToList()
             .AsReadOnly();
     }
-
 
     // ======================================================
     // Copy / Move
@@ -263,7 +273,7 @@ public sealed class AzureStorageService : IStorageService
     }
 
     // ======================================================
-    // Metadata (not supported by FluentStorage)
+    // Metadata (not supported)
     // ======================================================
     public Task<ErrorOr<StorageFileInfo>> GetMetadataAsync(
         string fileUrl,
@@ -291,12 +301,17 @@ public sealed class AzureStorageService : IStorageService
         {
             original.Position = 0;
 
-            using var thumb = await ImageProcessingHelper.GenerateThumbnailAsync(
-                original, w, options.Quality, ct);
+            using var thumb =
+                await ImageProcessingHelper.GenerateThumbnailAsync(
+                    original, w, options.Quality, ct);
 
-            var thumbPath = Path.ChangeExtension(basePath, null) + $"_{w}" + Path.GetExtension(basePath);
+            var thumbPath = basePath.Replace(".", $"_{w}.");
 
-            await _storage.WriteAsync(thumbPath, thumb, options.Overwrite, ct);
+            await _storage.WriteAsync(
+                thumbPath,
+                thumb,
+                options.Overwrite,
+                ct);
 
             dict[w] = GetFileUrl(thumbPath);
         }
@@ -305,23 +320,12 @@ public sealed class AzureStorageService : IStorageService
     }
 
     private string GetFileUrl(string path)
-        => $"{_options.AzureCdnUrl?.TrimEnd('/')}/{path}";
+        => $"{_options.BaseUrl.TrimEnd('/')}/{path}";
 
     private string GetBlobPath(string url)
     {
-        if (string.IsNullOrEmpty(_options.AzureCdnUrl))
-            return url.Trim('/');
-
         return url
-            .Replace(_options.AzureCdnUrl, "", StringComparison.OrdinalIgnoreCase)
+            .Replace(_options.BaseUrl, "", StringComparison.OrdinalIgnoreCase)
             .Trim('/');
-    }
-
-    private static (string, string) ParseConnectionString(string cs)
-    {
-        var parts = cs.Split(';', StringSplitOptions.RemoveEmptyEntries);
-        var name = parts.First(p => p.StartsWith("AccountName="))[12..];
-        var key = parts.First(p => p.StartsWith("AccountKey="))[11..];
-        return (name, key);
     }
 }

@@ -7,40 +7,79 @@ namespace ReSys.Core.Feature.Common.Storage.Services;
 public interface IStorageService
 {
     /// <summary>
-    /// Upload a file to storage.
-    /// Returns the file information including URL and metadata.
+    /// Upload a single file with optional processing and configuration.
     /// </summary>
     Task<ErrorOr<StorageFileInfo>> UploadFileAsync(
         IFormFile file,
-        string? path = null,
+        UploadOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Delete a file from storage.
+    /// Upload multiple files with shared options.
+    /// </summary>
+    Task<ErrorOr<IReadOnlyList<StorageFileInfo>>> UploadBatchAsync(
+        IEnumerable<IFormFile> files,
+        UploadOptions? options = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Delete a file by its URL or path.
     /// </summary>
     Task<ErrorOr<Success>> DeleteFileAsync(
         string fileUrl,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get a file stream from storage.
+    /// Delete multiple files.
     /// </summary>
-    Task<ErrorOr<Stream>> GetFileAsync(
+    Task<ErrorOr<Success>> DeleteBatchAsync(
+        IEnumerable<string> fileUrls,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get a readable stream for the file.
+    /// </summary>
+    Task<ErrorOr<Stream>> GetFileStreamAsync(
         string fileUrl,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Check if a file exists in storage.
+    /// Check if a file exists.
     /// </summary>
     Task<ErrorOr<bool>> ExistsAsync(
         string fileUrl,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// List all files in a given folder (recursively if required).
+    /// List files in a folder (prefix).
     /// </summary>
-    Task<ErrorOr<IReadOnlyList<StorageFileModel>>> ListFilesAsync(
-        string? folder = null,
+    Task<ErrorOr<IReadOnlyList<StorageFileMetadata>>> ListFilesAsync(
+        string? prefix = null,
         bool recursive = false,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Copy a file to a new path.
+    /// </summary>
+    Task<ErrorOr<StorageFileInfo>> CopyFileAsync(
+        string sourceUrl,
+        string destinationPath,
+        bool overwrite = false,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Move (rename) a file.
+    /// </summary>
+    Task<ErrorOr<StorageFileInfo>> MoveFileAsync(
+        string sourceUrl,
+        string destinationPath,
+        bool overwrite = false,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get metadata for a file without downloading content.
+    /// </summary>
+    Task<ErrorOr<StorageFileInfo>> GetMetadataAsync(
+        string fileUrl,
         CancellationToken cancellationToken = default);
 }
