@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 
+using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Images;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 using ReSys.Core.Feature.Common.Storage.Models;
@@ -50,32 +51,47 @@ public static partial class ProductModule
 
                     try
                     {
+                        if (!Enum.TryParse<ProductImage.ProductImageType>(
+                                command.Request.Type,
+                                ignoreCase: true,
+                                out var imageType))
+                        {
+                            await unitOfWork.RollbackTransactionAsync(ct);
+                            return Error.Validation("Image.Type.Invalid", "Invalid image type.");
+                        }
+
+                        var product = await unitOfWork.Context.Set<Product>()
+                            .Include(p => p.Variants)
+                            .FirstOrDefaultAsync(p => p.Id == command.ProductId, ct);
+
+                        if (product == null)
+                        {
+                            await unitOfWork.RollbackTransactionAsync(ct);
+                            return Product.Errors.NotFound(command.ProductId);
+                        }
+
                         var image = await unitOfWork.Context.Set<ProductImage>()
+                            .Include(i => i.Variant)
                             .FirstOrDefaultAsync(
                                 i => i.Id == command.ImageId
                                      && i.ProductId == command.ProductId
-                                     && (command.Request.VariantId == null || i.VariantId == command.Request.VariantId.Value),
+                                     && (command.Request.VariantId == null ||
+                                         i.VariantId == command.Request.VariantId),
                                 ct);
 
-                        if (image is null)
-                            return ProductImage.Errors.NotFound(command.ImageId);
-
-                        // -----------------------------------------
-                        // CASE 1: File replacement
-                        // -----------------------------------------
-                        if (command.Request.File is not null)
+                        if (image == null)
                         {
-                            var imageType =
-                                Enum.Parse<ProductImage.ProductImageType>(
-                                    command.Request.Type,
-                                    ignoreCase: true);
+                            await unitOfWork.RollbackTransactionAsync(ct);
+                            return ProductImage.Errors.NotFound(command.ImageId);
+                        }
 
-                            var uploadOptions =
-                                UploadOptions.FromDomainSpec(
-                                    type: imageType,
-                                    productId: command.ProductId,
-                                    variantId: command.Request.VariantId,
-                                    contentType: command.Request.File.ContentType);
+                        if (command.Request.File != null)
+                        {
+                            var uploadOptions = UploadOptions.FromDomainSpec(
+                                type: imageType,
+                                productId: command.ProductId,
+                                variantId: command.Request.VariantId,
+                                contentType: command.Request.File.ContentType);
 
                             var uploadResult = await storageService.UploadFileAsync(
                                 command.Request.File,
@@ -83,7 +99,10 @@ public static partial class ProductModule
                                 ct);
 
                             if (uploadResult.IsError)
+                            {
+                                await unitOfWork.RollbackTransactionAsync(ct);
                                 return uploadResult.Errors;
+                            }
 
                             oldUrl = image.Url;
 
@@ -95,43 +114,44 @@ public static partial class ProductModule
                                 type: command.Request.Type,
                                 contentType: uploadResult.Value.ContentType,
                                 width: uploadResult.Value.Width,
-                                height: uploadResult.Value.Height
-                            );
+                                height: uploadResult.Value.Height);
 
                             if (updateResult.IsError)
                             {
-                                await storageService.DeleteFileAsync(
-                                    uploadResult.Value.Url,
-                                    ct);
-
+                                await storageService.DeleteFileAsync(uploadResult.Value.Url, ct);
+                                await unitOfWork.RollbackTransactionAsync(ct);
                                 return updateResult.Errors;
                             }
                         }
-                        // -----------------------------------------
-                        // CASE 2: Metadata-only update
-                        // -----------------------------------------
                         else
                         {
                             var updateResult = image.Update(
                                 alt: command.Request.Alt,
                                 position: command.Request.Position,
-                                type: command.Request.Type
-                            );
+                                type: command.Request.Type);
 
                             if (updateResult.IsError)
+                            {
+                                await unitOfWork.RollbackTransactionAsync(ct);
                                 return updateResult.Errors;
-                        }
+                            }
 
+                            updateResult = product.AddImage(image);
+
+                            if (updateResult.IsError)
+                            {
+                                await unitOfWork.RollbackTransactionAsync(ct);
+                                return updateResult.Errors;
+                            }
+                        }
+                        unitOfWork.Context.Set<ProductImage>().Update(image);
                         await unitOfWork.SaveChangesAsync(ct);
+
                         await unitOfWork.CommitTransactionAsync(ct);
 
-                        // -----------------------------------------
-                        // Post-commit cleanup
-                        // -----------------------------------------
                         if (!string.IsNullOrWhiteSpace(oldUrl))
                         {
                             var deleteOld = await storageService.DeleteFileAsync(oldUrl, ct);
-
                             if (deleteOld.IsError)
                             {
                                 logger.LogWarning(
@@ -156,6 +176,7 @@ public static partial class ProductModule
                             description: "Failed to edit product image.");
                     }
                 }
+
             }
         }
     }

@@ -48,45 +48,54 @@ public static partial class ProductModule
 
                     try
                     {
-                        var productExists = await unitOfWork.Context.Set<Product>()
-                            .AnyAsync(p => p.Id == command.ProductId, ct);
-
-                        if (!productExists)
-                            return Product.Errors.NotFound(command.ProductId);
-
-                        var imageType =
-                            Enum.Parse<ProductImage.ProductImageType>(
+                        if (!Enum.TryParse<ProductImage.ProductImageType>(
                                 command.Request.Type,
-                                ignoreCase: true);
+                                ignoreCase: true,
+                                out var imageType))
+                        {
+                            await unitOfWork.RollbackTransactionAsync(ct);
+                            return Error.Validation("Image.Type.Invalid", "Invalid image type.");
+                        }
 
-                        // -----------------------------------------
-                        // Prevent duplicate image type (e.g. Default)
-                        // -----------------------------------------
-                        if (imageType == ProductImage.ProductImageType.Default)
+                        var product = await unitOfWork.Context.Set<Product>()
+                            .Include(p => p.Variants)
+                            .FirstOrDefaultAsync(p => p.Id == command.ProductId, ct);
+
+                        if (product == null)
+                        {
+                            await unitOfWork.RollbackTransactionAsync(ct);
+                            return Product.Errors.NotFound(command.ProductId);
+                        }
+
+                        var variantId =
+                            command.Request.VariantId ??
+                            product.Variants.FirstOrDefault(v => v.IsMaster)?.Id;
+
+                        if (imageType is ProductImage.ProductImageType.Default
+                            or ProductImage.ProductImageType.Search)
                         {
                             bool exists = await unitOfWork.Context.Set<ProductImage>()
                                 .AnyAsync(
                                     i => i.ProductId == command.ProductId
-                                         && (command.Request.VariantId == null || i.VariantId == command.Request.VariantId.Value)
-                                         && i.Type == nameof(ProductImage.ProductImageType.Default),
+                                         && i.VariantId == variantId
+                                         && i.Type == imageType.ToString(),
                                     ct);
 
                             if (exists)
+                            {
+                                await unitOfWork.RollbackTransactionAsync(ct);
                                 return ProductImage.Errors.AlreadyExists(
                                     command.ProductId,
-                                    null,
+                                    variantId,
                                     command.Request.Type);
+                            }
                         }
 
-                        // -----------------------------------------
-                        // Build upload options from DOMAIN SPEC
-                        // -----------------------------------------
-                        var uploadOptions =
-                            UploadOptions.FromDomainSpec(
-                                type: imageType,
-                                productId: command.ProductId,
-                                variantId: command.Request.VariantId,
-                                contentType: command.Request.File!.ContentType);
+                        var uploadOptions = UploadOptions.FromDomainSpec(
+                            type: imageType,
+                            productId: command.ProductId,
+                            variantId: variantId,
+                            contentType: command.Request.File!.ContentType);
 
                         var uploadResult = await storageService.UploadFileAsync(
                             command.Request.File,
@@ -94,29 +103,26 @@ public static partial class ProductModule
                             ct);
 
                         if (uploadResult.IsError)
+                        {
+                            await unitOfWork.RollbackTransactionAsync(ct);
                             return uploadResult.Errors;
+                        }
 
-                        // -----------------------------------------
-                        // Create domain entity
-                        // -----------------------------------------
                         var createResult = ProductImage.Create(
                             url: uploadResult.Value.Url,
                             productId: command.ProductId,
-                            variantId: command.Request.VariantId,
+                            variantId: variantId,
                             alt: command.Request.Alt ?? command.Request.File.FileName,
                             position: command.Request.Position,
                             type: command.Request.Type,
                             contentType: uploadResult.Value.ContentType,
                             width: uploadResult.Value.Width,
-                            height: uploadResult.Value.Height
-                        );
+                            height: uploadResult.Value.Height);
 
                         if (createResult.IsError)
                         {
-                            await storageService.DeleteFileAsync(
-                                uploadResult.Value.Url,
-                                ct);
-
+                            await storageService.DeleteFileAsync(uploadResult.Value.Url, ct);
+                            await unitOfWork.RollbackTransactionAsync(ct);
                             return createResult.Errors;
                         }
 
@@ -124,9 +130,6 @@ public static partial class ProductModule
                         await unitOfWork.SaveChangesAsync(ct);
                         await unitOfWork.CommitTransactionAsync(ct);
 
-                        // -----------------------------------------
-                        // Map result
-                        // -----------------------------------------
                         var result = mapper.Map<Result>(createResult.Value);
                         result.Size = uploadResult.Value.Length;
                         result.ContentType = uploadResult.Value.ContentType;
@@ -150,6 +153,7 @@ public static partial class ProductModule
                             description: "Failed to upload product image.");
                     }
                 }
+
             }
         }
     }

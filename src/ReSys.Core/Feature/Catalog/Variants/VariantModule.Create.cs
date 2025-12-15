@@ -1,5 +1,7 @@
 ﻿using MapsterMapper;
 
+using MediatR;
+
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
@@ -10,7 +12,11 @@ public static partial class VariantModule
 {
     public static class Create
     {
-        public sealed record Request : Models.Parameter;
+        public sealed record Request : Models.Parameter
+        {
+            public List<Guid> OptionValueIds { get; init; } = new();
+        }
+
         public sealed record Result : Models.ListItem;
         public sealed record Command(Request Request) : ICommand<Result>;
 
@@ -23,6 +29,7 @@ public static partial class VariantModule
         }
 
         public class CommandHandler(
+            ISender sender,
             IUnitOfWork unitOfWork,
             IMapper mapper)
             : ICommandHandler<Command, Result>
@@ -61,6 +68,15 @@ public static partial class VariantModule
                 unitOfWork.Context.Set<Variant>().Add(createResult.Value);
                 await unitOfWork.SaveChangesAsync(cancellationToken: ct);
                 await unitOfWork.CommitTransactionAsync(cancellationToken: ct);
+
+                var setOptionValuesResult = await sender.Send(new OptionValues.Manage.Command(createResult.Value.Id,
+                    new OptionValues.Manage.Request()
+                    {
+                        OptionValueIds = param.OptionValueIds
+                    }), ct);
+
+                if (setOptionValuesResult.IsError)
+                    return setOptionValuesResult.Errors;
 
                 return mapper.Map<Result>(source: createResult.Value);
             }

@@ -94,7 +94,7 @@ public static partial class ProductModule
                 .UseEndpointMeta(meta: Annotations.Images.Remove)
                 .RequireAccessPermission(permission: FeaturePermission.Admin.Catalog.Product.Update);
 
-            group.MapGet(pattern: "{id:guid}/images", handler: GetImagesHandler)
+            group.MapGet(pattern: "images", handler: GetImagesHandler)
                 .UseEndpointMeta(meta: Annotations.Images.Get)
                 .RequireAccessPermission(permission: FeaturePermission.Admin.Catalog.Product.View);
 
@@ -265,12 +265,11 @@ public static partial class ProductModule
         }
 
         private static async Task<Ok<ApiResponse<PagedList<Images.GetList.Result>>>> GetImagesHandler(
-            [FromRoute] Guid id,
             [AsParameters] Images.GetList.Request request,
             [FromServices] ISender mediator,
             CancellationToken ct)
         {
-            var result = await mediator.Send(request: new Images.GetList.Query(ProductId: id, Request: request), cancellationToken: ct);
+            var result = await mediator.Send(request: new Images.GetList.Query( Request: request), cancellationToken: ct);
             return TypedResults.Ok(value: result.ToApiResponse(message: "Product images retrieved successfully"));
         }
 

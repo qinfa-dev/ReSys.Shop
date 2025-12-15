@@ -2,6 +2,8 @@
 
 using MapsterMapper;
 
+using Microsoft.AspNetCore.Mvc;
+
 using ReSys.Core.Common.Models.Filter;
 using ReSys.Core.Common.Models.Search;
 using ReSys.Core.Common.Models.Sort;
@@ -18,29 +20,50 @@ public static partial class ProductModule
     {
         public static class GetList
         {
-            public sealed class Request : QueryableParams;
-            public sealed class Result : Models.ImageResult;
-            public sealed record Query(Guid ProductId, Request Request) : IQuery<PagedList<Result>>;
+            public sealed class Request : QueryableParams
+            {
+                [FromQuery] public Guid[]? ProductId { get; set; }
+                [FromQuery] public Guid[]? VariantId { get; set; }
+            }
 
-            public sealed class QueryHandler(IUnitOfWork unitOfWork, IMapper mapper)
+            public sealed class Result : Models.ImageResult;
+
+            public sealed record Query(Request Request) : IQuery<PagedList<Result>>;
+
+            public sealed class QueryHandler(
+                IUnitOfWork unitOfWork,
+                IMapper mapper)
                 : IQueryHandler<Query, PagedList<Result>>
             {
-                public async Task<ErrorOr<PagedList<Result>>> Handle(Query request, CancellationToken ct)
+                public async Task<ErrorOr<PagedList<Result>>> Handle(
+                    Query request,
+                    CancellationToken ct)
                 {
-                    var images = await unitOfWork.Context.Set<ProductImage>()
-                        .Where(predicate: i => i.ProductId == request.ProductId && i.VariantId == null)
-                        .OrderBy(keySelector: i => i.Position)
-                        .AsQueryable()
-                        .AsNoTracking()
-                        .ApplySearch(searchParams: request.Request)
-                        .ApplyFilters(filterParams: request.Request)
-                        .ApplySort(sortParams: request.Request)
-                        .ProjectToType<Result>(config: mapper.Config)
-                        .ToPagedListOrAllAsync(pagingParams: request.Request, cancellationToken: ct);
+                    var param = request.Request;
 
-                    return images;
+                    var query = unitOfWork.Context.Set<ProductImage>()
+                        .AsNoTracking()
+                        .AsQueryable()
+                        .Where(i =>
+                            (param.ProductId == null || param.ProductId.Length == 0 || i.ProductId == null || param.ProductId.ToList().Contains(i.ProductId.Value)) &&
+                            (param.VariantId == null || param.VariantId.Length == 0 || i.VariantId == null || param.VariantId.ToList().Contains(i.VariantId.Value)));
+
+                    query = query
+                        .ApplySearch(param)
+                        .ApplyFilters(param)
+                        .ApplySort(param);
+
+                    var result = await query
+                        .OrderBy(i => i.Position)
+                        .ProjectToType<Result>(mapper.Config)
+                        .ToPagedListOrAllAsync(
+                            pagingParams: param,
+                            cancellationToken: ct);
+
+                    return result;
                 }
             }
         }
+
     }
 }
