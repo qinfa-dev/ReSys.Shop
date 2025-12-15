@@ -34,6 +34,7 @@ public static class Schema
     /// Represents the database table name for storing application-wide audit logs.
     /// </summary>
     public const string AuditLogs = "audit_logs";
+    public const string Settings = "audit_logs";
 
     // Authentication & Authorization - Full Spree complexity maintained
     /// <summary>
@@ -65,7 +66,6 @@ public static class Schema
     public const string Addresses = "addresses";
     public const string Countries = "countries";
     public const string States = "states";
-
 
     // Customer Management - Extended for fashion retail
     public const string Customers = "customers";
@@ -141,8 +141,7 @@ public static class Schema
     public const string OrderAdjustments = "order_adjustments";
     public const string OrderPromotions = "order_promotions";
     public const string Adjustments = "adjustments"; // Taxes, discounts, fees
-    public const string FulfillmentOrders = "fulfillment_orders";
-    public const string FulfillmentLineItems = "fulfillment_line_items";
+
 
     // Fulfillment & Shipping
     public const string Shipments = "shipments";

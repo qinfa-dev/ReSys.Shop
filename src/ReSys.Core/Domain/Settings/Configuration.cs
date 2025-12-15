@@ -49,7 +49,7 @@ namespace ReSys.Core.Domain.Configurations;
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class Configuration : Aggregate<Guid>
+public sealed class Setting : Aggregate<Guid>
 {
     /// <summary>
     /// Gets the unique key identifying this configuration setting.
@@ -78,10 +78,10 @@ public sealed class Configuration : Aggregate<Guid>
     /// <summary>
     /// Private constructor for ORM (Entity Framework Core) materialization.
     /// </summary>
-    private Configuration() { }
+    private Setting() { }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Configuration"/> class.
+    /// Initializes a new instance of the <see cref="Setting"/> class.
     /// This constructor is primarily used internally by the static <see cref="Create"/> factory method.
     /// </summary>
     /// <param name="id">The unique identifier of the configuration.</param>
@@ -90,7 +90,7 @@ public sealed class Configuration : Aggregate<Guid>
     /// <param name="description">A description of the configuration setting.</param>
     /// <param name="defaultValue">The default value of the configuration setting.</param>
     /// <param name="valueType">The expected data type of the configuration's value.</param>
-    private Configuration(
+    private Setting(
         Guid id,
         string key,
         string value,
@@ -107,7 +107,7 @@ public sealed class Configuration : Aggregate<Guid>
     }
 
     /// <summary>
-    /// Factory method to create a new <see cref="Configuration"/> instance.
+    /// Factory method to create a new <see cref="Setting"/> instance.
     /// Performs basic validation and initializes the configuration with a new GUID.
     /// </summary>
     /// <param name="key">The unique key for the new configuration setting.</param>
@@ -117,10 +117,10 @@ public sealed class Configuration : Aggregate<Guid>
     /// <param name="valueType">The expected data type of the configuration's value.</param>
     /// <returns>
     /// An <see cref="ErrorOr{Configuration}"/> result.
-    /// Returns the newly created <see cref="Configuration"/> instance on success.
-    /// Returns <see cref="Configuration.Errors.KeyRequired"/> if the key is null or whitespace.
+    /// Returns the newly created <see cref="Setting"/> instance on success.
+    /// Returns <see cref="Setting.Errors.KeyRequired"/> if the key is null or whitespace.
     /// </returns>
-    public static ErrorOr<Configuration> Create(
+    public static ErrorOr<Setting> Create(
         string key,
         string value,
         string description,
@@ -130,13 +130,13 @@ public sealed class Configuration : Aggregate<Guid>
         // Basic validation as per existing domain entities (e.g., Product.cs)
         if (string.IsNullOrWhiteSpace(key))
         {
-            return Configuration.Errors.KeyRequired;
+            return Setting.Errors.KeyRequired;
         }
 
         // Additional validation can be added here if needed,
         // for instance, checking if the value can be parsed according to ValueType
 
-        return new Configuration(
+        return new Setting(
             Guid.NewGuid(),
             key,
             value,
@@ -152,13 +152,13 @@ public sealed class Configuration : Aggregate<Guid>
     /// <returns>
     /// An <see cref="ErrorOr{Updated}"/> result.
     /// Returns <see cref="Result.Updated"/> on successful update.
-    /// Returns <see cref="Configuration.Errors.ValueRequired"/> if the new value is null or whitespace.
+    /// Returns <see cref="Setting.Errors.ValueRequired"/> if the new value is null or whitespace.
     /// </returns>
     public ErrorOr<Updated> Update(string newValue)
     {
         if (string.IsNullOrWhiteSpace(newValue))
         {
-            return Configuration.Errors.ValueRequired;
+            return Setting.Errors.ValueRequired;
         }
         
         // Add specific parsing/casting logic based on ValueType if necessary for validation
@@ -192,7 +192,7 @@ public sealed class Configuration : Aggregate<Guid>
     }
 
     /// <summary>
-    /// Defines domain error scenarios specific to <see cref="Configuration"/> operations.
+    /// Defines domain error scenarios specific to <see cref="Setting"/> operations.
     /// These errors are returned via the <see cref="ErrorOr"/> pattern for robust error handling.
     /// </summary>
     public static class Errors

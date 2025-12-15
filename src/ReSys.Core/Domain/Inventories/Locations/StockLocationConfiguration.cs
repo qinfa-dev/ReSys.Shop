@@ -146,5 +146,9 @@ public sealed class StockLocationConfiguration : IEntityTypeConfiguration<StockL
             .HasForeignKey(foreignKeyExpression: a => a.StateId)
             .OnDelete(deleteBehavior: DeleteBehavior.SetNull);
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

@@ -153,5 +153,9 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Ignore(propertyExpression: p => p.Stores);
 
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

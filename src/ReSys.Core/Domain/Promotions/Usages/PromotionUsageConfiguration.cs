@@ -1,5 +1,10 @@
-﻿namespace ReSys.Core.Domain.Promotions.Audits;
+﻿using ReSys.Core.Domain.Promotions.Actions;
 
+namespace ReSys.Core.Domain.Promotions.Audits;
+
+/// <summary>
+/// Configures the database mapping for the <see cref="PromotionUsage"/> entity.
+/// </summary>
 /// <summary>
 /// Configures the database mapping for the <see cref="PromotionUsage"/> entity.
 /// </summary>
@@ -13,7 +18,7 @@ public sealed class PromotionUsageConfiguration : IEntityTypeConfiguration<Promo
     {
         #region Table
         // Set the table name for the PromotionAuditLog entity.
-        builder.ToTable(name: "PromotionAuditLogs");
+        builder.ToTable(name: Schema.PromotionUsages);
         #endregion
 
         #region Primary Key

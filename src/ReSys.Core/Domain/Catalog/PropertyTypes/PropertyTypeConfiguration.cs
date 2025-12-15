@@ -129,5 +129,9 @@ public sealed class PropertyTypeConfiguration : IEntityTypeConfiguration<Propert
         #region Ignored Properties
         //builder.Ignore(propertyExpression: p => p.Products);
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

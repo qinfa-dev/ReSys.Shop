@@ -162,6 +162,8 @@ public sealed class UserAddress : Aggregate<Guid>, IAddress
 
     #region Relationships
 
+    public Guid? OrderId { get; set; }
+
     /// <summary>
     /// Gets or sets the unique identifier of the <see cref="User"/> who owns this address.
     /// </summary>

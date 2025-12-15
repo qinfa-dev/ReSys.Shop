@@ -862,7 +862,7 @@ public sealed class Product : Aggregate,
     /// </summary>
     /// <param name="asset">The <see cref="ProductImage"/> to add.</param>
     /// <returns>An <see cref="ErrorOr{Product}"/> indicating success with the updated product, or an error if validation fails.</returns>
-    public ErrorOr<Product> AddImage(ProductImage? asset)
+    public ErrorOr<ProductImage> AddImage(ProductImage? asset)
     {
         // Guard: null asset
         if (asset == null)
@@ -884,7 +884,7 @@ public sealed class Product : Aggregate,
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.ProductImageAdded(ProductId: Id, ImageId: asset.Id));
 
-        return this;
+        return asset;
     }
 
     /// <summary>

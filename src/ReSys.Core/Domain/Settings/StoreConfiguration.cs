@@ -1,4 +1,4 @@
-namespace ReSys.Core.Common.Constants;
+namespace ReSys.Core.Domain.Settings;
 
 /// <summary>
 /// Centralized store configuration options for ReSys.Shop.

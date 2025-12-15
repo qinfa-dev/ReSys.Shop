@@ -300,5 +300,9 @@ public sealed class StoreConfiguration : IEntityTypeConfiguration<Store>
         builder.Ignore(propertyExpression: oa => oa.AvailablePaymentMethods);
         builder.Ignore(propertyExpression: oa => oa.AvailableShippingMethods);
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

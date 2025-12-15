@@ -41,74 +41,185 @@ namespace ReSys.Core.Domain.Promotions.Promotions;
 /// </list>
 /// </para>
 /// </remarks>
+/// <summary>
+/// Represents a promotional offer that can be applied to orders based on eligibility rules.
+/// Supports multiple discount types, usage limits, and flexible scheduling.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Responsibility:</b>
+/// Aggregate root for promotion-related business logic including creation, configuration,
+/// rule management, activation/deactivation, and usage tracking.
+/// </para>
+///
+/// <para>
+/// <b>Key Features:</b>
+/// <list type="bullet">
+/// <item><b>Promotion Types:</b> Order discounts, item discounts, free shipping, buy-x-get-y offers</item>
+/// <item><b>Discount Types:</b> Percentage-based or fixed amount discounts</item>
+/// <item><b>Eligibility Rules:</b> Multiple configurable rules (FirstOrder, ProductInclude/Exclude, MinimumQuantity, UserRole, etc.)</item>
+/// <item><b>Time-Based:</b> Optional start and expiration dates</item>
+/// <item><b>Usage Tracking:</b> Optional usage limit with counter</item>
+/// <item><b>Coupon Codes:</b> Optional requirement for coupon code entry</item>
+/// <item><b>Discount Caps:</b> Optional maximum discount amount per order</item>
+/// </list>
+/// </para>
+///
+/// <para>
+/// <b>State Machine:</b>
+/// <list type="bullet">
+/// <item><b>Active:</b> Promotion flag can be toggled independently</item>
+/// <item><b>Automatic Status:</b> Computed via IsActive property based on timing and usage limits</item>
+/// <item><b>Lifecycle Events:</b> Created ? Updated (0..n times) ? Activated/Deactivated (0..n times) ? Used (0..n times)</item>
+/// </list>
+/// </para>
+/// </remarks>
 public sealed class Promotion : Aggregate, IHasUniqueName
 {
     #region Constraints
+    /// <summary>
+    /// Defines constraints for the <see cref="Promotion"/> entity.
+    /// </summary>
     public static class Constraints
     {
+        /// <summary>
+        /// Minimum length for the promotion name.
+        /// </summary>
         public const int MinNameLength = CommonInput.Constraints.NamesAndUsernames.NameMinLength;
+        /// <summary>
+        /// Maximum length for the promotion name.
+        /// </summary>
         public const int NameMaxLength = 100;
+        /// <summary>
+        /// Minimum length for the promotion code.
+        /// </summary>
         public const int MinCodeLength = 3;
+        /// <summary>
+        /// Maximum length for the promotion code.
+        /// </summary>
         public const int CodeMaxLength = 50;
+        /// <summary>
+        /// Minimum value for the usage limit.
+        /// </summary>
         public const int MinUsageLimit = 1;
+        /// <summary>
+        /// Minimum value for the minimum order amount.
+        /// </summary>
         public const decimal MinOrderAmount = 0m;
+        /// <summary>
+        /// Minimum value for discount amounts.
+        /// </summary>
         public const decimal MinDiscountValue = 0m;
+        /// <summary>
+        /// Maximum value for discount amounts.
+        /// </summary>
         public const decimal MaxDiscountValue = 1000000m;
     }
 
+    /// <summary>
+    /// Defines the types of promotions available.
+    /// </summary>
     public enum PromotionType { None, OrderDiscount, ItemDiscount, FreeShipping, BuyXGetY }
+    /// <summary>
+    /// Defines how a discount is applied.
+    /// </summary>
     public enum DiscountType { Percentage, FixedAmount }
     #endregion
 
     #region Errors
+    /// <summary>
+    /// Defines domain error scenarios specific to <see cref="Promotion"/> operations.
+    /// These errors are returned via the <see cref="ErrorOr"/> pattern for robust error handling.
+    /// </summary>
     public static class Errors
     {
+        /// <summary>
+        /// Error indicating that a promotion is required but was not provided.
+        /// </summary>
         public static Error Required => Error.Validation(
             code: "Promotion.Required",
             description: "Promotion is required.");
 
+        /// <summary>
+        /// Error indicating that a requested promotion could not be found.
+        /// </summary>
+        /// <param name="id">The ID of the promotion that was not found.</param>
         public static Error NotFound(Guid id) => Error.NotFound(
             code: "Promotion.NotFound",
             description: $"Promotion with ID '{id}' was not found.");
 
+        /// <summary>
+        /// Error indicating that the promotion has not started yet.
+        /// </summary>
         public static Error NoStarted => Error.Validation(
             code: "Promotion.NotStarted",
             description: "Promotion has not started yet.");
 
+        /// <summary>
+        /// Error indicating that the promotion is not currently active.
+        /// </summary>
         public static Error NotActive => Error.Validation(
             code: "Promotion.NotActive",
             description: "Promotion is not currently active.");
 
+        /// <summary>
+        /// Error indicating that the promotion usage limit has been reached.
+        /// </summary>
         public static Error UsageLimitReached => Error.Validation(
             code: "Promotion.UsageLimitReached",
             description: "Promotion usage limit has been reached.");
 
+        /// <summary>
+        /// Error indicating that the minimum order amount required for the promotion was not met.
+        /// </summary>
+        /// <param name="minimum">The minimum order amount required.</param>
         public static Error MinimumOrderNotMet(decimal minimum) => Error.Validation(
             code: "Promotion.MinimumOrderNotMet",
             description: $"Order total must be at least {minimum:C}.");
 
+        /// <summary>
+        /// Error indicating an invalid promotion code was provided.
+        /// </summary>
         public static Error InvalidCode => Error.Validation(
             code: "Promotion.InvalidCode",
             description: "Invalid promotion code.");
 
+        /// <summary>
+        /// Error indicating that the promotion has expired.
+        /// </summary>
         public static Error Expired => Error.Validation(
             code: "Promotion.Expired",
             description: "Promotion has expired.");
 
+        /// <summary>
+        /// Error indicating that the minimum order amount is invalid (e.g., negative).
+        /// </summary>
         public static Error InvalidMinimumOrderAmount => Error.Validation(
             code: "Promotion.InvalidMinimumOrderAmount",
             description: "Minimum order amount must be non-negative.");
 
+        /// <summary>
+        /// Error indicating that the maximum discount amount is invalid (e.g., negative).
+        /// </summary>
         public static Error InvalidMaximumDiscountAmount => Error.Validation(
             code: "Promotion.InvalidMaximumDiscountAmount",
             description: "Maximum discount amount must be non-negative.");
 
+        /// <summary>
+        /// Error indicating that the usage limit is invalid (e.g., less than 1).
+        /// </summary>
         public static Error InvalidUsageLimit => Error.Validation(
             code: "Promotion.InvalidUsageLimit",
             description: $"Usage limit must be at least {Constraints.MinUsageLimit}.");
 
+        /// <summary>
+        /// Error indicating that the promotion name is required.
+        /// </summary>
         public static Error NameRequired => CommonInput.Errors.Required(prefix: nameof(Promotion), field: nameof(Name));
 
+        /// <summary>
+        /// Error indicating that the promotion name exceeds the maximum allowed length.
+        /// </summary>
         public static Error NameTooLong => CommonInput.Errors.TooLong(prefix: nameof(Promotion), field: nameof(Name), maxLength: Constraints.NameMaxLength);
     }
     #endregion
@@ -152,9 +263,21 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     #endregion
 
     #region Relationships
+    /// <summary>
+    /// Gets or sets the collection of orders to which this promotion has been applied.
+    /// </summary>
     public ICollection<Order> Orders { get; set; } = new List<Order>();
+    /// <summary>
+    /// Gets or sets the collection of rules that define the eligibility for this promotion.
+    /// </summary>
     public ICollection<PromotionRule> PromotionRules { get; set; } = new List<PromotionRule>();
+    /// <summary>
+    /// Gets or sets the collection of order adjustments created by this promotion.
+    /// </summary>
     public ICollection<OrderAdjustment> OrderAdjustments { get; set; } = new List<OrderAdjustment>();
+    /// <summary>
+    /// Gets or sets the collection of audit log entries for this promotion.
+    /// </summary>
     public ICollection<PromotionUsage> PromotionUsages { get; set; } = new List<PromotionUsage>();
     #endregion
 
@@ -189,13 +312,16 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     /// Gets the number of remaining uses before reaching the usage limit.
     /// Returns int.MaxValue if no limit is configured.
     /// </summary>
-    public int RemainingUsage => UsageLimit.HasValue 
-        ? Math.Max(val1: 0, val2: UsageLimit.Value - UsageCount) 
+    public int RemainingUsage => UsageLimit.HasValue
+        ? Math.Max(val1: 0, val2: UsageLimit.Value - UsageCount)
         : int.MaxValue;
 
     #endregion
 
     #region Constructors
+    /// <summary>
+    /// Private constructor for ORM (Entity Framework Core) materialization.
+    /// </summary>
     private Promotion() { }
     #endregion
 
@@ -239,7 +365,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
         {
             return Errors.NameTooLong;
         }
-        
+
         // Validate optional numeric parameters
         if (minimumOrderAmount.HasValue && minimumOrderAmount < Constraints.MinOrderAmount)
             return Errors.InvalidMinimumOrderAmount;
@@ -294,6 +420,22 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     /// </list>
     /// </para>
     /// </remarks>
+    /// <param name="name">Optional new name for the promotion.</param>
+    /// <param name="code">Optional new coupon code for the promotion.</param>
+    /// <param name="description">Optional new description for the promotion.</param>
+    /// <param name="action">Optional new action for the promotion.</param>
+    /// <param name="minimumOrderAmount">Optional new minimum order amount.</param>
+    /// <param name="maximumDiscountAmount">Optional new maximum discount amount.</param>
+    /// <param name="startsAt">Optional new start date.</param>
+    /// <param name="expiresAt">Optional new expiration date.</param>
+    /// <param name="usageLimit">Optional new usage limit.</param>
+    /// <param name="active">Optional new active status.</param>
+    /// <param name="requiresCouponCode">Optional new value for RequiresCouponCode.</param>
+    /// <returns>
+    /// An <see cref="ErrorOr{Updated}"/> result.
+    /// Returns <see cref="Result.Updated"/> on successful update.
+    /// Returns validation errors for invalid input.
+    /// </returns>
     public ErrorOr<Updated> Update(
         string? name = null,
         string? code = null,
@@ -582,60 +724,77 @@ public sealed class Promotion : Aggregate, IHasUniqueName
 
     #region Domain Events
 
+    /// <summary>
+    /// Defines domain events related to <see cref="Promotion"/> changes.
+    /// </summary>
     public static class Events
     {
         /// <summary>
         /// Raised when a new promotion is created.
         /// Used for audit logging, notification, or downstream processing.
         /// </summary>
+        /// <param name="PromotionId">The ID of the newly created promotion.</param>
+        /// <param name="Name">The name of the newly created promotion.</param>
         public sealed record Created(Guid PromotionId, string Name) : DomainEvent;
 
         /// <summary>
         /// Raised when a promotion's configuration is updated.
         /// Used for audit logging and cache invalidation.
         /// </summary>
+        /// <param name="PromotionId">The ID of the updated promotion.</param>
         public sealed record Updated(Guid PromotionId) : DomainEvent;
 
         /// <summary>
         /// Raised when a promotion's usage count increases.
         /// Used for tracking usage metrics and enforcing limits.
         /// </summary>
+        /// <param name="PromotionId">The ID of the promotion whose usage increased.</param>
+        /// <param name="NewUsageCount">The new usage count of the promotion.</param>
         public sealed record UsageIncreased(Guid PromotionId, int NewUsageCount) : DomainEvent;
 
         /// <summary>
         /// Raised when a promotion is deleted.
         /// Used for cleanup and audit logging.
         /// </summary>
+        /// <param name="PromotionId">The ID of the deleted promotion.</param>
         public sealed record Deleted(Guid PromotionId) : DomainEvent;
 
         /// <summary>
         /// Raised when a promotion is successfully applied to an order.
         /// Used for analytics and reporting.
         /// </summary>
+        /// <param name="PromotionId">The ID of the promotion used.</param>
+        /// <param name="OrderId">The ID of the order to which the promotion was applied.</param>
         public sealed record Used(Guid PromotionId, Guid OrderId) : DomainEvent;
 
         /// <summary>
         /// Raised when a promotion is activated.
         /// Used for notifications and status tracking.
         /// </summary>
+        /// <param name="PromotionId">The ID of the activated promotion.</param>
         public sealed record Activated(Guid PromotionId) : DomainEvent;
 
         /// <summary>
         /// Raised when a promotion is deactivated.
         /// Used for notifications and status tracking.
         /// </summary>
+        /// <param name="PromotionId">The ID of the deactivated promotion.</param>
         public sealed record Deactivated(Guid PromotionId) : DomainEvent;
 
         /// <summary>
         /// Raised when an eligibility rule is added to a promotion.
         /// Used for rule change tracking and validation.
         /// </summary>
+        /// <param name="PromotionId">The ID of the promotion to which the rule was added.</param>
+        /// <param name="RuleId">The ID of the rule that was added.</param>
         public sealed record RuleAdded(Guid PromotionId, Guid RuleId) : DomainEvent;
 
         /// <summary>
         /// Raised when an eligibility rule is removed from a promotion.
         /// Used for rule change tracking and validation.
         /// </summary>
+        /// <param name="PromotionId">The ID of the promotion from which the rule was removed.</param>
+        /// <param name="RuleId">The ID of the rule that was removed.</param>
         public sealed record RuleRemoved(Guid PromotionId, Guid RuleId) : DomainEvent;
     }
 

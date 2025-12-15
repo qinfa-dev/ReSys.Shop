@@ -5,6 +5,9 @@ namespace ReSys.Core.Domain.Promotions.Promotions;
 /// <summary>
 /// Configures the database mapping for the <see cref="Promotion"/> entity.
 /// </summary>
+/// <summary>
+/// Configures the database mapping for the <see cref="Promotion"/> entity.
+/// </summary>
 public sealed class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
 {
     /// <summary>
@@ -124,6 +127,10 @@ public sealed class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
         builder.Ignore(propertyExpression: p => p.IsExpired);
         builder.Ignore(propertyExpression: p => p.HasUsageLimit);
         builder.Ignore(propertyExpression: p => p.RemainingUsage);
+        #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
         #endregion
     }
 }

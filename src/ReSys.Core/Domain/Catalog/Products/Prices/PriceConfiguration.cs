@@ -63,5 +63,9 @@ public sealed class PriceConfiguration : IEntityTypeConfiguration<Price>
             .HasForeignKey(foreignKeyExpression: p => p.VariantId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

@@ -181,6 +181,12 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Ignore(propertyExpression: o => o.PromotionTotal);
         builder.Ignore(propertyExpression: o => o.HasPromotion);
         builder.Ignore(propertyExpression: o => o.IsFullyDigital);
+        builder.Ignore(propertyExpression: o => o.ShipAddress);
+        builder.Ignore(propertyExpression: o => o.BillAddress);
+        #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
         #endregion
     }
 }

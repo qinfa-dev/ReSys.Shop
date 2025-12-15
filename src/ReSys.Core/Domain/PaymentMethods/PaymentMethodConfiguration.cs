@@ -83,5 +83,9 @@ public sealed class PaymentMethodConfiguration : IEntityTypeConfiguration<Paymen
             .HasForeignKey(foreignKeyExpression: p => p.PaymentMethodId)
             .OnDelete(deleteBehavior: DeleteBehavior.Restrict); // Payments should not be deleted if payment method is deleted
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

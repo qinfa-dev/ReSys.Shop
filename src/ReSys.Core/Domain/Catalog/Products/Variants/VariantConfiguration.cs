@@ -138,5 +138,9 @@ public sealed class VariantConfiguration : IEntityTypeConfiguration<Variant>
         builder.Ignore(propertyExpression: v => v.LineItems);
         builder.Ignore(propertyExpression: v => v.Orders);
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

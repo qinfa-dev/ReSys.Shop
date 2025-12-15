@@ -62,5 +62,9 @@ public sealed class PromotionRuleConfiguration : IEntityTypeConfiguration<Promot
             .HasForeignKey(foreignKeyExpression: pru => pru.PromotionRuleId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

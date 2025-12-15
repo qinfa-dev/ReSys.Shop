@@ -263,8 +263,9 @@ public sealed class Variant :
         /// <summary>
         /// Triggered when weight unit is not in valid list (g, kg, lb, oz).
         /// </summary>
-        public static Error InvalidWeightUnit =>
-            CommonInput.Errors.InvalidValue(prefix: nameof(Variant), field: "Weight unit");
+        public static Error InvalidWeightUnit => Error.Validation(
+            code: "Price.InvalidWeightUnit",
+            description: $"Weight unit must be one of: {string.Join(separator: ", ", value: Constraints.ValidWeightUnits)}.");
 
         /// <summary>
         /// Triggered when StockItem reference is null or invalid.

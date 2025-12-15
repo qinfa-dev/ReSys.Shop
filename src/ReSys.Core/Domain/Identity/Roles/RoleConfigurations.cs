@@ -78,5 +78,9 @@ public sealed class RoleConfigurations : IEntityTypeConfiguration<Role>
             .HasForeignKey(foreignKeyExpression: rc => rc.RoleId)
             .IsRequired();
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

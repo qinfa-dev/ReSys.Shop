@@ -1,10 +1,10 @@
 namespace ReSys.Core.Domain.Configurations;
 
-public class ConfigurationConfiguration : IEntityTypeConfiguration<Configuration>
+public class SettingConfiguration : IEntityTypeConfiguration<Setting>
 {
-    public void Configure(EntityTypeBuilder<Configuration> builder)
+    public void Configure(EntityTypeBuilder<Setting> builder)
     {
-        builder.ToTable("Configurations");
+        builder.ToTable(Schema.Settings);
 
         builder.HasKey(c => c.Id);
 
@@ -12,19 +12,19 @@ public class ConfigurationConfiguration : IEntityTypeConfiguration<Configuration
             .IsUnique();
 
         builder.Property(c => c.Key)
-            .HasMaxLength(Configuration.Constraints.KeyMaxLength)
+            .HasMaxLength(Setting.Constraints.KeyMaxLength)
             .IsRequired();
 
         builder.Property(c => c.Value)
-            .HasMaxLength(Configuration.Constraints.ValueMaxLength)
+            .HasMaxLength(Setting.Constraints.ValueMaxLength)
             .IsRequired();
 
         builder.Property(c => c.Description)
-            .HasMaxLength(Configuration.Constraints.DescriptionMaxLength)
+            .HasMaxLength(Setting.Constraints.DescriptionMaxLength)
             .IsRequired();
             
         builder.Property(c => c.DefaultValue)
-            .HasMaxLength(Configuration.Constraints.DefaultValueMaxLength)
+            .HasMaxLength(Setting.Constraints.DefaultValueMaxLength)
             .IsRequired();
 
         builder.Property(c => c.ValueType)

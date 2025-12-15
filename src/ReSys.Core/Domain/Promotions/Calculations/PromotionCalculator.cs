@@ -38,6 +38,39 @@ namespace ReSys.Core.Domain.Promotions.Calculations;
 /// </list>
 /// </para>
 /// </summary>
+/// <summary>
+/// Calculates promotion discounts and adjustments based on promotion rules and configuration.
+///
+/// <para>
+/// <b>Responsibility:</b>
+/// This calculator validates promotion eligibility, determines which line items are eligible for discounts,
+/// applies the promotion action (discount/adjustment), and enforces discount caps.
+/// </para>
+///
+/// <para>
+/// <b>Process Flow:</b>
+/// <list type="number">
+/// <item>Validate promotion is eligible (started, active, within usage limits)</item>
+/// <item>Evaluate all promotion rules against the order</item>
+/// <item>Check minimum order amount requirement</item>
+/// <item>Filter eligible line items based on include/exclude rules</item>
+/// <item>Calculate adjustments using the promotion action</item>
+/// <item>Cap discount if maximum discount limit is configured</item>
+/// <item>Return calculation result with adjustments</item>
+/// </list>
+/// </para>
+///
+/// <para>
+/// <b>Key Concepts:</b>
+/// <list type="bullet">
+/// <item><b>Eligibility Checks:</b> Ensures promotion can be applied (availability window, active status, usage limits)</item>
+/// <item><b>Rule Evaluation:</b> Order-level rules (FirstOrder, MinimumQuantity, UserRole) must ALL be satisfied</item>
+/// <item><b>Item Filtering:</b> Line-item rules (ProductInclude/Exclude, CategoryInclude/Exclude) determine which items get discounted</item>
+/// <item><b>Promotional Items:</b> Items already marked as promotional are excluded from discount consideration</item>
+/// <item><b>Discount Capping:</b> Total discount cannot exceed MaximumDiscountAmount if configured</item>
+/// </list>
+/// </para>
+/// </summary>
 public static class PromotionCalculator
 {
     #region Public API
@@ -57,12 +90,12 @@ public static class PromotionCalculator
     /// <list type="number">
     /// <item>Promotion start date must have passed (StartsAt)</item>
     /// <item>Promotion must be marked as active (IsActive)</item>
-    /// <item>Usage must not exceed limit (UsageCount < UsageLimit)</item>
+    /// <item>Usage must not exceed limit (UsageCount &lt; UsageLimit)</item>
     /// <item>ALL rules must be satisfied (PromotionRules.All())</item>
     /// <item>Order total must meet minimum (MinimumOrderAmount)</item>
     /// </list>
     /// </para>
-    /// 
+    ///
     /// <para>
     /// <b>Examples:</b>
     /// </para>
@@ -75,7 +108,7 @@ public static class PromotionCalculator
     ///     // Handle error - e.g., "Promotion not yet started"
     ///     return result.FirstError;
     /// }
-    /// 
+    ///
     /// // Apply adjustments to order
     /// foreach (var adj in result.Value.Adjustments)
     /// {
@@ -180,7 +213,7 @@ public static class PromotionCalculator
     /// <item>MinimumQuantity/UserRole: Order-level rules, skipped here</item>
     /// </list>
     /// </para>
-    /// 
+    ///
     /// <para>
     /// <b>Filter Application:</b>
     /// Filters are applied sequentially (chained). If a promotion has both include and exclude rules,
@@ -306,7 +339,7 @@ public static class PromotionCalculator
     /// <item>Adjustment description indicates the discount was capped</item>
     /// </list>
     /// </para>
-    /// 
+    ///
     /// <para>
     /// <b>Example:</b>
     /// If calculated discount is $50 but MaximumDiscountAmount is $25,

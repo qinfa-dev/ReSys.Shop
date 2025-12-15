@@ -88,6 +88,10 @@ public sealed class StockItemConfiguration : IEntityTypeConfiguration<StockItem>
         builder.HasIndex(indexExpression: si => new { si.QuantityReserved, si.QuantityOnHand });
         #endregion
 
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
+
         #region Ignored Properties
         // Ignore domain-specific or computed properties that should not be mapped to the database.
         builder.Ignore(propertyExpression: si => si.CountAvailable);

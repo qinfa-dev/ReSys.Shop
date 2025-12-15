@@ -13,7 +13,7 @@ public sealed class PromotionActionConfiguration : IEntityTypeConfiguration<Prom
     {
         #region Table
         // Set the table name for the PromotionUsage entity to its own table.
-        builder.ToTable(name: Schema.PromotionUsages);
+        builder.ToTable(name: Schema.PromotionActions);
         #endregion
 
         #region Primary Key

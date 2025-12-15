@@ -126,5 +126,8 @@ public sealed class TaxonConfiguration : IEntityTypeConfiguration<Taxon>
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
 
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

@@ -371,7 +371,6 @@ public class Order : Aggregate, IHasMetadata
     #endregion
 
     #region Relationships
-
     public UserAddress? ShipAddress { get; set; }
     public UserAddress? BillAddress { get; set; }
     public Store? Store { get; set; }

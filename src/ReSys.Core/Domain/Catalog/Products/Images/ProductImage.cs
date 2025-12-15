@@ -125,8 +125,10 @@ public sealed class ProductImage : BaseImageAsset, IHasIdentity<Guid>
         /// <returns>A formatted string representing the suggested storage path for the image file.</returns>
         public static string GetStorageFolder(Guid? productId, Guid? variantId, string type)
         {
-            var entityType = variantId.HasValue ? "variants" : "products";
-            var id = variantId ?? productId;
+            //var entityType = variantId.HasValue ? "variants" : "products";
+            //var id = variantId ?? productId;
+            var entityType = "products";
+            var id = productId;
             return $"{PathPrefix}/{ImageFolder}/{entityType}/{id}/{type.ToLower()}";
         }
 

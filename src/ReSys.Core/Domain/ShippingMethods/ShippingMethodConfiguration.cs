@@ -134,5 +134,9 @@ public sealed class ShippingMethodConfiguration : IEntityTypeConfiguration<Shipp
             .HasForeignKey(foreignKeyExpression: ssm => ssm.ShippingMethodId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

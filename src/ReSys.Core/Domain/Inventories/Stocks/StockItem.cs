@@ -46,6 +46,10 @@ public sealed class StockItem : Aggregate, IHasMetadata
     {
         public const int MinQuantity = 0;
         public const int SkuMaxLength = 255;
+
+        // Backorder constraints
+        public const int DefaultMaxBackorderQuantity = 100;
+        public const int UnlimitedBackorder = -1; // Special value for unlimited backorders
     }
     #endregion
 
@@ -96,6 +100,16 @@ public sealed class StockItem : Aggregate, IHasMetadata
             Error.Validation(
                 code: "StockItem.DuplicateReservation",
                 description: $"Order '{orderId}' already has {existingQuantity} units reserved. Cannot reserve {requestedQuantity}.");
+
+        public static Error BackorderLimitExceeded(int limit, int requested, int currentBackordered) =>
+            Error.Validation(
+                code: "StockItem.BackorderLimitExceeded",
+                description: $"Backorder limit of {limit} would be exceeded. Currently backordered: {currentBackordered}, Requested: {requested}");
+
+        public static Error InvalidBackorderLimit =>
+            Error.Validation(
+                code: "StockItem.InvalidBackorderLimit",
+                description: $"Backorder limit must be positive or {Constraints.UnlimitedBackorder} for unlimited.");
     }
     #endregion
 
@@ -119,6 +133,11 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// Gets a value indicating whether this item can be backordered (ordered when out of stock).
     /// </summary>
     public bool Backorderable { get; set; } = true;
+    /// <summary>
+    /// Gets or sets the maximum quantity that can be backordered for this item.
+    /// Use -1 for unlimited backorders when Backorderable is true.
+    /// </summary>
+    public int MaxBackorderQuantity { get; set; } = Constraints.DefaultMaxBackorderQuantity;
 
     public IDictionary<string, object?>? PublicMetadata { get; set; }
     public IDictionary<string, object?>? PrivateMetadata { get; set; }
@@ -144,6 +163,31 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// </summary>
     public bool InStock => CountAvailable > 0 || Backorderable;
 
+    /// <summary>
+    /// Gets the current backorder quantity (negative available inventory).
+    /// Returns 0 if CountAvailable is positive.
+    /// </summary>
+    public int CurrentBackorderQuantity => Math.Max(0, QuantityReserved - QuantityOnHand);
+
+    /// <summary>
+    /// Gets the remaining backorder capacity before hitting the limit.
+    /// Returns int.MaxValue if unlimited backorders are allowed.
+    /// </summary>
+    public int RemainingBackorderCapacity
+    {
+        get
+        {
+            if (!Backorderable)
+                return 0;
+
+            if (MaxBackorderQuantity == Constraints.UnlimitedBackorder)
+                return int.MaxValue;
+
+            return Math.Max(0, MaxBackorderQuantity - CurrentBackorderQuantity);
+        }
+    }
+
+
     #endregion
 
     #region Constructors
@@ -161,6 +205,7 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// <param name="quantityOnHand">Initial quantity on hand (default: 0).</param>
     /// <param name="quantityReserved">Initial reserved quantity (default: 0). Should not exceed QuantityOnHand.</param>
     /// <param name="backorderable">Whether this item can be backordered (default: true).</param>
+    /// <param name="maxBackorderQuantity"></param>
     /// <param name="publicMetadata">Optional public metadata.</param>
     /// <param name="privateMetadata">Optional private metadata.</param>
     /// <returns>
@@ -174,11 +219,18 @@ public sealed class StockItem : Aggregate, IHasMetadata
         int quantityOnHand = 0,
         int quantityReserved = 0,
         bool backorderable = true,
+        int? maxBackorderQuantity = null,
         IDictionary<string, object?>? publicMetadata = null,
         IDictionary<string, object?>? privateMetadata = null)
     {
         if (quantityOnHand < Constraints.MinQuantity)
             return Errors.InvalidQuantity;
+
+        // Validate backorder limit if provided
+        if (maxBackorderQuantity.HasValue &&
+            maxBackorderQuantity.Value != Constraints.UnlimitedBackorder &&
+            maxBackorderQuantity.Value < 0)
+            return Errors.InvalidBackorderLimit;
 
         var item = new StockItem
         {
@@ -247,6 +299,7 @@ public sealed class StockItem : Aggregate, IHasMetadata
         bool backorderable,
         int? quantityOnHand = null,
         int? quantityReserved = null,
+        int? maxBackorderQuantity = null,
         IDictionary<string, object?>? publicMetadata = null,
         IDictionary<string, object?>? privateMetadata = null)
     {
@@ -276,6 +329,16 @@ public sealed class StockItem : Aggregate, IHasMetadata
             changed = true;
         }
 
+        // Handle MaxBackorderQuantity changes
+        if (maxBackorderQuantity.HasValue && maxBackorderQuantity.Value != MaxBackorderQuantity)
+        {
+            if (maxBackorderQuantity.Value != Constraints.UnlimitedBackorder &&
+                maxBackorderQuantity.Value < 0)
+                return Errors.InvalidBackorderLimit;
+
+            MaxBackorderQuantity = maxBackorderQuantity.Value;
+            changed = true;
+        }
         // Handle QuantityOnHand changes
         if (quantityOnHand.HasValue && quantityOnHand.Value != QuantityOnHand)
         {
@@ -431,7 +494,7 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// This is called automatically when stock is restocked (positive adjustment).
     /// Backordered units are filled in order of creation (oldest first).
     /// </remarks>
-    private void ProcessBackorders(int quantityAvailable, IEnumerable<InventoryUnit>? backorderedUnits = null)
+    private void ProcessBackorders(int quantityAvailable, IList<InventoryUnit>? backorderedUnits = null)
     {
         // If no units provided, cannot process backorders
         // (Units must be queried by application service and passed here)
@@ -510,10 +573,27 @@ public sealed class StockItem : Aggregate, IHasMetadata
 
         var newReserved = QuantityReserved + quantity;
 
-        // NEW: Prevent reserving more than on-hand (unless backorderable)
+        // Check if reservation would exceed on-hand when not backorderable
         if (!Backorderable && newReserved > QuantityOnHand)
-            return Errors.InsufficientStock(available: QuantityOnHand, requested: quantity);
+            return Errors.InsufficientStock(available: CountAvailable, requested: quantity);
 
+        if (Backorderable && newReserved > QuantityOnHand)
+        {
+            var newBackorderAmount = newReserved - QuantityOnHand;
+            var currentBackordered = CurrentBackorderQuantity;
+
+            // Only enforce limit if not unlimited
+            if (MaxBackorderQuantity != Constraints.UnlimitedBackorder)
+            {
+                if (newBackorderAmount > MaxBackorderQuantity)
+                {
+                    return Errors.BackorderLimitExceeded(
+                        limit: MaxBackorderQuantity,
+                        requested: quantity,
+                        currentBackordered: currentBackordered);
+                }
+            }
+        }
         QuantityReserved = newReserved;
         UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -712,7 +792,6 @@ public sealed class StockItem : Aggregate, IHasMetadata
 
     #region Business Logic: Invariants
 
-    // NEW: Add method to validate stock item invariants
     public ErrorOr<Success> ValidateInvariants()
     {
         // Check quantity on hand vs reserved consistency
@@ -721,6 +800,21 @@ public sealed class StockItem : Aggregate, IHasMetadata
         
         if (QuantityReserved > QuantityOnHand && !Backorderable)
             return Errors.ReservedExceedsOnHand;
+
+        if (Backorderable && MaxBackorderQuantity != Constraints.UnlimitedBackorder)
+        {
+            var currentBackordered = CurrentBackorderQuantity;
+            if (currentBackordered > MaxBackorderQuantity)
+            {
+                return Errors.BackorderLimitExceeded(
+                    limit: MaxBackorderQuantity,
+                    requested: 0,
+                    currentBackordered: currentBackordered);
+            }
+        }
+
+        if (MaxBackorderQuantity != Constraints.UnlimitedBackorder && MaxBackorderQuantity < 0)
+            return Errors.InvalidBackorderLimit;
 
         return Result.Success;
     }

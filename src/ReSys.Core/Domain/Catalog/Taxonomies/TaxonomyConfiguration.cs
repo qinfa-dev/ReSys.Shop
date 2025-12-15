@@ -54,5 +54,9 @@ public sealed class TaxonomyConfiguration : IEntityTypeConfiguration<Taxonomy>
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
         #endregion
+
+        #region Concurrency
+        builder.ConfigureVersion();
+        #endregion
     }
 }

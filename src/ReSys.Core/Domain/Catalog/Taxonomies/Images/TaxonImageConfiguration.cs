@@ -62,5 +62,6 @@ public sealed class TaxonImageConfiguration : IEntityTypeConfiguration<TaxonImag
             .HasForeignKey(foreignKeyExpression: ti => ti.TaxonId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
+
     }
 }
