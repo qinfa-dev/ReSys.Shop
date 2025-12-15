@@ -5,7 +5,7 @@ using MapsterMapper;
 using ReSys.Core.Domain.Catalog.OptionTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.OptionValues;
+namespace ReSys.Core.Feature.Admin.Catalog.OptionValues;
 
 public static partial class OptionValueModule
 {

@@ -2,7 +2,7 @@
 
 using ReSys.Core.Domain.Catalog.Products;
 
-namespace ReSys.Core.Feature.Catalog.Products;
+namespace ReSys.Core.Feature.Admin.Catalog.Products;
 
 public static partial class ProductModule
 {

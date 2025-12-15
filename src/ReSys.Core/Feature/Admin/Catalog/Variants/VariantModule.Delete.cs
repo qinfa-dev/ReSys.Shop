@@ -1,7 +1,7 @@
 ﻿using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Variants;
+namespace ReSys.Core.Feature.Admin.Catalog.Variants;
 
 public static partial class VariantModule
 {

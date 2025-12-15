@@ -1,7 +1,7 @@
 ﻿using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.PropertyTypes;
+namespace ReSys.Core.Feature.Admin.Catalog.PropertyTypes;
 
 public static partial class PropertyTypeModule
 {

@@ -9,7 +9,7 @@ using Serilog;
 
 using Taxonomy = ReSys.Core.Domain.Catalog.Taxonomies.Taxonomy;
 
-namespace ReSys.Core.Feature.Catalog.Taxonomies;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxonomies;
 
 public static partial class TaxonomyModule
 {

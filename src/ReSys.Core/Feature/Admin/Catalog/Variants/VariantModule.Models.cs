@@ -1,13 +1,9 @@
 ﻿using Mapster;
 
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-
-using ReSys.Core.Domain.Catalog.Products.Images;
 using ReSys.Core.Domain.Catalog.Products.Prices;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 
-namespace ReSys.Core.Feature.Catalog.Variants;
+namespace ReSys.Core.Feature.Admin.Catalog.Variants;
 
 public static partial class VariantModule
 {

@@ -10,7 +10,7 @@ using ReSys.Core.Common.Models.Wrappers.Queryable;
 using ReSys.Core.Domain.Catalog.OptionTypes;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.OptionTypes;
+namespace ReSys.Core.Feature.Admin.Catalog.OptionTypes;
 
 public static partial class OptionTypeModule
 {

@@ -8,7 +8,7 @@ using ReSys.Core.Feature.Common.Persistence.Interfaces;
 using ReSys.Core.Feature.Common.Storage.Models;
 using ReSys.Core.Feature.Common.Storage.Services;
 
-namespace ReSys.Core.Feature.Catalog.Products;
+namespace ReSys.Core.Feature.Admin.Catalog.Products;
 
 public static partial class ProductModule
 {

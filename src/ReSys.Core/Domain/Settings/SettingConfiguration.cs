@@ -1,4 +1,4 @@
-namespace ReSys.Core.Domain.Configurations;
+namespace ReSys.Core.Domain.Settings;
 
 public class SettingConfiguration : IEntityTypeConfiguration<Setting>
 {

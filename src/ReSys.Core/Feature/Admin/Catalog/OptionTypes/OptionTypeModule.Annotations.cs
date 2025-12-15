@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http;
 
 using ReSys.Core.Common.Models.Wrappers.Responses;
 
-namespace ReSys.Core.Feature.Catalog.OptionTypes;
+namespace ReSys.Core.Feature.Admin.Catalog.OptionTypes;
 
 public static partial class OptionTypeModule
 {

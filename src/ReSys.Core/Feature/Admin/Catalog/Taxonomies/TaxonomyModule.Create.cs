@@ -8,7 +8,7 @@ using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
 using Serilog;
 
-namespace ReSys.Core.Feature.Catalog.Taxonomies;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxonomies;
 
 public static partial class TaxonomyModule
 {

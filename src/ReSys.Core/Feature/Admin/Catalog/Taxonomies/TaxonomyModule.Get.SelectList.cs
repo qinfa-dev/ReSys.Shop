@@ -10,7 +10,7 @@ using ReSys.Core.Common.Models.Wrappers.Queryable;
 using ReSys.Core.Domain.Catalog.Taxonomies;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Taxonomies;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxonomies;
 
 public static partial class TaxonomyModule
 {

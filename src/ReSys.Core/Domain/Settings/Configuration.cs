@@ -1,6 +1,6 @@
 using ReSys.Core.Common.Domain.Entities;
 
-namespace ReSys.Core.Domain.Configurations;
+namespace ReSys.Core.Domain.Settings;
 
 /// <summary>
 /// Represents a dynamic application configuration entry stored as a key-value pair.

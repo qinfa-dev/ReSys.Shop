@@ -1,4 +1,4 @@
-﻿namespace ReSys.Core.Feature.Catalog.OptionValues;
+﻿namespace ReSys.Core.Feature.Admin.Catalog.OptionValues;
 
 public static partial class OptionValueModule
 {

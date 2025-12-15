@@ -2,7 +2,7 @@
 
 using ReSys.Core.Domain.Catalog.OptionTypes;
 
-namespace ReSys.Core.Feature.Catalog.OptionValues;
+namespace ReSys.Core.Feature.Admin.Catalog.OptionValues;
 
 public static partial class OptionValueModule
 {

@@ -1,7 +1,7 @@
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Domain.Promotions.Promotions;
 
-namespace ReSys.Core.Domain.Promotions.Audits;
+namespace ReSys.Core.Domain.Promotions.Usages;
 
 /// <summary>
 /// Audit log entry for promotion changes.

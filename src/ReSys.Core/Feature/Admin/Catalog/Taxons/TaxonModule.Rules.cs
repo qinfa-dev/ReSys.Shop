@@ -13,7 +13,7 @@ using ReSys.Core.Domain.Catalog.Taxonomies.Rules;
 using ReSys.Core.Domain.Catalog.Taxonomies.Taxa;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Taxons;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxons;
 
 public static partial class TaxonModule
 {

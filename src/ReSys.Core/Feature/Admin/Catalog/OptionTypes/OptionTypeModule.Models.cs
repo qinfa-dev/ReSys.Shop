@@ -2,7 +2,7 @@ using Mapster;
 
 using ReSys.Core.Domain.Catalog.OptionTypes;
 
-namespace ReSys.Core.Feature.Catalog.OptionTypes;
+namespace ReSys.Core.Feature.Admin.Catalog.OptionTypes;
 
 public static partial class OptionTypeModule
 {

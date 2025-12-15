@@ -10,11 +10,10 @@ using Microsoft.AspNetCore.Routing;
 
 using ReSys.Core.Common.Models.Wrappers.PagedLists;
 using ReSys.Core.Common.Models.Wrappers.Responses;
-using ReSys.Core.Feature.Catalog.Taxons;
 using ReSys.Core.Feature.Common.Security.Authorization.Attributes.Extensions;
 using ReSys.Core.Feature.Common.Security.Authorization.Permissions.Constants;
 
-namespace ReSys.Core.Feature.Catalog.Products;
+namespace ReSys.Core.Feature.Admin.Catalog.Products;
 
 public static partial class ProductModule
 {

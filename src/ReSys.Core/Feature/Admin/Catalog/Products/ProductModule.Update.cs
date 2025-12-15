@@ -3,7 +3,7 @@
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Products;
+namespace ReSys.Core.Feature.Admin.Catalog.Products;
 
 public static partial class ProductModule
 {

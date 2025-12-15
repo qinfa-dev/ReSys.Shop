@@ -12,7 +12,7 @@ using ReSys.Core.Common.Models.Wrappers.Queryable;
 using ReSys.Core.Domain.Catalog.Taxonomies.Images;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Taxons;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxons;
 
 public static partial class TaxonModule
 {

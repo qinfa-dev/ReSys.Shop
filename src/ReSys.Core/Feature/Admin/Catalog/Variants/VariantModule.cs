@@ -10,11 +10,11 @@ using Microsoft.AspNetCore.Routing;
 
 using ReSys.Core.Common.Models.Wrappers.PagedLists;
 using ReSys.Core.Common.Models.Wrappers.Responses;
-using ReSys.Core.Feature.Catalog.OptionValues;
+using ReSys.Core.Feature.Admin.Catalog.OptionValues;
 using ReSys.Core.Feature.Common.Security.Authorization.Attributes.Extensions;
 using ReSys.Core.Feature.Common.Security.Authorization.Permissions.Constants;
 
-namespace ReSys.Core.Feature.Catalog.Variants;
+namespace ReSys.Core.Feature.Admin.Catalog.Variants;
 
 public static partial class VariantModule
 {

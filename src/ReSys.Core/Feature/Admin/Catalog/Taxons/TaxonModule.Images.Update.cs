@@ -9,7 +9,7 @@ using ReSys.Core.Feature.Common.Persistence.Interfaces;
 using ReSys.Core.Feature.Common.Storage.Models;
 using ReSys.Core.Feature.Common.Storage.Services;
 
-namespace ReSys.Core.Feature.Catalog.Taxons;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxons;
 
 public static partial class TaxonModule
 {

@@ -3,8 +3,8 @@ using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Orders.Adjustments;
 using ReSys.Core.Domain.Promotions.Actions;
-using ReSys.Core.Domain.Promotions.Audits;
 using ReSys.Core.Domain.Promotions.Rules;
+using ReSys.Core.Domain.Promotions.Usages;
 
 namespace ReSys.Core.Domain.Promotions.Promotions;
 

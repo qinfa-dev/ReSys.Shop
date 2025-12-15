@@ -10,7 +10,7 @@ using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
-using ReSys.Core.Feature.Catalog.Taxons;
+using ReSys.Core.Feature.Admin.Catalog.Taxons;
 using ReSys.Core.Feature.Common.Behaviors;
 
 using Serilog;

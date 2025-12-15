@@ -3,7 +3,7 @@
 using ReSys.Core.Common.Models.Wrappers.PagedLists;
 using ReSys.Core.Common.Models.Wrappers.Responses;
 
-namespace ReSys.Core.Feature.Catalog.Taxons;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxons;
 
 public static partial class TaxonModule
 {

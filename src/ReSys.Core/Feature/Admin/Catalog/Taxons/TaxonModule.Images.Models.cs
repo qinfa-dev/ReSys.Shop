@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using ReSys.Core.Domain.Catalog.Products.Images;
 
-namespace ReSys.Core.Feature.Catalog.Taxons;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxons;
 
 public static partial class TaxonModule
 {

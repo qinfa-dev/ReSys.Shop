@@ -1,4 +1,4 @@
-namespace ReSys.Core.Domain.Configurations;
+namespace ReSys.Core.Domain.Settings;
 
 /// <summary>
 /// Defines the possible data types for a configuration setting's value.

@@ -10,7 +10,7 @@ using ReSys.Core.Common.Models.Wrappers.Queryable;
 using ReSys.Core.Domain.Catalog.Products.Prices;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
-namespace ReSys.Core.Feature.Catalog.Variants;
+namespace ReSys.Core.Feature.Admin.Catalog.Variants;
 
 public static partial class VariantModule
 {

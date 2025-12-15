@@ -11,7 +11,7 @@ using ReSys.Core.Common.Models.Wrappers.Responses;
 using ReSys.Core.Feature.Common.Security.Authorization.Attributes.Extensions;
 using ReSys.Core.Feature.Common.Security.Authorization.Permissions.Constants;
 
-namespace ReSys.Core.Feature.Catalog.PropertyTypes;
+namespace ReSys.Core.Feature.Admin.Catalog.PropertyTypes;
 
 public static partial class PropertyTypeModule
 {

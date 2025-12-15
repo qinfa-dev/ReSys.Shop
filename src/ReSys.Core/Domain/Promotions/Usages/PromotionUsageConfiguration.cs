@@ -1,6 +1,4 @@
-﻿using ReSys.Core.Domain.Promotions.Actions;
-
-namespace ReSys.Core.Domain.Promotions.Audits;
+﻿namespace ReSys.Core.Domain.Promotions.Usages;
 
 /// <summary>
 /// Configures the database mapping for the <see cref="PromotionUsage"/> entity.

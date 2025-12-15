@@ -13,7 +13,7 @@ using ReSys.Core.Common.Models.Wrappers.Responses;
 using ReSys.Core.Feature.Common.Security.Authorization.Attributes.Extensions;
 using ReSys.Core.Feature.Common.Security.Authorization.Permissions.Constants;
 
-namespace ReSys.Core.Feature.Catalog.Taxonomies;
+namespace ReSys.Core.Feature.Admin.Catalog.Taxonomies;
 
 public static partial class TaxonomyModule
 {
