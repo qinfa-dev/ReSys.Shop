@@ -2,17 +2,27 @@
 // Can Tho University - College of ICT
 // Compile: typst compile main.typ
 
-// Import configurations
+// ============================================================================
+// IMPORT CONFIGURATIONS AND VARIABLES
+// ============================================================================
+
+#import "config/variables.typ": *
 #import "config/page-setup.typ": *
 #import "config/text-setup.typ": *
 #import "config/styling.typ": *
 
-// Initialize page setup
+// ============================================================================
+// INITIALIZE SETUP
+// ============================================================================
+
 #setup-page()
 #setup-text()
 #setup-styling()
 
-// Front Matter
+// ============================================================================
+// FRONT MATTER
+// ============================================================================
+
 #include "frontmatter/cover.typ"
 #include "frontmatter/inner-cover.typ"
 #include "frontmatter/approval.typ"
@@ -30,7 +40,10 @@
 #include "frontmatter/list-of-figures.typ"
 #include "frontmatter/abbreviations.typ"
 
-// Main Content - Start Arabic numerals
+// ============================================================================
+// MAIN CONTENT - Start Arabic numerals
+// ============================================================================
+
 #set page(numbering: "1")
 #counter(page).update(1)
 #set heading(numbering: "1.1.1.1")
@@ -41,6 +54,9 @@
 #include "chapters/chapter4-results.typ"
 #include "chapters/chapter5-conclusion.typ"
 
-// Back Matter
+// ============================================================================
+// BACK MATTER
+// ============================================================================
+
 #include "backmatter/references.typ"
 #include "backmatter/appendices.typ"
