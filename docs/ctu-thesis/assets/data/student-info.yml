@@ -1,0 +1,13 @@
+# Student Information
+# This file can be used to store student-specific details
+# that can be imported into Typst files.
+
+student:
+  name: "Nguyen Van A"
+  id: "B1234567"
+  class: "DI20V7F (K47)"
+  advisor: "Dr. Tran Thi B"
+  university: "Can Tho University"
+  faculty: "College of Information and Communication Technology"
+  thesis_title: "BUILDING A WEB APPLICATION FOR STUDENT MANAGEMENT SYSTEM"
+  date: "12/2024"
