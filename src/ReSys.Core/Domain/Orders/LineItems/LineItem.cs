@@ -1,5 +1,6 @@
 ﻿using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Domain.Catalog.Products.Variants;
+using ReSys.Core.Domain.Orders.Adjustments;
 using ReSys.Core.Domain.Orders.Shipments;
 
 namespace ReSys.Core.Domain.Orders.LineItems;
@@ -172,6 +173,7 @@ public class LineItem : AuditableEntity<Guid>
     public Order Order { get; set; } = null!;
     public Variant Variant { get; set; } = null!;
     public ICollection<InventoryUnit> InventoryUnits { get; set; } = new List<InventoryUnit>();
+    public ICollection<LineItemAdjustment> Adjustments { get; set; } = new List<LineItemAdjustment>();
     #endregion
 
     #region Computed Properties

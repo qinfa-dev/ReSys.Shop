@@ -34,7 +34,11 @@ public static class Schema
     /// Represents the database table name for storing application-wide audit logs.
     /// </summary>
     public const string AuditLogs = "audit_logs";
-    public const string Settings = "audit_logs";
+    
+    /// <summary>
+    /// Represents the database table name for storing application-wide settings.
+    /// </summary>
+    public const string Settings = "settings";
 
     // Authentication & Authorization - Full Spree complexity maintained
     /// <summary>

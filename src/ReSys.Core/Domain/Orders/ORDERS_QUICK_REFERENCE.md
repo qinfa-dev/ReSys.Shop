@@ -451,7 +451,7 @@ completeResult = order.Next();     // Confirm → Complete
 if (completeResult.IsError) return Problem(completeResult.FirstError);
 
 // 8. Save (events published after)
-_dbContext.Orders.Add(order);
+ _dbContext.Set<Order>().Add(order);
 await _dbContext.SaveChangesAsync();
 ```
 

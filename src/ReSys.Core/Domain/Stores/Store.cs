@@ -6,8 +6,8 @@ using ReSys.Core.Domain.Location;
 using ReSys.Core.Domain.Location.Countries;
 using ReSys.Core.Domain.Location.States;
 using ReSys.Core.Domain.Orders;
-using ReSys.Core.Domain.PaymentMethods;
-using ReSys.Core.Domain.ShippingMethods;
+using ReSys.Core.Domain.Settings.PaymentMethods;
+using ReSys.Core.Domain.Settings.ShippingMethods;
 using ReSys.Core.Domain.Stores.PaymentMethods;
 using ReSys.Core.Domain.Stores.Products;
 using ReSys.Core.Domain.Stores.ShippingMethods;
@@ -340,7 +340,7 @@ public sealed class Store : Aggregate,
     public string? Address1 { get; set; }
     public string? Address2 { get; set; }
     public string? City { get; set; }
-    public string? Zipcode { get; set; }
+    public string? ZipCode { get; set; }
     public string? Phone { get; set; }
     public string? Company { get; set; }
 
@@ -875,7 +875,7 @@ public sealed class Store : Aggregate,
         if (address1 != Address1) { Address1 = address1?.Trim(); changed = true; }
         if (address2 != Address2) { Address2 = address2?.Trim(); changed = true; }
         if (city != City) { City = city?.Trim(); changed = true; }
-        if (zipcode != Zipcode) { Zipcode = zipcode?.Trim(); changed = true; }
+        if (zipcode != ZipCode) { ZipCode = zipcode?.Trim(); changed = true; }
         if (phone != Phone) { Phone = phone?.Trim(); changed = true; }
         if (company != Company) { Company = company?.Trim(); changed = true; }
         if (countryId != CountryId) { CountryId = countryId; changed = true; }
@@ -1122,6 +1122,79 @@ public sealed class Store : Aggregate,
         return this;
     }
 
+    /// <summary>
+    /// Synchronizes the store's products based on a provided list of desired states.
+    /// This method will add new products, update existing ones, and remove those not in the provided list.
+    /// </summary>
+    /// <param name="desiredProducts">The list of products and their desired settings for this store.</param>
+    /// <param name="productLookup">A dictionary of all available products (ProductId -> Product instance).</param>
+    /// <returns>An ErrorOr result indicating success or failure.</returns>
+    public ErrorOr<Success> SyncProducts(
+        IReadOnlyList<(Guid ProductId, bool Visible, bool Featured)> desiredProducts,
+        IReadOnlyDictionary<Guid, Product> productLookup)
+    {
+        var errors = new List<Error>();
+        bool changed = false;
+
+        // Create a lookup for existing products linked to this store
+        var existingLookup = StoreProducts.ToDictionary(
+            sp => sp.ProductId,
+            sp => sp);
+
+        // Process desired products: add or update
+        foreach (var desiredProduct in desiredProducts)
+        {
+            if (existingLookup.TryGetValue(desiredProduct.ProductId, out var existingLink))
+            {
+                // Update existing
+                var updateResult = existingLink.Update(desiredProduct.Visible, desiredProduct.Featured);
+                if (updateResult.IsError) errors.AddRange(updateResult.Errors);
+                else if (updateResult.Value != existingLink) changed = true; // Check if update actually changed anything
+            }
+            else
+            {
+                // Add new
+                if (!productLookup.TryGetValue(desiredProduct.ProductId, out var product))
+                {
+                    errors.Add(Errors.InvalidProduct); // Product not found in the provided lookup
+                    continue;
+                }
+
+                var newLinkResult = StoreProduct.Create(Id, desiredProduct.ProductId, desiredProduct.Visible, desiredProduct.Featured);
+                if (newLinkResult.IsError) errors.AddRange(newLinkResult.Errors);
+                else
+                {
+                    StoreProducts.Add(newLinkResult.Value);
+                    changed = true;
+                }
+            }
+        }
+
+        // Remove products not in the desired list
+        var productsToRemove = existingLookup.Keys
+            .Except(desiredProducts.Select(d => d.ProductId))
+            .ToList();
+
+        foreach (var productIdToRemove in productsToRemove)
+        {
+            var linkToRemove = StoreProducts.FirstOrDefault(sp => sp.ProductId == productIdToRemove);
+            if (linkToRemove != null)
+            {
+                StoreProducts.Remove(linkToRemove);
+                changed = true;
+            }
+        }
+
+        if (errors.Any()) return errors;
+
+        if (changed)
+        {
+            UpdatedAt = DateTimeOffset.UtcNow;
+            AddDomainEvent(new Events.StoreProductsSynchronized(Id)); // New event needed
+        }
+
+        return Result.Success;
+    }
     #endregion
 
     #region Business Logic - Shipping Method Management
@@ -1183,6 +1256,71 @@ public sealed class Store : Aggregate,
         return this;
     }
 
+    /// <summary>
+    /// Synchronizes the store's shipping methods based on a provided list of desired states.
+    /// This method will add new shipping methods, update existing ones, and remove those not in the provided list.
+    /// </summary>
+    /// <param name="desiredShippingMethods">The list of shipping methods and their desired settings for this store.</param>
+    /// <returns>An ErrorOr result indicating success or failure.</returns>
+    public ErrorOr<Success> SyncShippingMethods(
+        IReadOnlyList<(Guid ShippingMethodId, bool Available, decimal? StoreBaseCost)> desiredShippingMethods)
+    {
+        var errors = new List<Error>();
+        bool changed = false;
+
+        // Create a lookup for existing methods
+        var existingLookup = StoreShippingMethods.ToDictionary(
+            sm => sm.ShippingMethodId,
+            sm => sm);
+
+        // Process desired methods: add or update
+        foreach (var desiredMethod in desiredShippingMethods)
+        {
+            if (existingLookup.TryGetValue(desiredMethod.ShippingMethodId, out var existingLink))
+            {
+                // Update existing
+                var updateResult = existingLink.Update(desiredMethod.Available, desiredMethod.StoreBaseCost);
+                if (updateResult.IsError) errors.AddRange(updateResult.Errors);
+                else if (updateResult.Value != existingLink) changed = true; // Check if update actually changed anything
+            }
+            else
+            {
+                // Add new
+                var newLinkResult = StoreShippingMethod.Create(Id, desiredMethod.ShippingMethodId, desiredMethod.Available, desiredMethod.StoreBaseCost);
+                if (newLinkResult.IsError) errors.AddRange(newLinkResult.Errors);
+                else
+                {
+                    StoreShippingMethods.Add(newLinkResult.Value);
+                    changed = true;
+                }
+            }
+        }
+
+        // Remove methods not in the desired list
+        var methodsToRemove = existingLookup.Keys
+            .Except(desiredShippingMethods.Select(d => d.ShippingMethodId))
+            .ToList();
+
+        foreach (var methodIdToRemove in methodsToRemove)
+        {
+            var linkToRemove = StoreShippingMethods.FirstOrDefault(sm => sm.ShippingMethodId == methodIdToRemove);
+            if (linkToRemove != null)
+            {
+                StoreShippingMethods.Remove(linkToRemove);
+                changed = true;
+            }
+        }
+
+        if (errors.Any()) return errors;
+
+        if (changed)
+        {
+            UpdatedAt = DateTimeOffset.UtcNow;
+            AddDomainEvent(new Events.StoreShippingMethodsSynchronized(Id)); // New event needed
+        }
+
+        return Result.Success;
+    }
     #endregion
 
     #region Business Logic - Payment Method Management
@@ -1217,6 +1355,72 @@ public sealed class Store : Aggregate,
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(new Events.PaymentMethodRemovedFromStore(Id, paymentMethodId));
         return this;
+    }
+
+    /// <summary>
+    /// Synchronizes the store's payment methods based on a provided list of desired states.
+    /// This method will add new payment methods, update existing ones, and remove those not in the provided list.
+    /// </summary>
+    /// <param name="desiredPaymentMethods">The list of payment methods and their desired availability for this store.</param>
+    /// <returns>An ErrorOr result indicating success or failure.</returns>
+    public ErrorOr<Success> SyncPaymentMethods(
+        IReadOnlyList<(Guid PaymentMethodId, bool Available)> desiredPaymentMethods)
+    {
+        var errors = new List<Error>();
+        bool changed = false;
+
+        // Create a lookup for existing methods
+        var existingLookup = StorePaymentMethods.ToDictionary(
+            pm => pm.PaymentMethodId,
+            pm => pm);
+
+        // Process desired methods: add or update
+        foreach (var desiredMethod in desiredPaymentMethods)
+        {
+            if (existingLookup.TryGetValue(desiredMethod.PaymentMethodId, out var existingLink))
+            {
+                // Update existing
+                var updateResult = existingLink.Update(desiredMethod.Available);
+                if (updateResult.IsError) errors.AddRange(updateResult.Errors);
+                else if (updateResult.Value != existingLink) changed = true; // Check if update actually changed anything
+            }
+            else
+            {
+                // Add new
+                var newLinkResult = StorePaymentMethod.Create(Id, desiredMethod.PaymentMethodId, desiredMethod.Available);
+                if (newLinkResult.IsError) errors.AddRange(newLinkResult.Errors);
+                else
+                {
+                    StorePaymentMethods.Add(newLinkResult.Value);
+                    changed = true;
+                }
+            }
+        }
+
+        // Remove methods not in the desired list
+        var methodsToRemove = existingLookup.Keys
+            .Except(desiredPaymentMethods.Select(d => d.PaymentMethodId))
+            .ToList();
+
+        foreach (var methodIdToRemove in methodsToRemove)
+        {
+            var linkToRemove = StorePaymentMethods.FirstOrDefault(pm => pm.PaymentMethodId == methodIdToRemove);
+            if (linkToRemove != null)
+            {
+                StorePaymentMethods.Remove(linkToRemove);
+                changed = true;
+            }
+        }
+
+        if (errors.Any()) return errors;
+
+        if (changed)
+        {
+            UpdatedAt = DateTimeOffset.UtcNow;
+            AddDomainEvent(new Events.StorePaymentMethodsSynchronized(Id)); // New event needed
+        }
+
+        return Result.Success;
     }
     #endregion
 
@@ -1314,6 +1518,11 @@ public sealed class Store : Aggregate,
         /// </summary>
         public sealed record ProductSettingsUpdated(Guid StoreId, Guid ProductId) : DomainEvent;
 
+        /// <summary>
+        /// Raised when store products are synchronized.
+        /// </summary>
+        public sealed record StoreProductsSynchronized(Guid StoreId) : DomainEvent;
+
         // Shipping Method Events
         /// <summary>
         /// Raised when a shipping method is added to the store.
@@ -1330,6 +1539,11 @@ public sealed class Store : Aggregate,
         /// </summary>
         public sealed record ShippingMethodSettingsUpdated(Guid StoreId, Guid ShippingMethodId) : DomainEvent;
 
+        /// <summary>
+        /// Raised when store shipping methods are synchronized.
+        /// </summary>
+        public sealed record StoreShippingMethodsSynchronized(Guid StoreId) : DomainEvent;
+
         // Payment Method Events
         /// <summary>
         /// Raised when a payment method is added to the store.
@@ -1345,6 +1559,11 @@ public sealed class Store : Aggregate,
         /// Raised when payment method settings are updated.
         /// </summary>
         public sealed record PaymentMethodSettingsUpdated(Guid StoreId, Guid PaymentMethodId) : DomainEvent;
+
+        /// <summary>
+        /// Raised when store payment methods are synchronized.
+        /// </summary>
+        public sealed record StorePaymentMethodsSynchronized(Guid StoreId) : DomainEvent;
     }
     #endregion
 }

@@ -506,7 +506,7 @@ public sealed class ProductImage : BaseImageAsset, IHasIdentity<Guid>
         if (dimensionsUnit is not null && !Constraints.ValidDimensionUnits.Contains(value: dimensionsUnit))
             return Errors.InvalidDimensionUnit;
 
-        if (!Constraints.ValidTypes.Contains(value: type))
+        if (!Constraints.ValidTypes.Contains(value: type.ToString()))
             return Errors.InvalidType;
 
         var image = new ProductImage

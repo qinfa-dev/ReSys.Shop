@@ -71,14 +71,14 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .IsRequired(required: false)
             .HasComment(comment: "CapturedAt: Timestamp when the payment was captured.");
 
-        builder.Property(propertyExpression: p => p.RefundedAmountCents)
-            .IsRequired()
-            .HasDefaultValue(0m)
-            .HasComment(comment: "RefundedAmountCents: Total amount refunded for this payment.");
+        //builder.Property(propertyExpression: p => p.RefundedAmountCents)
+        //    .IsRequired()
+        //    .HasDefaultValue(0m)
+        //    .HasComment(comment: "RefundedAmountCents: Total amount refunded for this payment.");
 
-        builder.Property(propertyExpression: p => p.RefundedAt)
-            .IsRequired(required: false)
-            .HasComment(comment: "RefundedAt: Timestamp when the payment was refunded.");
+        //builder.Property(propertyExpression: p => p.RefundedAt)
+        //    .IsRequired(required: false)
+        //    .HasComment(comment: "RefundedAt: Timestamp when the payment was refunded.");
 
         builder.Property(propertyExpression: p => p.VoidedAt)
             .IsRequired(required: false)
@@ -142,13 +142,13 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.Ignore(p => p.IsAuthorized);
         builder.Ignore(p => p.IsCapturing);
         builder.Ignore(p => p.IsCompleted);
-        builder.Ignore(p => p.IsPartiallyRefunded);
-        builder.Ignore(p => p.IsRefunded);
+        //builder.Ignore(p => p.IsPartiallyRefunded);
+        //builder.Ignore(p => p.IsRefunded);
         builder.Ignore(p => p.IsVoid);
         builder.Ignore(p => p.IsFailed);
         builder.Ignore(p => p.Amount);
-        builder.Ignore(p => p.TotalRefundedAmount);
-        builder.Ignore(p => p.AvailableForRefund);
+        //builder.Ignore(p => p.TotalRefundedAmount);
+        //builder.Ignore(p => p.AvailableForRefund);
         #endregion
     }
 }

@@ -35,6 +35,10 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired(required: false)
             .HasComment(comment: "UserId: Foreign key to the associated ApplicationUser.");
 
+        builder.Property(propertyExpression: o => o.AdhocCustomerId)
+            .IsRequired(required: false)
+            .HasComment(comment: "AdhocId: Identifier for anonymous user sessions (guest carts).");
+
         builder.Property(propertyExpression: o => o.Number)
             .ConfigureInput(columnName: "number", maxLength: 50)
             .HasComment(comment: "Number: Unique order number.");
@@ -132,7 +136,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasForeignKey(foreignKeyExpression: li => li.OrderId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-        builder.HasMany(navigationExpression: o => o.Adjustments)
+        builder.HasMany(navigationExpression: o => o.OrderAdjustments)
             .WithOne(navigationExpression: oa => oa.Order)
             .HasForeignKey(foreignKeyExpression: oa => oa.OrderId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
@@ -146,13 +150,10 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .WithOne(navigationExpression: p => p.Order)
             .HasForeignKey(foreignKeyExpression: p => p.OrderId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
-        // InventoryUnits are owned by Order - tracks fulfillment across all shipments
-        // Also referenced by Shipment for allocation, but Order is the aggregate root
-        builder.HasMany(navigationExpression: o => o.InventoryUnits)
-            .WithOne(navigationExpression: iu => iu.Order)
-            .HasForeignKey(foreignKeyExpression: iu => iu.OrderId)
-            .IsRequired()
+            
+        builder.HasMany(navigationExpression: o => o.Histories)
+            .WithOne(navigationExpression: h => h.Order)
+            .HasForeignKey(foreignKeyExpression: h => h.OrderId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
         #endregion
 
@@ -160,6 +161,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         // Configure indexes for frequently queried columns to improve performance.
         builder.HasIndex(indexExpression: o => o.StoreId);
         builder.HasIndex(indexExpression: o => o.UserId);
+        builder.HasIndex(indexExpression: o => o.AdhocCustomerId);
         builder.HasIndex(indexExpression: o => o.PromotionId);
         builder.HasIndex(indexExpression: o => o.ShippingMethodId);
         builder.HasIndex(indexExpression: o => o.Number).IsUnique();
@@ -181,8 +183,6 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Ignore(propertyExpression: o => o.PromotionTotal);
         builder.Ignore(propertyExpression: o => o.HasPromotion);
         builder.Ignore(propertyExpression: o => o.IsFullyDigital);
-        builder.Ignore(propertyExpression: o => o.ShipAddress);
-        builder.Ignore(propertyExpression: o => o.BillAddress);
         #endregion
 
         #region Concurrency

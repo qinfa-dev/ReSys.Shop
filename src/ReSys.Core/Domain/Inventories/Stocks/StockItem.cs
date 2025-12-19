@@ -2,7 +2,7 @@ using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Inventories.Locations;
-using ReSys.Core.Domain.Orders;
+using ReSys.Core.Domain.Inventories.Movements;
 using ReSys.Core.Domain.Orders.Shipments;
 
 namespace ReSys.Core.Domain.Inventories.Stocks;
@@ -436,7 +436,7 @@ public sealed class StockItem : Aggregate, IHasMetadata
     /// <remarks>
     /// Adjustments do not affect reserved quantities. Use Reserve/Release for order-related changes.
     /// </remarks>
-    public ErrorOr<StockItem> Adjust(
+    public ErrorOr<StockMovement> Adjust(
         int quantity,
         StockMovement.MovementOriginator originator,
         string? reason = null,
@@ -477,7 +477,7 @@ public sealed class StockItem : Aggregate, IHasMetadata
             ProcessBackorders(quantityAvailable: quantity, backorderedUnits: null);
         }
 
-        return this;
+        return movementResult.Value;
     }
 
     #endregion

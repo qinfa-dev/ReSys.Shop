@@ -52,12 +52,12 @@ public sealed class OrderAdjustmentConfiguration : IEntityTypeConfiguration<Orde
         #region Relationships
         // Configure relationships for the OrderAdjustment entity.
         builder.HasOne(navigationExpression: oa => oa.Order)
-            .WithMany(navigationExpression: o => o.Adjustments)
+            .WithMany(navigationExpression: o => o.OrderAdjustments)
             .HasForeignKey(foreignKeyExpression: oa => oa.OrderId)
             .OnDelete(deleteBehavior: DeleteBehavior.Restrict); // Restrict to prevent deleting order if adjustments exist
 
         builder.HasOne(navigationExpression: oa => oa.Promotion)
-            .WithMany(navigationExpression: p => p.OrderAdjustments)
+            .WithMany(navigationExpression: p => p.PromotionOrderAdjustments)
             .HasForeignKey(foreignKeyExpression: oa => oa.PromotionId)
             .IsRequired(required: false)
             .OnDelete(deleteBehavior: DeleteBehavior.SetNull); // Promotion can be deleted, but adjustment remains

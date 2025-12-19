@@ -146,20 +146,6 @@ public sealed class Taxonomy :
 
     #region Relationships
     /// <summary>
-    /// Gets or sets the unique identifier of the <see cref="Store"/> this taxonomy belongs to.
-    /// This is a foreign key reference to the parent <see cref="Store"/> aggregate, indicating
-    /// that taxonomies are store-specific.
-    /// A <c>null</c> value (though typically enforced as non-nullable via EF Core) might imply a global/shared taxonomy.
-    /// </summary>
-    public Guid? StoreId { get; set; }
-    
-    /// <summary>
-    /// Gets or sets the navigation property to the parent <see cref="Store"/> aggregate.
-    /// Provides access to store details and configuration.
-    /// </summary>
-    public Store Store { get; set; } = null!;
-    
-    /// <summary>
     /// Gets the computed root <see cref="Taxon"/> of this taxonomy's hierarchy.
     /// This returns the single <see cref="Taxon"/> with <see cref="Taxon.ParentId"/> = <c>null</c>.
     /// Every taxonomy is expected to have exactly one root taxon, which serves as the entry point
@@ -268,7 +254,6 @@ public sealed class Taxonomy :
     /// </para>
     /// </remarks>
     public static ErrorOr<Taxonomy> Create(
-        Guid? storeId,
        string name,
        string presentation,
        int position = 0,
@@ -279,7 +264,6 @@ public sealed class Taxonomy :
 
         var taxonomy = new Taxonomy
         {
-            StoreId = storeId,
             Name = name,
             Presentation = presentation,
             Position = Math.Max(val1: 0, val2: position),
@@ -335,7 +319,6 @@ public sealed class Taxonomy :
     /// </code>
     /// </remarks>
     public ErrorOr<Taxonomy> Update(
-        Guid? storeId= null,
        string? name = null,
        string? presentation = null,
        int? position = null,
@@ -374,12 +357,6 @@ public sealed class Taxonomy :
         if (privateMetadata != null && !PrivateMetadata.MetadataEquals(dict2: privateMetadata))
         {
             PrivateMetadata = new Dictionary<string, object?>(dictionary: privateMetadata);
-            changed = true;
-        }
-
-        if (storeId.HasValue && storeId.Value != StoreId)
-        {
-            StoreId = storeId;
             changed = true;
         }
 

@@ -11,7 +11,7 @@ using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Domain.Catalog.Taxonomies;
 using ReSys.Core.Domain.Catalog.Taxonomies.Taxa;
-using ReSys.Core.Domain.Inventories.Stocks;
+using ReSys.Core.Domain.Inventories.Movements;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Stores;
 using ReSys.Core.Domain.Stores.Products;
@@ -427,15 +427,15 @@ public sealed class Product : Aggregate,
     /// <summary>
     /// Collection of taxons (categories) associated with the product.
     /// </summary>
-    public ICollection<Taxon> Taxons => Classifications.Select(selector: c => c.Taxon).ToList();
+    public ICollection<Taxon> Taxons => Classifications.Where(m=>m.Taxon!=null).Select(selector: c => c.Taxon).ToList();
     /// <summary>
     /// Collection of taxonomies associated with the product.
     /// </summary>
-    public ICollection<Taxonomy> Taxonomies => Taxons.Select(selector: t => t.Taxonomy).ToList();
+    public ICollection<Taxonomy> Taxonomies => Taxons.Where(m=>m.Taxonomy!=null).Select(selector: t => t.Taxonomy).ToList();
     /// <summary>
     /// Collection of store products associated with the product.
     /// </summary>
-    public ICollection<StoreProduct>? StoreProducts { get; set; } = new List<StoreProduct>();
+    public ICollection<StoreProduct> StoreProducts { get; set; } = new List<StoreProduct>();
     /// <summary>
     /// Collection of stores where the product is available.
     /// </summary>
@@ -497,7 +497,7 @@ public sealed class Product : Aggregate,
     /// <summary>
     /// Gets the main taxon (category) for the product.
     /// </summary>
-    public Taxon? MainTaxon => Taxons.OrderByDescending(keySelector: t => t.Lft).FirstOrDefault();
+    public Taxon? MainTaxon => Taxons?.OrderByDescending(keySelector: t => t.Lft).FirstOrDefault();
     #endregion
 
     #region Soft Delete
@@ -998,12 +998,12 @@ public sealed class Product : Aggregate,
         // Guard: null classification
         if (classification == null)
             return CommonInput.Errors.Null(nameof(Classifications));
-
+        
         // Guard: duplicate classification
-        if (Classifications.Any(predicate: c => c.TaxonId == classification.TaxonId))
+        if (Classifications!=null && Classifications.Any(predicate: c => c.TaxonId == classification.TaxonId))
             return Classification.Errors.AlreadyLinked(productId: Id, taxonId: classification.TaxonId);
 
-        Classifications.Add(item: classification);
+        Classifications?.Add(item: classification);
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.ProductCategoryAdded(ProductId: Id, TaxonId: classification.TaxonId));
 
@@ -1017,11 +1017,11 @@ public sealed class Product : Aggregate,
     /// <returns>An <see cref="ErrorOr{Product}"/> indicating success with the updated product, or an error if the classification is not found.</returns>
     public ErrorOr<Classification> RemoveClassification(Guid taxonId)
     {
-        var classification = Classifications.FirstOrDefault(predicate: c => c.TaxonId == taxonId);
+        var classification = Classifications?.FirstOrDefault(predicate: c => c.TaxonId == taxonId);
         if (classification == null)
             return Classification.Errors.NotFound(id: taxonId);
 
-        Classifications.Remove(item: classification);
+        Classifications?.Remove(item: classification);
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.ProductCategoryRemoved(ProductId: Id, TaxonId: taxonId));
 
@@ -1297,7 +1297,8 @@ public sealed class Product : Aggregate,
     /// </summary>
     private void TouchRelatedEntities()
     {
-        AddDomainEvent(domainEvent: new Events.ProductTouchTaxons(ProductId: Id, TaxonIds: Taxons.Select(selector: t => t.Id).ToList(), TaxonomyIds: Taxonomies.Select(selector: t => t.Id).ToList()));
+        AddDomainEvent(domainEvent: new Events.ProductTouchTaxons(ProductId: Id, TaxonIds: 
+            Taxons.Select(selector: t => t.Id).ToList(), TaxonomyIds: Taxonomies?.Select(selector: t => t.Id).ToList()));
     }
 
     /// <summary>
@@ -1482,7 +1483,7 @@ public sealed class Product : Aggregate,
         /// <param name="ProductId">The ID of the product.</param>
         /// <param name="TaxonIds">The IDs of the related taxons.</param>
         /// <param name="TaxonomyIds">The IDs of the related taxonomies.</param>
-        public sealed record ProductTouchTaxons(Guid ProductId, List<Guid> TaxonIds, List<Guid> TaxonomyIds) : DomainEvent;
+        public sealed record ProductTouchTaxons(Guid ProductId, List<Guid>? TaxonIds, List<Guid>? TaxonomyIds) : DomainEvent;
 
         /// <summary>
         /// Purpose: Notify that a product's price discount has changed.

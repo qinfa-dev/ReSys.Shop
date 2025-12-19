@@ -1,5 +1,5 @@
 using ReSys.Core.Common.Domain.Entities;
-using ReSys.Core.Domain.PaymentMethods;
+using ReSys.Core.Domain.Settings.PaymentMethods;
 
 namespace ReSys.Core.Domain.Stores.PaymentMethods;
 

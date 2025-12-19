@@ -14,7 +14,7 @@ This domain manages financial adjustments applied to orders and their individual
 
 This section defines the key terms and concepts used within the `Orders.Adjustments` bounded context.
 
--   **Order Adjustment**: A financial modification (e.g., a discount) applied directly to an entire `Order`. Represented by the `OrderAdjustment` entity.
+-   **Order Adjustment**: A financial modification (e.g., a discount) applied directly to an entire `Order` or to shipping. Represented by the `OrderAdjustment` entity. It has a `Scope` property to distinguish between `Order` and `Shipping` adjustments.
 -   **Line Item Adjustment**: A financial modification applied to a specific `Line Item` within an `Order`. Represented by the `LineItemAdjustment` entity.
 -   **Order**: The parent order to which the adjustment applies. (Referenced from `Orders` Bounded Context).
 -   **Line Item**: The specific item within an order to which the adjustment applies. (Referenced from `Orders.LineItems` Bounded Context).
@@ -37,7 +37,7 @@ This domain is composed of the following core building blocks:
 
 -   **`LineItemAdjustment`**: This is a central entity representing an adjustment to a line item. It is an `AuditableEntity`.
     -   **Value Objects**: None explicitly defined as separate classes. Properties like `LineItemId`, `PromotionId`, `AmountCents`, and `Description` are intrinsic attributes.
--   **`OrderAdjustment`**: This is a central entity representing an adjustment to an entire order. It is an `AuditableEntity`.
+-   **`OrderAdjustment`**: This is a central entity representing an adjustment to an entire order or shipping. It is an `AuditableEntity`. It has a `Scope` property of type `AdjustmentScope` to differentiate between order-level and shipping-level adjustments.
     -   **Value Objects**: None explicitly defined as separate classes. Properties like `OrderId`, `PromotionId`, `AmountCents`, and `Description` are intrinsic attributes.
 
 ### Value Objects (standalone, if any)
@@ -60,7 +60,8 @@ This section outlines the critical business rules and invariants enforced within
 -   `AmountCents` can be negative (for discounts) but must meet a minimum value (`Constraints.AmountCentsMinValue`).
 -   `Description` must adhere to a maximum length constraint.
 -   `Adjustment` instances track their creation timestamps (`CreatedAt`), adhering to auditing requirements.
--   `OrderAdjustment` is linked to an `Order` and `LineItemAdjustment` is linked to a `LineItem`.
+-   `OrderAdjustment` is linked to an `Order`.
+-   `LineItemAdjustment` is linked to a `LineItem`.
 
 ---
 
@@ -76,7 +77,7 @@ This section outlines the critical business rules and invariants enforced within
 ## 🚀 Key Use Cases / Behaviors
 
 -   **Create Line Item Adjustment**: Instantiate a new `LineItemAdjustment` for a specific line item, specifying the amount and description.
--   **Create Order Adjustment**: Instantiate a new `OrderAdjustment` for an entire order, specifying the amount and description.
+-   **Create Order Adjustment**: Instantiate a new `OrderAdjustment` for an entire order or for shipping, specifying the amount, description, and scope.
 
 ---
 

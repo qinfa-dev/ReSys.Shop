@@ -148,6 +148,7 @@ public sealed class Promotion : Aggregate, IHasUniqueName
             code: "Promotion.NotFound",
             description: $"Promotion with ID '{id}' was not found.");
 
+
         /// <summary>
         /// Error indicating that the promotion has not started yet.
         /// </summary>
@@ -274,7 +275,13 @@ public sealed class Promotion : Aggregate, IHasUniqueName
     /// <summary>
     /// Gets or sets the collection of order adjustments created by this promotion.
     /// </summary>
-    public ICollection<OrderAdjustment> OrderAdjustments { get; set; } = new List<OrderAdjustment>();
+    public ICollection<OrderAdjustment> PromotionOrderAdjustments { get; set; } = new List<OrderAdjustment>();
+    
+    /// <summary>
+    /// Gets or sets the collection of line item adjustments created by this promotion.
+    /// </summary>
+    public ICollection<LineItemAdjustment> LineItemAdjustments { get; set; } = new List<LineItemAdjustment>();
+
     /// <summary>
     /// Gets or sets the collection of audit log entries for this promotion.
     /// </summary>

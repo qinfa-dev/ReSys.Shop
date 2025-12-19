@@ -148,7 +148,7 @@ public sealed class UserAddress : Aggregate<Guid>, IAddress
     /// <summary>
     /// Gets or sets the postal code or ZIP code.
     /// </summary>
-    public string? Zipcode { get; set; }
+    public string? ZipCode { get; set; }
     /// <summary>
     /// Gets or sets the phone number associated with this address.
     /// </summary>
@@ -162,7 +162,7 @@ public sealed class UserAddress : Aggregate<Guid>, IAddress
 
     #region Relationships
 
-    public Guid? OrderId { get; set; }
+
 
     /// <summary>
     /// Gets or sets the unique identifier of the <see cref="User"/> who owns this address.
@@ -263,7 +263,7 @@ public sealed class UserAddress : Aggregate<Guid>, IAddress
             Address1 = address1.Trim(),
             Address2 = address2?.Trim(),
             City = city.Trim(),
-            Zipcode = zipcode.Trim(),
+            ZipCode = zipcode.Trim(),
             Phone = phone?.Trim(),
             Company = company?.Trim(),
             CreatedAt = DateTimeOffset.UtcNow
@@ -375,9 +375,9 @@ public sealed class UserAddress : Aggregate<Guid>, IAddress
             changed = true;
         }
 
-        if (zipcode != null && Zipcode != zipcode)
+        if (zipcode != null && ZipCode != zipcode)
         {
-            Zipcode = zipcode.Trim();
+            ZipCode = zipcode.Trim();
             changed = true;
         }
 

@@ -55,25 +55,25 @@ public sealed class Setting : Aggregate<Guid>
     /// Gets the unique key identifying this configuration setting.
     /// This key is used to retrieve the configuration value.
     /// </summary>
-    public string Key { get; private set; } = string.Empty;
+    public string Key { get; set; } = string.Empty;
     /// <summary>
     /// Gets the current value of the configuration setting.
     /// This value can be updated dynamically.
     /// </summary>
-    public string Value { get; private set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
     /// <summary>
     /// Gets a descriptive explanation of what this configuration setting controls.
     /// </summary>
-    public string Description { get; private set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     /// <summary>
     /// Gets the default or fallback value for this configuration setting.
     /// </summary>
-    public string DefaultValue { get; private set; } = string.Empty;
+    public string DefaultValue { get; set; } = string.Empty;
     /// <summary>
     /// Gets the expected data type of the configuration's value.
     /// Used for validation and proper casting/parsing at the application layer.
     /// </summary>
-    public ConfigurationValueType ValueType { get; private set; }
+    public ConfigurationValueType ValueType { get; set; }
 
     /// <summary>
     /// Private constructor for ORM (Entity Framework Core) materialization.

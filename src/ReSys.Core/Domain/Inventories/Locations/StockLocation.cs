@@ -1,12 +1,11 @@
 using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Products.Variants;
+using ReSys.Core.Domain.Inventories.Movements;
 using ReSys.Core.Domain.Inventories.Stocks;
-using ReSys.Core.Domain.Inventories.StorePickups;
 using ReSys.Core.Domain.Location;
 using ReSys.Core.Domain.Location.Countries;
 using ReSys.Core.Domain.Location.States;
-using ReSys.Core.Domain.Orders;
 
 namespace ReSys.Core.Domain.Inventories.Locations;
 
@@ -88,7 +87,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
         public const int AddressMaxLength = 255;
         /// <summary>Maximum allowed length for the <see cref="StockLocation.City"/> property.</summary>
         public const int CityMaxLength = 100;
-        /// <summary>Maximum allowed length for the <see cref="StockLocation.Zipcode"/> property.</summary>
+        /// <summary>Maximum allowed length for the <see cref="StockLocation.ZipCode"/> property.</summary>
         public const int ZipcodeMaxLength = 20;
         /// <summary>Maximum allowed length for the <see cref="StockLocation.Phone"/> property.</summary>
         public const int PhoneMaxLength = 50;
@@ -245,7 +244,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// <summary>
     /// Gets or sets the postal code or ZIP code for this stock location.
     /// </summary>
-    public string? Zipcode { get; set; }
+    public string? ZipCode { get; set; }
     /// <summary>
     /// Gets or sets the phone number for this stock location.
     /// </summary>
@@ -350,12 +349,6 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// Gets or sets the navigation property to the <see cref="State"/> associated with this stock location (optional).
     /// </summary>
     public State? State { get; set; }
-
-    /// <summary>
-    /// Gets or sets the collection of <see cref="StorePickup"/>s associated with this stock location.
-    /// This represents the store pickups that are managed by this location.
-    /// </summary>
-    public ICollection<StorePickup> StorePickups { get; set; } = new List<StorePickup>();
     #endregion
 
     #region Computed Properties
@@ -452,7 +445,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
             Address1 = address1?.Trim(),
             Address2 = address2?.Trim(),
             City = city?.Trim(),
-            Zipcode = zipcode?.Trim(),
+            ZipCode = zipcode?.Trim(),
             StateId = stateId,
             Phone = phone?.Trim(),
             Company = company?.Trim(),
@@ -593,9 +586,9 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
             changed = true;
         }
 
-        if (zipcode != null && Zipcode != zipcode)
+        if (zipcode != null && ZipCode != zipcode)
         {
-            Zipcode = zipcode.Trim();
+            ZipCode = zipcode.Trim();
             changed = true;
         }
 
@@ -829,9 +822,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
         if (hasBackorderedInventoryUnits)
         {
             return Errors.HasBackorderedInventoryUnits;
-        }        // NEW: Check for pending transfers (as source or destination)
-        // This would require access to StockTransfer repository
-        // For now, document that this should be checked at application layer
+        } 
 
         DeletedAt = DateTimeOffset.UtcNow;
         IsDeleted = true;
@@ -916,7 +907,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// <param name="originatorId">Optional: A unique identifier for the originating operation (e.g., StockTransfer ID, Order ID).</param>
     /// <returns>
     /// An <see cref="ErrorOr{Success}"/> result.
-    /// Returns <see cref="Success"/> if the unstock operation succeeds.
+    /// Returns <see cref="StockMovement"/> if the unstock operation succeeds.
     /// Returns <see cref="Error.Validation"/> if the <paramref name="variant"/> is null or <paramref name="quantity"/> is not positive.
     /// Returns <see cref="Error.NotFound"/> if no stock is found for the variant.
     /// Returns <see cref="Error.Validation"/> if unstocking would violate reserved quantities for non-backorderable items.
@@ -925,7 +916,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
     /// For backorderable items, unstocking always succeeds, potentially leading to negative on-hand quantities.
     /// This method delegates the actual quantity adjustment to the <see cref="StockItem.Adjust(int, StockMovement.MovementOriginator, string?, Guid?)"/> method.
     /// </remarks>
-    public ErrorOr<Success> Unstock(
+    public ErrorOr<StockMovement> Unstock(
         Variant? variant,
         int quantity,
         StockMovement.MovementOriginator originator,
@@ -974,7 +965,7 @@ public sealed class StockLocation : Aggregate<Guid>, IAddress, IHasParameterizab
             reason: "Unstock",
             originatorId: originatorId);
 
-        return result.IsError ? result.FirstError : Result.Success;
+        return result.IsError ? result.FirstError : result.Value;
     }
 
     /// <summary>

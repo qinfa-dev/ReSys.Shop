@@ -27,7 +27,7 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
     /// Defines the scope of the adjustment to determine if it applies to the
     /// entire order, a specific line item, or shipping.
     /// </summary>
-    public enum AdjustmentScope { Order, LineItem, Shipping }
+    public enum AdjustmentScope { Order, Shipping }
 
     #region Constraints
     /// <summary>Defines validation limits for OrderAdjustment.</summary>
@@ -53,9 +53,6 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
         
         /// <summary>Triggered when description exceeds maximum length.</summary>
         public static Error DescriptionTooLong => CommonInput.Errors.TooLong(prefix: nameof(OrderAdjustment), field: nameof(Description), maxLength: Constraints.DescriptionMaxLength);
-
-        /// <summary>Triggered when a line item-scoped adjustment is missing a LineItemId.</summary>
-        public static Error LineItemIdRequiredForLineItemScope => Error.Validation(code: "OrderAdjustment.LineItemIdRequired", description: "A LineItemId is required for adjustments with a 'LineItem' scope.");
     }
     #endregion
 
@@ -63,12 +60,6 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
     /// <summary>Foreign key reference to the parent Order.</summary>
     public Guid OrderId { get; set; }
     
-    /// <summary>
-    /// Foreign key reference to the LineItem this adjustment applies to.
-    /// This is only set when the `Scope` is `LineItem`.
-    /// </summary>
-    public Guid? LineItemId { get; set; }
-
     /// <summary>
     /// The scope of this adjustment (Order, LineItem, or Shipping).
     /// </summary>
@@ -139,14 +130,12 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
         long amountCents, 
         string description, 
         AdjustmentScope scope,
-        Guid? lineItemId = null,
         Guid? promotionId = null,
         bool eligible = true,
         bool mandatory = false)
     {
         if (string.IsNullOrWhiteSpace(value: description)) return Errors.DescriptionRequired;
         if (description.Length > Constraints.DescriptionMaxLength) return Errors.DescriptionTooLong;
-        if (scope == AdjustmentScope.LineItem && !lineItemId.HasValue) return Errors.LineItemIdRequiredForLineItemScope;
 
         return new OrderAdjustment
         {
@@ -155,7 +144,6 @@ public sealed class OrderAdjustment : AuditableEntity<Guid>
             AmountCents = amountCents,
             Description = description,
             Scope = scope,
-            LineItemId = lineItemId,
             PromotionId = promotionId,
             Eligible = eligible,
             Mandatory = mandatory,

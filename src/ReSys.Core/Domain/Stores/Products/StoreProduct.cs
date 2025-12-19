@@ -39,10 +39,10 @@ public sealed class StoreProduct : AuditableEntity, IHasPosition
     {
         public static Error StoreRequired => Error.Validation(code: "StoreProduct.StoreRequired", description: "Storefront is required.");
         public static Error ProductRequired => Error.Validation(code: "StoreProduct.ProductRequired", description: "Product is required.");
-        public static Error NotFound(Guid id) => Error.NotFound(code: "StoreProduct.NotFound", description: $"StoreProduct with ID '{id}' was not found.");
+        public static Error NotFound(Guid storeId, Guid productId) => Error.NotFound(code: "StoreProduct.NotFound", description: $"StoreProduct for Store '{storeId}' and Product '{productId}' was not found.");
     }
 
-    public Guid? StoreId { get; set; }
+    public Guid StoreId { get; set; }
     public Guid ProductId { get; set; }
     public bool Visible { get; set; } = true;
     public bool Featured { get; set; }
@@ -67,7 +67,6 @@ public sealed class StoreProduct : AuditableEntity, IHasPosition
     /// <para>
     /// <strong>Post-Conditions:</strong>
     /// <list type="bullet">
-    /// <item><description>New StoreProduct is created with unique ID</description></item>
     /// <item><description>Timestamps are set to UTC now</description></item>
     /// <item><description>Position is normalized (negative values become 0)</description></item>
     /// <item><description>Ready to be added to Store.StoreProducts collection</description></item>
@@ -75,18 +74,17 @@ public sealed class StoreProduct : AuditableEntity, IHasPosition
     /// </para>
     /// </remarks>
     public static ErrorOr<StoreProduct> Create(
-        Guid? storeId,
+        Guid storeId,
         Guid productId,
         bool visible = true,
         bool featured = false,
         int position = 0)
     {
-        if (storeId is null || storeId == Guid.Empty) return Errors.StoreRequired;
+        if (storeId == Guid.Empty) return Errors.StoreRequired;
         if (productId == Guid.Empty) return Errors.ProductRequired;
 
         return new StoreProduct
         {
-            Id = Guid.NewGuid(),
             StoreId = storeId,
             ProductId = productId,
             Visible = visible,

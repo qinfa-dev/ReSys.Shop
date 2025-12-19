@@ -81,7 +81,7 @@ public sealed class StockLocationConfiguration : IEntityTypeConfiguration<StockL
             .IsRequired(required: false) 
             .HasComment(comment: "City: The city of the address.");
 
-        builder.Property(propertyExpression: a => a.Zipcode)
+        builder.Property(propertyExpression: a => a.ZipCode)
             .ConfigurePostalCode(isRequired: false)
             .HasMaxLength(maxLength: StockLocation.Constraints.ZipcodeMaxLength)
             .HasComment(comment: "Zipcode: The postal code of the address.");

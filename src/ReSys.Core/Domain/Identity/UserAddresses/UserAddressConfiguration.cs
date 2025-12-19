@@ -68,7 +68,7 @@ public sealed class UserAddressConfiguration : IEntityTypeConfiguration<UserAddr
             .HasMaxLength(maxLength: CommonInput.Constraints.NamesAndUsernames.NameMaxLength)
             .HasComment(comment: "City: The city of the address.");
 
-        builder.Property(propertyExpression: a => a.Zipcode)
+        builder.Property(propertyExpression: a => a.ZipCode)
             .ConfigurePostalCode(isRequired: false)
             .HasComment(comment: "Zipcode: The postal code of the address.");
 

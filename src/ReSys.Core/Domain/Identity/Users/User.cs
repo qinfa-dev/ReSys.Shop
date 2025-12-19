@@ -9,7 +9,7 @@ using ReSys.Core.Domain.Identity.Users.Logins;
 using ReSys.Core.Domain.Identity.Users.Roles;
 using ReSys.Core.Domain.Identity.Users.Tokens;
 using ReSys.Core.Domain.Orders;
-using ReSys.Core.Domain.PaymentMethods.PaymentSources;
+using ReSys.Core.Domain.Settings.PaymentMethods.PaymentSources;
 
 namespace ReSys.Core.Domain.Identity.Users;
 

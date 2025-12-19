@@ -121,11 +121,11 @@ public sealed class Order : Aggregate, IHasMetadata
     {
         return State switch
         {
-            OrderState.Cart => ToAddress(),
-            OrderState.Address => ToDelivery(),
-            OrderState.Delivery => ToPayment(),
-            OrderState.Payment => ToConfirm(),
-            OrderState.Confirm => Complete(),
+            Order.OrderState.Cart => ToAddress(),
+            Order.OrderState.Address => ToDelivery(),
+            Order.OrderState.Delivery => ToPayment(),
+            Order.OrderState.Payment => ToConfirm(),
+            Order.OrderState.Confirm => Complete(),
             _ => Errors.InvalidStateTransition(State, State + 1)
         };
     }
@@ -583,7 +583,7 @@ public class Order : Aggregate
 
     public ErrorOr<Order> Complete()
     {
-        State = OrderState.Complete;
+        State = Order.OrderState.Complete;
         CompletedAt = DateTimeOffset.UtcNow;
         
         AddDomainEvent(new Events.Completed(OrderId: Id, StoreId: StoreId));
@@ -871,7 +871,7 @@ public class OrderTests
 
         // Assert
         Assert.That(result.IsError, Is.False);
-        Assert.That(_order.State, Is.EqualTo(OrderState.Address));
+        Assert.That(_order.State, Is.EqualTo(Order.OrderState.Address));
     }
 }
 ```
@@ -1118,7 +1118,7 @@ public ErrorOr<Order> Complete()
 {
     // ... validation ...
     
-    State = OrderState.Complete;
+    State = Order.OrderState.Complete;
     AddDomainEvent(new Events.Completed(OrderId: Id, StoreId: StoreId));
     AddDomainEvent(new Events.FinalizeInventory(OrderId: Id, StoreId: StoreId));
     

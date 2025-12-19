@@ -222,7 +222,7 @@ public sealed class StoreConfiguration : IEntityTypeConfiguration<Store>
             .IsRequired(required: false)
             .HasComment(comment: "City: The city or municipality where the store is located.");
 
-        builder.Property(propertyExpression: s => s.Zipcode)
+        builder.Property(propertyExpression: s => s.ZipCode)
             .HasMaxLength(maxLength: AddressConstraints.ZipcodeMaxLength)
             .IsRequired(required: false)
             .HasComment(comment: "Zipcode: The postal code or ZIP code for the store's physical address.");
@@ -249,20 +249,17 @@ public sealed class StoreConfiguration : IEntityTypeConfiguration<Store>
         builder.ConfigureMetadata();
         builder.ConfigureParameterizableName(); // For IHasUniqueName
         builder.ConfigureSeoMetadata();
-        builder.ConfigureAuditable(); // For CreatedAt, UpdatedAt
-        
-        // Configure soft delete query filter - automatically exclude deleted stores
-        builder.HasQueryFilter(s => !s.IsDeleted);
+        builder.ConfigureAuditable(); 
         #endregion
 
         #region Relationships
-        // Configure relationships for the Storefront entity.
-        builder.HasMany(navigationExpression: s => s.StoreProducts)
-            .WithOne(navigationExpression: sp => sp.Store)
-            .HasForeignKey(foreignKeyExpression: sp => sp.StoreId)
-            .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+        //Configure relationships for the Storefront entity.
+       builder.HasMany(navigationExpression: s => s.StoreProducts)
+           .WithOne(navigationExpression: sp => sp.Store)
+           .HasForeignKey(foreignKeyExpression: sp => sp.StoreId)
+           .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-        builder.HasMany(navigationExpression: s => s.Orders)
+       builder.HasMany(navigationExpression: s => s.Orders)
             .WithOne(navigationExpression: o => o.Store)
             .HasForeignKey(foreignKeyExpression: o => o.StoreId)
             .OnDelete(deleteBehavior: DeleteBehavior.Restrict); // Orders should not be deleted if store is deleted
@@ -275,11 +272,6 @@ public sealed class StoreConfiguration : IEntityTypeConfiguration<Store>
         builder.HasMany(navigationExpression: s => s.StorePaymentMethods)
             .WithOne(navigationExpression: spm => spm.Store)
             .HasForeignKey(foreignKeyExpression: spm => spm.StoreId)
-            .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
-        builder.HasMany(navigationExpression: s => s.Taxonomies)
-            .WithOne(navigationExpression: c => c.Store)
-            .HasForeignKey(foreignKeyExpression: c => c.StoreId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
         builder.HasOne(navigationExpression: s => s.Country)

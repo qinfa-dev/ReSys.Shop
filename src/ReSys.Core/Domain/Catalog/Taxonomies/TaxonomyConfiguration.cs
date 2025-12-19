@@ -48,11 +48,6 @@ public sealed class TaxonomyConfiguration : IEntityTypeConfiguration<Taxonomy>
             .HasForeignKey(foreignKeyExpression: tx => tx.TaxonomyId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-        builder.HasOne(navigationExpression: t => t.Store)
-            .WithMany(navigationExpression: store => store.Taxonomies)
-            .HasForeignKey(foreignKeyExpression: t => t.StoreId)
-            .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
         #endregion
 
         #region Concurrency

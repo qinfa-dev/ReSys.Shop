@@ -105,7 +105,7 @@ await _dbContext.SaveChangesAsync();
 
 ### Configure Shipping Methods
 ```csharp
-var shippingMethod = await _dbContext.ShippingMethods.FindAsync(methodId);
+var shippingMethod = await _dbContext.Set<ShippingMethod>().FindAsync(methodId);
 
 var result = store.AddShippingMethod(
     shippingMethod,
@@ -126,7 +126,7 @@ await _dbContext.SaveChangesAsync();
 
 ### Configure Payment Methods
 ```csharp
-var paymentMethod = await _dbContext.PaymentMethods.FindAsync(methodId);
+var paymentMethod = await _dbContext.Set<PaymentMethod>().FindAsync(methodId);
 
 var result = store.AddPaymentMethod(paymentMethod, available: true);
 if (result.IsError)

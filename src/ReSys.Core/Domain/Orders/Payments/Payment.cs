@@ -1,6 +1,6 @@
 ﻿using ReSys.Core.Common.Domain.Entities;
 using ReSys.Core.Common.Domain.Events;
-using ReSys.Core.Domain.PaymentMethods;
+using ReSys.Core.Domain.Settings.PaymentMethods;
 
 namespace ReSys.Core.Domain.Orders.Payments;
 
@@ -13,8 +13,8 @@ public sealed class Payment : Aggregate
         Authorized = 2,        // Auth hold placed (NOT captured)
         Capturing = 3,         // Attempting capture
         Completed = 4,         // Funds captured
-        PartiallyRefunded = 5, // Some amount refunded
-        Refunded = 6,          // Fully refunded
+        //PartiallyRefunded = 5, // Some amount refunded
+        //Refunded = 6,          // Fully refunded
         Failed = 7,            // Authorization/capture failed
         Void = 8               // Cancelled (auth released)
     }
@@ -37,7 +37,7 @@ public sealed class Payment : Aggregate
     {
         public static Error AlreadyCaptured => Error.Validation(code: "Payment.AlreadyCaptured", description: "Payment already captured.");
         public static Error CannotVoidCaptured => Error.Validation(code: "Payment.CannotVoidCaptured", description: "Cannot void captured or completed payment.");
-        public static Error CannotRefundNonCompleted => Error.Validation(code: "Payment.CannotRefundNonCompleted", description: "Can only refund completed payments.");
+        //public static Error CannotRefundNonCompleted => Error.Validation(code: "Payment.CannotRefundNonCompleted", description: "Can only refund completed payments.");
         public static Error NotFound(Guid id) => Error.NotFound(code: "Payment.NotFound", description: $"Payment with ID '{id}' was not found.");
         public static Error InvalidAmountCents => Error.Validation(code: "Payment.InvalidAmountCents", description: $"Amount cents must be at least {Constraints.AmountCentsMinValue}.");
         public static Error CurrencyRequired => CommonInput.Errors.Required(prefix: nameof(Payment), field: nameof(Currency));
@@ -52,9 +52,9 @@ public sealed class Payment : Aggregate
         public static Error IdempotencyKeyConflict => Error.Conflict(code: "Payment.IdempotencyKeyConflict", description: "Payment operation with this idempotency key already exists with a different state or parameters.");
         public static Error InvalidStateTransition(PaymentState from, PaymentState to) => Error.Validation(code: "Payment.InvalidStateTransition", description: $"Cannot transition from {from} to {to}.");
         public static Error AuthorizationRequired => Error.Validation(code: "Payment.AuthorizationRequired", description: "Payment must be authorized before capture.");
-        public static Error PartialRefundExceedsAmount(decimal requested, decimal available) => Error.Validation(code: "Payment.PartialRefundExceedsAmount", description: $"Requested refund amount {requested:C} exceeds available amount {available:C}.");
-        public static Error PaymentAlreadyRefunded => Error.Conflict(code: "Payment.PaymentAlreadyRefunded", description: "Payment has already been fully refunded.");
-        public static Error PaymentNotRefunded => Error.Validation(code: "Payment.PaymentNotRefunded", description: "Payment must be refunded before attempting to refund again.");
+        //public static Error PartialRefundExceedsAmount(decimal requested, decimal available) => Error.Validation(code: "Payment.PartialRefundExceedsAmount", description: $"Requested refund amount {requested:C} exceeds available amount {available:C}.");
+        //public static Error PaymentAlreadyRefunded => Error.Conflict(code: "Payment.PaymentAlreadyRefunded", description: "Payment has already been fully refunded.");
+        //public static Error PaymentNotRefunded => Error.Validation(code: "Payment.PaymentNotRefunded", description: "Payment must be refunded before attempting to refund again.");
     }
     #endregion
 
@@ -72,9 +72,9 @@ public sealed class Payment : Aggregate
 
     public DateTimeOffset? AuthorizedAt { get; set; }
     public DateTimeOffset? CapturedAt { get; set; }
-    public decimal RefundedAmountCents { get; set; } // Tracks total refunded amount
+    //public decimal RefundedAmountCents { get; set; } // Tracks total refunded amount
     public DateTimeOffset? VoidedAt { get; set; }
-    public DateTimeOffset? RefundedAt { get; set; } // Last refund timestamp
+    //public DateTimeOffset? RefundedAt { get; set; } // Last refund timestamp
     public string? FailureReason { get; set; }
     public string? IdempotencyKey { get; set; }
     #endregion
@@ -89,13 +89,13 @@ public sealed class Payment : Aggregate
     public bool IsAuthorized => State == PaymentState.Authorized;
     public bool IsCapturing => State == PaymentState.Capturing;
     public bool IsCompleted => State == PaymentState.Completed;
-    public bool IsPartiallyRefunded => State == PaymentState.PartiallyRefunded;
-    public bool IsRefunded => State == PaymentState.Refunded; // Can be fully or partially
+    //public bool IsPartiallyRefunded => State == PaymentState.PartiallyRefunded;
+    //public bool IsRefunded => State == PaymentState.Refunded; // Can be fully or partially
     public bool IsVoid => State == PaymentState.Void;
     public bool IsFailed => State == PaymentState.Failed;
     public decimal Amount => AmountCents / 100m;
-    public decimal TotalRefundedAmount => RefundedAmountCents / 100m;
-    public decimal AvailableForRefund => AmountCents - RefundedAmountCents;
+    //public decimal TotalRefundedAmount => RefundedAmountCents / 100m;
+    //public decimal AvailableForRefund => AmountCents - RefundedAmountCents;
     #endregion
     #region Constructors
     private Payment() { }
@@ -121,7 +121,7 @@ public sealed class Payment : Aggregate
             PaymentMethodType = paymentMethodType,
             IdempotencyKey = idempotencyKey,
             CreatedAt = DateTimeOffset.UtcNow,
-            RefundedAmountCents = 0
+            //RefundedAmountCents = 0
         };
 
         payment.AddDomainEvent(domainEvent: new Events.PaymentCreated(PaymentId: payment.Id, OrderId: orderId, IdempotencyKey: idempotencyKey));
@@ -131,82 +131,54 @@ public sealed class Payment : Aggregate
     #endregion
 
     #region Business Logic - Authorize
+
     /// <summary>
-    /// Authorizes a payment by placing a hold on the customer's funds.
+    /// Marks the payment as authorized, setting the transaction ID and state.
     /// </summary>
-    /// <param name="referenceTransactionId">The transaction ID from the payment gateway for the authorization.</param>
-    /// <param name="gatewayAuthCode">The authorization code from the payment gateway.</param>
-    /// <param name="idempotencyKey">Optional idempotency key for retries.</param>
-    /// <returns>Updated result or error.</returns>
-    public ErrorOr<Updated> Authorize(string referenceTransactionId, string gatewayAuthCode, string? idempotencyKey = null)
+    /// <param name="transactionId">The transaction ID provided by the payment gateway.</param>
+    /// <param name="gatewayAuthCode">Optional authorization code from the gateway.</param>
+    public ErrorOr<Payment> MarkAsAuthorized(string transactionId, string? gatewayAuthCode = null)
     {
-        // Idempotency check:
-        if (!string.IsNullOrEmpty(idempotencyKey) && IdempotencyKey != idempotencyKey)
-        {
-            return Errors.IdempotencyKeyConflict;
-        }
+        if (State == PaymentState.Authorized) return this; // Idempotent
+        if (State != PaymentState.Pending && State != PaymentState.Authorizing)
+            return Errors.InvalidStateTransition(State, PaymentState.Authorized);
 
-        if (State == PaymentState.Authorized) return Result.Updated; // Idempotent
-        if (State != PaymentState.Pending && State != PaymentState.Authorizing) return Errors.InvalidStateTransition(State, PaymentState.Authorized);
-
-        if (string.IsNullOrWhiteSpace(referenceTransactionId)) return Errors.ReferenceTransactionIdRequired;
-        if (referenceTransactionId.Length > Constraints.ReferenceTransactionIdMaxLength) return Errors.ReferenceTransactionIdTooLong;
-        if (gatewayAuthCode != null && gatewayAuthCode.Length > Constraints.GatewayAuthCodeMaxLength) return Errors.GatewayAuthCodeTooLong;
-
+        ReferenceTransactionId = transactionId;
+        GatewayAuthCode = gatewayAuthCode;
         State = PaymentState.Authorized;
         AuthorizedAt = DateTimeOffset.UtcNow;
-        ReferenceTransactionId = referenceTransactionId;
-        GatewayAuthCode = gatewayAuthCode;
-        IdempotencyKey = idempotencyKey;
         UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.PaymentAuthorized(PaymentId: Id, OrderId: OrderId, ReferenceTransactionId: ReferenceTransactionId));
-        return Result.Updated;
+
+        AddDomainEvent(new Events.PaymentAuthorized(Id, OrderId, transactionId));
+        return this;
     }
+
     #endregion
 
     #region Business Logic - Capture
-    /// <summary>
-    /// Initiates the capture process for an authorized payment.
-    /// </summary>
-    public ErrorOr<Updated> StartCapturing()
-    {
-        if (State == PaymentState.Capturing) return Result.Updated; // Idempotent
-        if (State != PaymentState.Authorized) return Errors.InvalidStateTransition(State, PaymentState.Capturing);
-
-        State = PaymentState.Capturing;
-        UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.PaymentCapturing(PaymentId: Id, OrderId: OrderId));
-        return Result.Updated;
-    }
 
     /// <summary>
-    /// Completes the capture of an authorized payment, transferring funds.
+    /// Marks the payment as captured (completed), setting the transaction ID and state.
     /// </summary>
-    /// <param name="referenceTransactionId">The transaction ID from the payment gateway for the capture.</param>
-    /// <param name="idempotencyKey">Optional idempotency key for retries.</param>
-    /// <returns>Updated result or error.</returns>
-    public ErrorOr<Updated> Capture(string referenceTransactionId, string? idempotencyKey = null)
+    /// <param name="transactionId">The transaction ID provided by the payment gateway for the capture. If null, it will use the existing ReferenceTransactionId.</param>
+    public ErrorOr<Payment> MarkAsCaptured(string? transactionId = null)
     {
-        // Idempotency check
-        if (!string.IsNullOrEmpty(idempotencyKey) && IdempotencyKey != idempotencyKey)
-        {
-            return Errors.IdempotencyKeyConflict;
-        }
-        
-        if (State == PaymentState.Completed) return Result.Updated; // Idempotent
-        if (State != PaymentState.Authorized && State != PaymentState.Capturing) return Errors.InvalidStateTransition(State, PaymentState.Completed);
+        if (State == PaymentState.Completed) return this; // Idempotent
+        if (State != PaymentState.Authorized && State != PaymentState.Capturing)
+            return Errors.InvalidStateTransition(State, PaymentState.Completed);
 
-        if (string.IsNullOrWhiteSpace(referenceTransactionId)) return Errors.ReferenceTransactionIdRequired;
-        if (referenceTransactionId.Length > Constraints.ReferenceTransactionIdMaxLength) return Errors.ReferenceTransactionIdTooLong;
+        if (string.IsNullOrEmpty(transactionId))
+            return Errors.ReferenceTransactionIdRequired;
 
+        ReferenceTransactionId = transactionId ?? ReferenceTransactionId;
         State = PaymentState.Completed;
         CapturedAt = DateTimeOffset.UtcNow;
-        ReferenceTransactionId = referenceTransactionId; // Update with capture transaction ID
-        IdempotencyKey = idempotencyKey;
         UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.PaymentCaptured(PaymentId: Id, OrderId: OrderId, ReferenceTransactionId: ReferenceTransactionId));
-        return Result.Updated;
+
+        AddDomainEvent(new Events.PaymentCaptured(Id, OrderId, ReferenceTransactionId!));
+        return this;
     }
+
     #endregion
 
     #region Business Logic - Void
@@ -217,7 +189,7 @@ public sealed class Payment : Aggregate
     public ErrorOr<Updated> Void()
     {
         if (State == PaymentState.Void) return Result.Updated; // Idempotent
-        if (State == PaymentState.Completed || State == PaymentState.PartiallyRefunded || State == PaymentState.Refunded) return Errors.CannotVoidCaptured;
+        if (State == PaymentState.Completed) return Errors.CannotVoidCaptured;
 
         State = PaymentState.Void;
         VoidedAt = DateTimeOffset.UtcNow;
@@ -228,75 +200,96 @@ public sealed class Payment : Aggregate
     #endregion
 
     #region Business Logic - Refund
+    ///// <summary>
+    ///// Refunds a portion or all of a captured payment.
+    ///// </summary>
+    ///// <param name="amountCents">The amount to refund in cents.</param>
+    ///// <param name="reason">The reason for the refund.</param>
+    ///// <param name="idempotencyKey">Optional idempotency key for retries.</param>
+    ///// <returns>Updated result or error.</returns>
+    //public ErrorOr<Updated> Refund(decimal amountCents, string reason, string? idempotencyKey = null)
+    //{
+    //    // Idempotency check:
+    //    if (!string.IsNullOrEmpty(idempotencyKey) && IdempotencyKey != idempotencyKey)
+    //    {
+    //        return Errors.IdempotencyKeyConflict;
+    //    }
+
+    //    if (State == PaymentState.Refunded) return Result.Updated; // Idempotent for full refund
+    //    if (State != PaymentState.Completed && State != PaymentState.PartiallyRefunded) return Errors.CannotRefundNonCompleted;
+    //    if (amountCents <= 0) return Errors.InvalidAmountCents;
+
+    //    if (RefundedAmountCents + amountCents > AmountCents)
+    //    {
+    //        return Errors.PartialRefundExceedsAmount(amountCents / 100m, (AmountCents - RefundedAmountCents) / 100m);
+    //    }
+
+    //    RefundedAmountCents += amountCents;
+    //    RefundedAt = DateTimeOffset.UtcNow;
+    //    IdempotencyKey = idempotencyKey;
+    //    UpdatedAt = DateTimeOffset.UtcNow;
+
+    //    if (RefundedAmountCents == AmountCents)
+    //    {
+    //        State = PaymentState.Refunded;
+    //        AddDomainEvent(new Events.PaymentRefunded(Id, OrderId, amountCents, ReferenceTransactionId, reason));
+    //    }
+    //    else
+    //    {
+    //        State = PaymentState.PartiallyRefunded;
+    //        AddDomainEvent(new Events.PaymentPartiallyRefunded(Id, OrderId, amountCents, ReferenceTransactionId, reason));
+    //    }
+
+    //    return Result.Updated;
+    //}
+    #endregion
+
+    #region Business Logic - Mark as Pending
+
     /// <summary>
-    /// Refunds a portion or all of a captured payment.
+    /// Marks the payment as pending, optionally providing an error message.
+    /// This is typically used when a payment requires further action or its status is unknown.
     /// </summary>
-    /// <param name="amountCents">The amount to refund in cents.</param>
-    /// <param name="reason">The reason for the refund.</param>
-    /// <param name="idempotencyKey">Optional idempotency key for retries.</param>
-    /// <returns>Updated result or error.</returns>
-    public ErrorOr<Updated> Refund(decimal amountCents, string reason, string? idempotencyKey = null)
+    /// <param name="errorMessage">Optional message indicating why the payment is pending.</param>
+    public ErrorOr<Payment> MarkAsPending(string? errorMessage = null)
     {
-        // Idempotency check:
-        if (!string.IsNullOrEmpty(idempotencyKey) && IdempotencyKey != idempotencyKey)
-        {
-            return Errors.IdempotencyKeyConflict;
-        }
+        if (State == PaymentState.Pending) return this; // Idempotent
 
-        if (State == PaymentState.Refunded) return Result.Updated; // Idempotent for full refund
-        if (State != PaymentState.Completed && State != PaymentState.PartiallyRefunded) return Errors.CannotRefundNonCompleted;
-        if (amountCents <= 0) return Errors.InvalidAmountCents;
-
-        if (RefundedAmountCents + amountCents > AmountCents)
-        {
-            return Errors.PartialRefundExceedsAmount(amountCents / 100m, (AmountCents - RefundedAmountCents) / 100m);
-        }
-
-        RefundedAmountCents += amountCents;
-        RefundedAt = DateTimeOffset.UtcNow;
-        IdempotencyKey = idempotencyKey;
+        State = PaymentState.Pending;
+        FailureReason = errorMessage;
         UpdatedAt = DateTimeOffset.UtcNow;
 
-        if (RefundedAmountCents == AmountCents)
-        {
-            State = PaymentState.Refunded;
-            AddDomainEvent(new Events.PaymentRefunded(Id, OrderId, amountCents, ReferenceTransactionId, reason));
-        }
-        else
-        {
-            State = PaymentState.PartiallyRefunded;
-            AddDomainEvent(new Events.PaymentPartiallyRefunded(Id, OrderId, amountCents, ReferenceTransactionId, reason));
-        }
-
-        return Result.Updated;
+        AddDomainEvent(new Events.PaymentPending(Id, OrderId, errorMessage ?? "Payment requires action."));
+        return this;
     }
+
     #endregion
 
     #region Business Logic - Mark as Failed
+
     /// <summary>
-    /// Marks the payment as failed, providing a reason and optional gateway error code.
+    /// Marks the payment as failed, optionally providing an error message and gateway error code.
     /// </summary>
-    public ErrorOr<Updated> MarkAsFailed(string errorMessage, string? gatewayErrorCode = null, string? idempotencyKey = null)
+    /// <param name="errorMessage">Optional message indicating why the payment failed.</param>
+    /// <param name="gatewayErrorCode">Optional error code from the payment gateway.</param>
+    public ErrorOr<Payment> MarkAsFailed(string errorMessage, string? gatewayErrorCode = null)
     {
-        if (!string.IsNullOrEmpty(idempotencyKey) && IdempotencyKey != idempotencyKey)
-        {
-            return Errors.IdempotencyKeyConflict;
-        }
+        if (State == PaymentState.Failed) return this; // Idempotent
 
-        if (State == PaymentState.Failed) return Result.Updated; // Idempotent
-        if (State == PaymentState.Completed || State == PaymentState.PartiallyRefunded || State == PaymentState.Refunded) return Errors.InvalidStateTransition(State, PaymentState.Failed);
-
-        if (errorMessage != null && errorMessage.Length > Constraints.FailureReasonMaxLength) return Errors.FailureReasonTooLong;
-        if (gatewayErrorCode != null && gatewayErrorCode.Length > Constraints.GatewayErrorCodeMaxLength) return Errors.GatewayErrorCodeTooLong;
+        if (errorMessage.Length > Constraints.FailureReasonMaxLength)
+            return Errors.FailureReasonTooLong;
+        if (!string.IsNullOrEmpty(gatewayErrorCode) && gatewayErrorCode.Length > Constraints.GatewayErrorCodeMaxLength)
+            return Errors.GatewayErrorCodeTooLong;
 
         State = PaymentState.Failed;
         FailureReason = errorMessage;
         GatewayErrorCode = gatewayErrorCode;
-        IdempotencyKey = idempotencyKey;
         UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new Events.PaymentFailed(Id, OrderId, errorMessage ?? "Unknown error", GatewayErrorCode));
-        return Result.Updated;
+
+        AddDomainEvent(new Events.PaymentFailed(Id, OrderId, errorMessage, gatewayErrorCode));
+        return this;
     }
+
     #endregion
 
     #region Events
@@ -307,9 +300,10 @@ public sealed class Payment : Aggregate
         public sealed record PaymentCapturing(Guid PaymentId, Guid OrderId) : DomainEvent;
         public sealed record PaymentCaptured(Guid PaymentId, Guid OrderId, string ReferenceTransactionId) : DomainEvent;
         public sealed record PaymentVoided(Guid PaymentId, Guid OrderId, string? ReferenceTransactionId) : DomainEvent;
-        public sealed record PaymentPartiallyRefunded(Guid PaymentId, Guid OrderId, decimal RefundAmountCents, string? ReferenceTransactionId, string Reason) : DomainEvent;
-        public sealed record PaymentRefunded(Guid PaymentId, Guid OrderId, decimal RefundAmountCents, string? ReferenceTransactionId, string Reason) : DomainEvent; // Full refund
+        //public sealed record PaymentPartiallyRefunded(Guid PaymentId, Guid OrderId, decimal RefundAmountCents, string? ReferenceTransactionId, string Reason) : DomainEvent;
+        //public sealed record PaymentRefunded(Guid PaymentId, Guid OrderId, decimal RefundAmountCents, string? ReferenceTransactionId, string Reason) : DomainEvent; // Full refund
         public sealed record PaymentFailed(Guid PaymentId, Guid OrderId, string ErrorMessage, string? GatewayErrorCode) : DomainEvent;
+        public sealed record PaymentPending(Guid PaymentId, Guid OrderId, string ErrorMessage) : DomainEvent;
     }
     #endregion
 }

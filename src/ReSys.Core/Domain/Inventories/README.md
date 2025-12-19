@@ -29,11 +29,6 @@ This section defines the key terms and concepts used within the `Inventories` bo
 -   **Destination Location**: The `Stock Location` to which stock is received during a `Stock Transfer`.
 -   **Number Generator**: A utility responsible for generating unique, sequential reference numbers for inventory-related transactions (e.g., stock transfers).
 -   **Track Inventory Levels**: A global configuration setting (`Config.TrackInventoryLevels`) that enables or disables the entire inventory tracking system.
--   **Store Pickup**: A fulfillment option allowing customers to collect orders from retail locations instead of shipping. Represented by the `StorePickup` aggregate.
--   **Pickup Location**: A `StockLocation` with `PickupEnabled = true` that supports in-store customer pickups.
--   **Pickup Code**: A human-readable, unique code generated for each pickup used for customer verification at the store (e.g., NYC-12345-A7K9).
--   **Pickup State**: The lifecycle state of a store pickup: Pending (order placed), Ready (items prepared), PickedUp (customer collected), or Cancelled.
-
 ---
 
 ## 🏛️ Core Components (Aggregates, Entities, Value Objects)

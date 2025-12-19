@@ -1,5 +1,5 @@
 using ReSys.Core.Common.Domain.Entities;
-using ReSys.Core.Domain.ShippingMethods;
+using ReSys.Core.Domain.Settings.ShippingMethods;
 
 namespace ReSys.Core.Domain.Stores.ShippingMethods;
 

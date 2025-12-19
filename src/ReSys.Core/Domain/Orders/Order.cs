@@ -4,14 +4,17 @@ using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Identity.UserAddresses;
 using ReSys.Core.Domain.Identity.Users;
 using ReSys.Core.Domain.Orders.Adjustments;
+using ReSys.Core.Domain.Orders.History;
 using ReSys.Core.Domain.Orders.LineItems;
 using ReSys.Core.Domain.Orders.Payments;
 using ReSys.Core.Domain.Orders.Shipments;
 using ReSys.Core.Domain.Promotions.Calculations;
 using ReSys.Core.Domain.Promotions.Promotions;
-using ReSys.Core.Domain.ShippingMethods;
+using ReSys.Core.Domain.Settings.ShippingMethods;
 using ReSys.Core.Domain.Stores;
 
+
+using ReSys.Core.Domain.Inventories.FulfillmentStrategies; // Added for FulfillmentItem
 
 namespace ReSys.Core.Domain.Orders;
 
@@ -48,7 +51,7 @@ namespace ReSys.Core.Domain.Orders;
 /// var completeResult = order.Complete(); // Payment → Confirm → Complete
 /// 
 /// // Save changes (events published after SaveChangesAsync)
-/// _dbContext.Orders.Add(order);
+///  _dbContext.Set<Order>().Add(order);
 /// await _dbContext.SaveChangesAsync();
 /// </code>
 /// </example>
@@ -91,15 +94,15 @@ public class Order : Aggregate, IHasMetadata
     /// <remarks>
     /// Order state progression follows this sequence:
     /// 
-    /// 1. <see cref="OrderState.Cart"/> - Initial state. Customer adds/removes items, reviews cart contents.
-    /// 2. <see cref="OrderState.Address"/> - Shipping and billing addresses set (if physical order).
-    /// 3. <see cref="OrderState.Delivery"/> - Shipping method selected, fulfillment location assigned.
-    /// 4. <see cref="OrderState.Payment"/> - Payment method authorized and captured.
-    /// 5. <see cref="OrderState.Confirm"/> - Final review before order completion.
-    /// 6. <see cref="OrderState.Complete"/> - Order completed, inventory finalized. Terminal state.
+    /// 1. <see cref="Order.OrderState.Cart"/> - Initial state. Customer adds/removes items, reviews cart contents.
+    /// 2. <see cref="Order.OrderState.Address"/> - Shipping and billing addresses set (if physical order).
+    /// 3. <see cref="Order.OrderState.Delivery"/> - Shipping method selected, fulfillment location assigned.
+    /// 4. <see cref="Order.OrderState.Payment"/> - Payment method authorized and captured.
+    /// 5. <see cref="Order.OrderState.Confirm"/> - Final review before order completion.
+    /// 6. <see cref="Order.OrderState.Complete"/> - Order completed, inventory finalized. Terminal state.
     /// 
     /// Alternative path:
-    /// - <see cref="OrderState.Canceled"/> - Can be reached from any non-Complete state. Terminal state.
+    /// - <see cref="Order.OrderState.Canceled"/> - Can be reached from any non-Complete state. Terminal state.
     /// 
     /// Transitions are one-way forward (except Cancel which is available anytime) and enforced
     /// by the Next() method which validates prerequisites before allowing transitions.
@@ -266,6 +269,12 @@ public class Order : Aggregate, IHasMetadata
     public string? UserId { get; set; }
 
     /// <summary>
+    /// Identifier for an anonymous (ad-hoc) user session, used for guest carts.
+    /// This is cleared when a user logs in and the cart is merged.
+    /// </summary>
+    public string? AdhocCustomerId { get; private set; }
+
+    /// <summary>
     /// Foreign key reference to the Promotion applied to this order (nullable if no promotion).
     /// Only one promotion allowed per order; replaces previous promotion if reapplied.
     /// </summary>
@@ -287,7 +296,7 @@ public class Order : Aggregate, IHasMetadata
     /// Current state of the order in its lifecycle (Cart, Address, Delivery, Payment, Confirm, Complete, or Canceled).
     /// Transitions enforced by Next() method; represents where order is in fulfillment process.
     /// </summary>
-    public OrderState State { get; set; } = OrderState.Cart;
+    public OrderState State { get; set; } = Order.OrderState.Cart;
 
     /// <summary>
     /// Sum of all line item subtotals in cents (quantity × unit price for each item).
@@ -371,16 +380,27 @@ public class Order : Aggregate, IHasMetadata
     #endregion
 
     #region Relationships
+
+    /// <summary>
+    /// Foreign key reference to the shipping address associated with this order.
+    /// </summary>
+    public Guid? ShipAddressId { get; set; }
+
+    /// <summary>
+    /// Foreign key reference to the billing address associated with this order.
+    /// </summary>
+    public Guid? BillAddressId { get; set; }
+
     public UserAddress? ShipAddress { get; set; }
     public UserAddress? BillAddress { get; set; }
     public Store? Store { get; set; }
     public User? User { get; set; }
     public Promotion? Promotion { get; set; }
     public ICollection<LineItem> LineItems { get; set; } = new List<LineItem>();
-    public ICollection<OrderAdjustment> Adjustments { get; set; } = new List<OrderAdjustment>();
+    public ICollection<OrderAdjustment> OrderAdjustments { get; set; } = new List<OrderAdjustment>();
     public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
-    public ICollection<InventoryUnit> InventoryUnits { get; set; } = new List<InventoryUnit>();
+    public ICollection<History.OrderHistory> Histories { get; set; } = new List<History.OrderHistory>();
 
     #endregion
 
@@ -389,17 +409,17 @@ public class Order : Aggregate, IHasMetadata
     /// <summary>
     /// Indicates whether order is in Cart state (items can still be added/removed).
     /// </summary>
-    public bool IsCart => State == OrderState.Cart;
+    public bool IsCart => State == Order.OrderState.Cart;
 
     /// <summary>
     /// Indicates whether order is in Complete state (terminal state, inventory finalized).
     /// </summary>
-    public bool IsComplete => State == OrderState.Complete;
+    public bool IsComplete => State == Order.OrderState.Complete;
 
     /// <summary>
     /// Indicates whether order is in Canceled state (terminal state, inventory released).
     /// </summary>
-    public bool IsCanceled => State == OrderState.Canceled;
+    public bool IsCanceled => State == Order.OrderState.Canceled;
 
     /// <summary>
     /// Total number of units in order (sum of all line item quantities).
@@ -433,7 +453,7 @@ public class Order : Aggregate, IHasMetadata
     /// Sum of all eligible promotion-related adjustments in cents (order-level + line-item level).
     /// Negative value indicates discount/reduction; used to display promotion savings.
     /// </summary>
-    public decimal PromotionTotalCents => Adjustments.Where(predicate: a => a.IsPromotion && a.Eligible)
+    public decimal PromotionTotalCents => OrderAdjustments.Where(predicate: a => a.IsPromotion && a.Eligible)
         .Sum(selector: a => (decimal)a.AmountCents);
 
     /// <summary>
@@ -498,22 +518,42 @@ public class Order : Aggregate, IHasMetadata
     /// var order = result.Value;
     /// </code>
     /// </remarks>
-    public static ErrorOr<Order> Create(Guid storeId, string currency, string? userId = null, string? email = null)
+    public static ErrorOr<Order> Create(Guid storeId, string currency, string? userId = null, string? adhocId = null,
+        string? email = null)
     {
         var order = new Order
         {
             Id = Guid.NewGuid(),
             StoreId = storeId,
             UserId = userId,
+            AdhocCustomerId = adhocId,
             Email = email?.Trim(),
             Number = GenerateOrderNumber(),
-            State = OrderState.Cart,
+            State = Order.OrderState.Cart,
             Currency = currency,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        order.AddDomainEvent(domainEvent: new Events.Created(OrderId: order.Id, StoreId: order.StoreId));
+        order.AddHistoryEntry("Order created.", Order.OrderState.Cart);
         return order;
+    }
+
+    #endregion
+
+    #region Private Helpers
+
+    /// <summary>
+    /// Adds a new entry to the order's history log.
+    /// </summary>
+    private ErrorOr<OrderHistory> AddHistoryEntry(string description, OrderState toState, OrderState? fromState = null,
+        string? triggeredBy = "System", IDictionary<string, object?>? context = null)
+    {
+        var from = fromState ?? State;
+        var historyResult = OrderHistory.Create(Id, description, toState, from, triggeredBy, context);
+        if (historyResult.IsError)
+            return historyResult.FirstError;
+        Histories.Add(historyResult.Value);
+        return historyResult.Value;
     }
 
     #endregion
@@ -542,11 +582,11 @@ public class Order : Aggregate, IHasMetadata
     {
         return State switch
         {
-            OrderState.Cart => ToAddress(),
-            OrderState.Address => ToDelivery(),
-            OrderState.Delivery => ToPayment(),
-            OrderState.Payment => ToConfirm(),
-            OrderState.Confirm => Complete(),
+            Order.OrderState.Cart => ToAddress(),
+            Order.OrderState.Address => ToDelivery(),
+            Order.OrderState.Delivery => ToPayment(),
+            Order.OrderState.Payment => ToConfirm(),
+            Order.OrderState.Confirm => Complete(),
             _ => Errors.InvalidStateTransition(from: State, to: State + 1)
         };
     }
@@ -556,9 +596,11 @@ public class Order : Aggregate, IHasMetadata
     {
         if (!LineItems.Any())
             return Error.Validation(code: "Order.EmptyCart", description: "Cannot checkout empty cart.");
-        State = OrderState.Address;
+
+        AddHistoryEntry("Order progressed to Address state.", Order.OrderState.Address);
+        State = Order.OrderState.Address;
         UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: OrderState.Address));
+        AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: Order.OrderState.Address));
         return this;
     }
 
@@ -571,9 +613,11 @@ public class Order : Aggregate, IHasMetadata
     {
         if (!IsFullyDigital && (ShipAddress == null || BillAddress == null))
             return Errors.AddressRequired;
-        State = OrderState.Delivery;
+
+        AddHistoryEntry("Order progressed to Delivery state.", Order.OrderState.Delivery);
+        State = Order.OrderState.Delivery;
         UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: OrderState.Delivery));
+        AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: Order.OrderState.Delivery));
         return this;
     }
 
@@ -591,9 +635,10 @@ public class Order : Aggregate, IHasMetadata
                     description: "Shipping method must be set before payment.");
         }
 
-        State = OrderState.Payment;
+        AddHistoryEntry("Order progressed to Payment state.", Order.OrderState.Payment);
+        State = Order.OrderState.Payment;
         UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: OrderState.Payment));
+        AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: Order.OrderState.Payment));
         return this;
     }
 
@@ -628,9 +673,10 @@ public class Order : Aggregate, IHasMetadata
                 description: "Cannot confirm order with failed payments.");
         }
 
-        State = OrderState.Confirm;
+        AddHistoryEntry("Order progressed to Confirmation state.", Order.OrderState.Confirm);
+        State = Order.OrderState.Confirm;
         UpdatedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: OrderState.Confirm));
+        AddDomainEvent(domainEvent: new Events.StateChanged(OrderId: Id, NewState: Order.OrderState.Confirm));
         return this;
     }
 
@@ -660,7 +706,7 @@ public class Order : Aggregate, IHasMetadata
     private ErrorOr<Order> Complete()
     {
         // Check for any failed/voided/refunded payments
-        if (Payments.Any(p => p.IsFailed || p.IsVoid || p.IsRefunded))
+        if (Payments.Any(p => p.IsFailed || p.IsVoid))
         {
             return Error.Validation(
                 code: "Order.InvalidPaymentState",
@@ -679,7 +725,8 @@ public class Order : Aggregate, IHasMetadata
         {
             foreach (var lineItem in LineItems)
             {
-                var allocatedUnitsQuantity = lineItem.InventoryUnits.Sum(iu => iu.Quantity);
+                var allocatedUnitsQuantity =
+                    lineItem.InventoryUnits.Count(predicate: iu => iu.State == InventoryUnit.InventoryUnitState.OnHand);
                 if (allocatedUnitsQuantity < lineItem.Quantity)
                 {
                     return Error.Validation(
@@ -706,8 +753,9 @@ public class Order : Aggregate, IHasMetadata
                 description: "All shipments must be ready or shipped before completing order.");
         }
 
+        AddHistoryEntry("Order completed.", Order.OrderState.Complete);
         CompletedAt = DateTimeOffset.UtcNow;
-        State = OrderState.Complete;
+        State = Order.OrderState.Complete;
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.Completed(OrderId: Id, StoreId: StoreId));
         AddDomainEvent(domainEvent: new Events.FinalizeInventory(OrderId: Id, StoreId: StoreId));
@@ -738,13 +786,29 @@ public class Order : Aggregate, IHasMetadata
     /// </remarks>
     public ErrorOr<Order> Cancel()
     {
-        if (State == OrderState.Complete) return Errors.CannotCancelCompleted;
-        if (State == OrderState.Canceled) return this;
+        if (State == Order.OrderState.Complete) return Errors.CannotCancelCompleted;
+        if (State == Order.OrderState.Canceled) return this;
+
+        AddHistoryEntry("Order canceled.", Order.OrderState.Canceled);
         CanceledAt = DateTimeOffset.UtcNow;
-        State = OrderState.Canceled;
+        State = Order.OrderState.Canceled;
         UpdatedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(domainEvent: new Events.Canceled(OrderId: Id, StoreId: StoreId));
         AddDomainEvent(domainEvent: new Events.ReleaseInventory(OrderId: Id, StoreId: StoreId));
+        return this;
+    }
+
+    public ErrorOr<Order> AssignToUser(string userId)
+    {
+        if (State != Order.OrderState.Cart)
+        {
+            return Error.Validation("Order.NotCart", "Only orders in cart state can be assigned to a user.");
+        }
+
+        UserId = userId;
+        AdhocCustomerId = null;
+        UpdatedAt = DateTimeOffset.UtcNow;
+
         return this;
     }
 
@@ -777,7 +841,7 @@ public class Order : Aggregate, IHasMetadata
             return Error.Validation(code: "Order.VariantNotPurchasable",
                 description: "Variant is not available for purchase.");
 
-        if (State != OrderState.Cart)
+        if (State != Order.OrderState.Cart)
         {
             return Error.Validation(
                 code: "Order.CannotModifyAfterCart",
@@ -866,8 +930,7 @@ public class Order : Aggregate, IHasMetadata
         var baseItemTotal = LineItems.Sum(selector: li => li.SubtotalCents);
 
         // Sum of line-item scoped adjustments (apply to item total)
-        var lineItemAdjustments = Adjustments
-            .Where(a => a.Scope == OrderAdjustment.AdjustmentScope.LineItem && a.Eligible)
+        var lineItemAdjustments = LineItems.SelectMany(li => li.Adjustments.Where(a => a.Eligible))
             .Sum(a => (decimal)a.AmountCents);
 
         // Item total includes base item subtotal plus any line-item adjustments
@@ -875,7 +938,7 @@ public class Order : Aggregate, IHasMetadata
 
         // Adjustment total includes only order-level adjustments (exclude line-item)
         // Shipping is represented separately in ShipmentTotalCents so exclude Shipping adjustments here.
-        AdjustmentTotalCents = Adjustments
+        AdjustmentTotalCents = OrderAdjustments
             .Where(a => a.Scope == OrderAdjustment.AdjustmentScope.Order && a.Eligible)
             .Sum(a => (decimal)a.AmountCents);
 
@@ -974,11 +1037,11 @@ public class Order : Aggregate, IHasMetadata
         if (calcResult.IsError) return calcResult.FirstError;
 
         // Remove only promotion-related adjustments
-        var nonPromoAdjustments = Adjustments.Where(a => !a.IsPromotion).ToList();
-        Adjustments.Clear();
+        var nonPromoAdjustments = OrderAdjustments.Where(a => !a.IsPromotion).ToList();
+        OrderAdjustments.Clear();
         foreach (var adj in nonPromoAdjustments)
         {
-            Adjustments.Add(adj);
+            OrderAdjustments.Add(adj);
         }
 
         PromotionId = promotion.Id;
@@ -986,23 +1049,35 @@ public class Order : Aggregate, IHasMetadata
 
         foreach (var adj in calcResult.Value.Adjustments)
         {
-            var scope = adj.LineItemId.HasValue
-                ? OrderAdjustment.AdjustmentScope.LineItem
-                : OrderAdjustment.AdjustmentScope.Order;
+            if (adj.LineItemId.HasValue)
+            {
+                var lineItem = LineItems.FirstOrDefault(li => li.Id == adj.LineItemId.Value);
+                if (lineItem != null)
+                {
+                    var adjustmentResult = LineItemAdjustment.Create(
+                        lineItemId: adj.LineItemId.Value,
+                        amountCents: (long)adj.Amount,
+                        description: adj.Description,
+                        promotionId: promotion.Id);
 
-            var adjustmentResult = OrderAdjustment.Create(
-                orderId: Id,
-                amountCents: (long)adj.Amount,
-                description: adj.Description,
-                scope: scope,
-                lineItemId: adj.LineItemId,
-                promotionId: promotion.Id,
-                eligible: true,
-                mandatory: false);
+                    if (adjustmentResult.IsError) return adjustmentResult.Errors;
+                    lineItem.Adjustments.Add(adjustmentResult.Value);
+                }
+            }
+            else
+            {
+                var adjustmentResult = OrderAdjustment.Create(
+                    orderId: Id,
+                    amountCents: (long)adj.Amount,
+                    description: adj.Description,
+                    scope: OrderAdjustment.AdjustmentScope.Order,
+                    promotionId: promotion.Id,
+                    eligible: true,
+                    mandatory: false);
 
-            if (adjustmentResult.IsError) return adjustmentResult.Errors;
-
-            Adjustments.Add(adjustmentResult.Value);
+                if (adjustmentResult.IsError) return adjustmentResult.Errors;
+                OrderAdjustments.Add(adjustmentResult.Value);
+            }
         }
 
         var recalcResult = RecalculateTotals();
@@ -1022,11 +1097,11 @@ public class Order : Aggregate, IHasMetadata
         PromoCode = null;
 
         // Clear all promotion-related adjustments
-        var nonPromotionAdjustments = Adjustments.Where(predicate: a => !a.IsPromotion).ToList();
-        Adjustments.Clear();
+        var nonPromotionAdjustments = OrderAdjustments.Where(predicate: a => !a.IsPromotion).ToList();
+        OrderAdjustments.Clear();
         foreach (var adj in nonPromotionAdjustments)
         {
-            Adjustments.Add(item: adj);
+            OrderAdjustments.Add(item: adj);
         }
 
         var recalcResult = RecalculateTotals();
@@ -1065,7 +1140,7 @@ public class Order : Aggregate, IHasMetadata
                 description: "Digital orders do not require shipping method.");
 
         // NEW: Can only set shipping in Delivery state
-        if (State != OrderState.Delivery && State != OrderState.Cart && State != OrderState.Address)
+        if (State != Order.OrderState.Delivery && State != Order.OrderState.Cart && State != Order.OrderState.Address)
         {
             return Error.Validation(
                 code: "Order.InvalidStateForShipping",
@@ -1102,7 +1177,8 @@ public class Order : Aggregate, IHasMetadata
         var shippingDescription = shippingMethod.Presentation ?? shippingMethod.Name ?? "Shipping";
 
         // Try update existing shipping adjustment if present
-        var existingShippingAdj = Adjustments.FirstOrDefault(a => a.Scope == OrderAdjustment.AdjustmentScope.Shipping);
+        var existingShippingAdj =
+            OrderAdjustments.FirstOrDefault(a => a.Scope == OrderAdjustment.AdjustmentScope.Shipping);
         if (existingShippingAdj != null)
         {
             existingShippingAdj.AmountCents = (long)ShipmentTotalCents;
@@ -1117,14 +1193,13 @@ public class Order : Aggregate, IHasMetadata
                 amountCents: (long)ShipmentTotalCents,
                 description: shippingDescription,
                 scope: OrderAdjustment.AdjustmentScope.Shipping,
-                lineItemId: null,
                 promotionId: null,
                 eligible: true,
                 mandatory: true);
 
             if (!shippingAdjResult.IsError)
             {
-                Adjustments.Add(shippingAdjResult.Value);
+                OrderAdjustments.Add(shippingAdjResult.Value);
             }
         }
 
@@ -1172,6 +1247,60 @@ public class Order : Aggregate, IHasMetadata
 
     #endregion
 
+    #region Business Logic - Shipment Management
+
+    public ErrorOr<Shipment> AddShipment(Guid fulfillmentLocationId, IEnumerable<FulfillmentItem> fulfillmentItems)
+    {
+        if (IsFullyDigital)
+            return Error.Validation("Order.DigitalOrderNoShipment", "Digital orders do not require shipments.");
+
+        if (State < Order.OrderState.Delivery)
+            return Error.Validation("Order.CannotAddShipmentBeforeDelivery",
+                "Cannot add shipments before the order is in or past the Delivery state.");
+        
+        if (fulfillmentItems == null || !fulfillmentItems.Any())
+            return Error.Validation("Order.NoFulfillmentItems", "Shipment must contain fulfillment items.");
+
+        // Create a new shipment
+        var shipmentResult = Shipment.Create(Id, fulfillmentLocationId);
+        if (shipmentResult.IsError) return shipmentResult.Errors;
+        var shipment = shipmentResult.Value;
+
+        // Create InventoryUnits for each fulfillment item
+        foreach (var fulfillmentItem in fulfillmentItems)
+        {
+            var lineItem = LineItems.FirstOrDefault(li => li.Id == fulfillmentItem.LineItemId);
+            if (lineItem == null)
+            {
+                // This should not happen if fulfillment plan is generated correctly
+                return Error.NotFound("LineItem.NotFound", $"Line item {fulfillmentItem.LineItemId} not found in order.");
+            }
+
+            // Create one InventoryUnit for each quantity of the line item
+            for (int i = 0; i < fulfillmentItem.Quantity; i++)
+            {
+                var inventoryUnitResult = InventoryUnit.Create(
+                    variantId: fulfillmentItem.VariantId,
+                    lineItemId: fulfillmentItem.LineItemId,
+                    shipmentId: shipment.Id,
+                    initialState: InventoryUnit.InventoryUnitState.OnHand, // Assume OnHand for now
+                    pending: true); // Pending until order is completed
+
+                if (inventoryUnitResult.IsError) return inventoryUnitResult.Errors;
+                var inventoryUnit = inventoryUnitResult.Value;
+                shipment.InventoryUnits.Add(inventoryUnit);
+                lineItem.InventoryUnits.Add(inventoryUnit);
+            }
+        }
+
+        Shipments.Add(shipment);
+        AddDomainEvent(new Events.ShipmentCreated(Id, shipment.Id, fulfillmentLocationId));
+
+        return shipment;
+    }
+
+    #endregion
+
     #region Business Logic - Invariants
 
     // NEW: Add method to validate order invariants
@@ -1187,14 +1316,14 @@ public class Order : Aggregate, IHasMetadata
         }
 
         // Check state-specific validations
-        if (State == OrderState.Complete && !CompletedAt.HasValue)
+        if (State == Order.OrderState.Complete && !CompletedAt.HasValue)
         {
             return Error.Validation(
                 code: "Order.MissingCompletionTimestamp",
                 description: "Completed orders must have completion timestamp.");
         }
 
-        if (State == OrderState.Canceled && !CanceledAt.HasValue)
+        if (State == Order.OrderState.Canceled && !CanceledAt.HasValue)
         {
             return Error.Validation(
                 code: "Order.MissingCancellationTimestamp",
@@ -1277,6 +1406,12 @@ public class Order : Aggregate, IHasMetadata
 
         /// <summary>Published when billing address is set.</summary>
         public sealed record BillingAddressSet(Guid OrderId) : DomainEvent;
+
+        /// <summary>Published when a new shipment is created for the order.</summary>
+        public sealed record ShipmentCreated(Guid OrderId, Guid ShipmentId, Guid FulfillmentLocationId) : DomainEvent;
+
+        /// <summary>Published when an order's totals need to be recalculated.</summary>
+        public sealed record OrderRecalculationRequested(Guid OrderId) : DomainEvent;
     }
 
     #endregion
