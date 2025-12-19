@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 using ReSys.Core.Common.Models.Wrappers.Responses;
 
@@ -29,8 +31,32 @@ public static partial class InternalModule
             group.MapPost(pattern: "login",
                     handler: LoginHandler)
                 .UseEndpointMeta(meta: Annotations.Login);
-
+            
+            if (app.ServiceProvider
+                .GetRequiredService<IHostEnvironment>()
+                .IsDevelopment())
+            {
+                group.MapPost("login/dev", DevLoginHandler);
+            }
         }
+        
+        private static async Task<Ok<ApiResponse<Login.Result>>> DevLoginHandler(
+            [FromServices] ISender mediator)
+        {
+            var param = new Login.Param(
+                Credential: "System.Admin",
+                Password: "Seeder@123",
+                RememberMe: true
+            );
+
+            var command = new Login.Command(param);
+            var result = await mediator.Send(command);
+
+            return TypedResults.Ok(
+                result.ToApiResponse("Development auto login")
+            );
+        }
+
 
         private static async Task<Ok<ApiResponse<Login.Result>>> LoginHandler([FromBody] Login.Param param, [FromServices] ISender mediator)
         {

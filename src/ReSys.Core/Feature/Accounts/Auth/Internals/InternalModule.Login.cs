@@ -1,9 +1,13 @@
 ﻿using Mapster;
 
+using MediatR;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 
 using ReSys.Core.Domain.Identity.Users;
+using ReSys.Core.Feature.Common.Security.Authentication;
+using ReSys.Core.Feature.Common.Security.Authentication.Contexts.Interfaces;
 using ReSys.Core.Feature.Common.Security.Authentication.Tokens.Interfaces;
 using ReSys.Core.Feature.Common.Security.Authentication.Tokens.Models;
 
@@ -75,7 +79,9 @@ public static partial class InternalModule
             UserManager<User> userManager,
             IJwtTokenService jwtTokenService,
             IRefreshTokenService refreshTokenService,
-            IHttpContextAccessor httpContextAccessor) : ICommandHandler<Command, Result>
+            IHttpContextAccessor httpContextAccessor,
+            IUserContext userContext,
+            IPublisher publisher) : ICommandHandler<Command, Result>
         {
             public async Task<ErrorOr<Result>> Handle(Command request, CancellationToken cancellationToken)
             {
@@ -161,6 +167,9 @@ public static partial class InternalModule
                         propertyValue: user.Id);
                     return refreshResult.Errors;
                 }
+
+                // Publish notification for cart merging
+                await publisher.Publish(new UserLoggedInNotification(user.Id, userContext.AdhocCustomerId), cancellationToken);
 
                 AuthenticationResult tokens = new AuthenticationResult
                 {

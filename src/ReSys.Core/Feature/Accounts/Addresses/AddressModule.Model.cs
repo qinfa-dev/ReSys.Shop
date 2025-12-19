@@ -143,7 +143,7 @@ public  static partial class AddressModule
                     .Map(member: dest => dest.City,
                         source: src => src.City)
                     .Map(member: dest => dest.Zipcode,
-                        source: src => src.Zipcode)
+                        source: src => src.ZipCode)
                     .Map(member: dest => dest.Phone,
                         source: src => src.Phone)
                     .Map(member: dest => dest.StateName,
@@ -186,7 +186,7 @@ public  static partial class AddressModule
                     .Map(member: dest => dest.Label,
                         source: src => src.Label ?? $"{src.Address1}, {src.City}")
                     .Map(member: dest => dest.AddressSummary,
-                        source: src => $"{src.Address1}, {src.City}, {src.Zipcode}");
+                        source: src => $"{src.Address1}, {src.City}, {src.ZipCode}");
             }
         }
         #endregion
