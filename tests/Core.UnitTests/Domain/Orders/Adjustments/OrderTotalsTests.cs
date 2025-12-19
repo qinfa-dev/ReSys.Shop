@@ -51,11 +51,11 @@ public class OrderTotalsTests
         var lineItem = order.LineItems.First();
 
         // Create adjustments
-        var eligibleLineAdj = OrderAdjustment.Create(order.Id, amountCents: -500, description: "Eligible item discount", OrderAdjustment.AdjustmentScope.LineItem, lineItemId: lineItem.Id, promotionId: null, eligible: true, mandatory: false);
-        var ineligibleLineAdj = OrderAdjustment.Create(order.Id, amountCents: -300, description: "Ineligible item discount", OrderAdjustment.AdjustmentScope.LineItem, lineItemId: lineItem.Id, promotionId: null, eligible: false, mandatory: false);
+        var eligibleLineAdj = LineItemAdjustment.Create(lineItem.Id, amountCents: -500, description: "Eligible item discount", promotionId: null, eligible: true);
+        var ineligibleLineAdj = LineItemAdjustment.Create(lineItem.Id, amountCents: -300, description: "Ineligible item discount", promotionId: null, eligible: false);
 
-        var eligibleOrderAdj = OrderAdjustment.Create(order.Id, amountCents: -200, description: "Eligible order discount", OrderAdjustment.AdjustmentScope.Order, lineItemId: null, promotionId: null, eligible: true, mandatory: false);
-        var ineligibleOrderAdj = OrderAdjustment.Create(order.Id, amountCents: -100, description: "Ineligible order discount", OrderAdjustment.AdjustmentScope.Order, lineItemId: null, promotionId: null, eligible: false, mandatory: false);
+        var eligibleOrderAdj = OrderAdjustment.Create(order.Id, amountCents: -200, description: "Eligible order discount", OrderAdjustment.AdjustmentScope.Order, promotionId: null, eligible: true, mandatory: false);
+        var ineligibleOrderAdj = OrderAdjustment.Create(order.Id, amountCents: -100, description: "Ineligible order discount", OrderAdjustment.AdjustmentScope.Order, promotionId: null, eligible: false, mandatory: false);
 
         eligibleLineAdj.IsError.Should().BeFalse(because: eligibleLineAdj.IsError ? eligibleLineAdj.FirstError.Description : string.Empty);
         ineligibleLineAdj.IsError.Should().BeFalse(because: ineligibleLineAdj.IsError ? ineligibleLineAdj.FirstError.Description : string.Empty);
@@ -63,10 +63,10 @@ public class OrderTotalsTests
         ineligibleOrderAdj.IsError.Should().BeFalse(because: ineligibleOrderAdj.IsError ? ineligibleOrderAdj.FirstError.Description : string.Empty);
 
         // Add adjustments to order
-        order.Adjustments.Add(eligibleLineAdj.Value);
-        order.Adjustments.Add(ineligibleLineAdj.Value);
-        order.Adjustments.Add(eligibleOrderAdj.Value);
-        order.Adjustments.Add(ineligibleOrderAdj.Value);
+        lineItem.Adjustments.Add(eligibleLineAdj.Value);
+        lineItem.Adjustments.Add(ineligibleLineAdj.Value);
+        order.OrderAdjustments.Add(eligibleOrderAdj.Value);
+        order.OrderAdjustments.Add(ineligibleOrderAdj.Value);
 
         // Act: trigger recalculation by updating line item quantity (no-op change)
         var updateResult = order.UpdateLineItemQuantity(lineItem.Id, lineItem.Quantity);

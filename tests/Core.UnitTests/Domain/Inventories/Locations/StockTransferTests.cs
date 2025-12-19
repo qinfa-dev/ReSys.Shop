@@ -6,6 +6,7 @@ using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Inventories.Stocks;
+using ReSys.Core.Domain.Inventories.StockTransfers;
 
 namespace Core.UnitTests.Domain.Inventories.Locations;
 
@@ -217,7 +218,7 @@ public class StockTransferTests
         destItem1.QuantityOnHand.Should().Be(expected: 5);
 
         stockTransfer.DomainEvents.Should().ContainSingle(predicate: e => e is StockTransfer.Events.StockTransferred);
-        var transferredEvent = (StockTransfer.Events.StockTransferred)stockTransfer.DomainEvents.First();
+        var transferredEvent = stockTransfer.DomainEvents.OfType<StockTransfer.Events.StockTransferred>().Single();
         transferredEvent.SourceLocationId.Should().Be(expected: sourceLocationId);
         transferredEvent.DestinationLocationId.Should().Be(expected: destinationLocationId);
     }
@@ -335,7 +336,7 @@ public class StockTransferTests
         destinationLocation.StockItems.Should().ContainSingle(predicate: si => si.VariantId == variant2.Id && si.QuantityOnHand == 20);
 
         stockTransfer.DomainEvents.Should().ContainSingle(predicate: e => e is StockTransfer.Events.StockReceived);
-        var receivedEvent = (StockTransfer.Events.StockReceived)stockTransfer.DomainEvents.First();
+        var receivedEvent = stockTransfer.DomainEvents.OfType<StockTransfer.Events.StockReceived>().Single();
         receivedEvent.DestinationLocationId.Should().Be(expected: destinationLocationId);
     }
 

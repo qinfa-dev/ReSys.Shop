@@ -92,7 +92,7 @@ public class OrderInvariantTests
     {
         // Arrange
         var order = CreateTestOrder(storeId: Guid.NewGuid());
-        order.State = Order.OrderState.Complete;
+        order.State = Order.Order.OrderState.Complete;
         order.CompletedAt = null; // Deliberately set to null
 
         // Act
@@ -108,7 +108,7 @@ public class OrderInvariantTests
     {
         // Arrange
         var order = CreateTestOrder(storeId: Guid.NewGuid());
-        order.State = Order.OrderState.Canceled;
+        order.State = Order.Order.OrderState.Canceled;
         order.CanceledAt = null; // Deliberately set to null
 
         // Act

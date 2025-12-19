@@ -10,7 +10,7 @@ using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Orders.LineItems;
 using ReSys.Core.Domain.Promotions.Actions; // Corrected namespace
 using ReSys.Core.Domain.Promotions.Promotions;
-using ReSys.Core.Domain.ShippingMethods;
+using ReSys.Core.Domain.Settings.ShippingMethods;
 
 namespace Core.UnitTests.Domain.Orders;
 
@@ -133,7 +133,7 @@ public class OrderTests
     {
         // Arrange
         var order = CreateTestOrder(Guid.NewGuid());
-        order.State = Order.OrderState.Complete;
+        order.State = Order.Order.OrderState.Complete;
         order.CompletedAt = null; // Deliberately set to null
 
         // Act
@@ -149,7 +149,7 @@ public class OrderTests
     {
         // Arrange
         var order = CreateTestOrder(Guid.NewGuid());
-        order.State = Order.OrderState.Canceled;
+        order.State = Order.Order.OrderState.Canceled;
         order.CanceledAt = null; // Deliberately set to null
 
         // Act
@@ -176,7 +176,7 @@ public class OrderTests
         result.Value.Should().NotBeNull();
         result.Value.StoreId.Should().Be(storeId);
         result.Value.Currency.Should().Be(currency);
-        result.Value.State.Should().Be(Order.OrderState.Cart);
+        result.Value.State.Should().Be(Order.Order.OrderState.Cart);
         result.Value.Number.Should().StartWith("R");
         result.Value.CreatedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
     }
@@ -212,7 +212,7 @@ public class OrderTests
 
         // Assert
         result.IsError.Should().BeFalse($"Expected success, but got error: {result.FirstError.Code} - {result.FirstError.Description}");
-        result.Value.State.Should().Be(Order.OrderState.Address);
+        result.Value.State.Should().Be(Order.Order.OrderState.Address);
     }
 
     [Fact]
@@ -272,7 +272,7 @@ public class OrderTests
 
         // Assert
         result.IsError.Should().BeFalse($"Expected success, but got error: {result.FirstError.Code} - {result.FirstError.Description}");
-        result.Value.State.Should().Be(Order.OrderState.Delivery);
+        result.Value.State.Should().Be(Order.Order.OrderState.Delivery);
     }
 
     [Fact]
@@ -347,7 +347,7 @@ public class OrderTests
 
         // Assert
         result.IsError.Should().BeFalse($"Expected success, but got error: {result.FirstError.Code} - {result.FirstError.Description}");
-        result.Value.State.Should().Be(Order.OrderState.Payment);
+        result.Value.State.Should().Be(Order.Order.OrderState.Payment);
         // Shipments are no longer created directly by order.Next(), but by an Application Service.
         // result.Value.Shipments.Should().ContainSingle(); // Removed assertion
     }
@@ -418,7 +418,7 @@ public class OrderTests
         order.TotalCents = 1000;
 
         // Progress to Payment state
-        order.State = Order.OrderState.Payment;
+        order.State = Order.Order.OrderState.Payment;
         order.AddPayment(1000, Guid.NewGuid(), "CreditCard");
 
 
@@ -427,7 +427,7 @@ public class OrderTests
 
         // Assert
         result.IsError.Should().BeFalse($"Expected success, but got error: {result.FirstError.Code} - {result.FirstError.Description}");
-        result.Value.State.Should().Be(Order.OrderState.Confirm);
+        result.Value.State.Should().Be(Order.Order.OrderState.Confirm);
     }
 
     [Fact]
@@ -442,7 +442,7 @@ public class OrderTests
         order.TotalCents = 1000;
 
         // Progress to Payment state
-        order.State = Order.OrderState.Payment;
+        order.State = Order.Order.OrderState.Payment;
         order.AddPayment(500, Guid.NewGuid(), "CreditCard"); // Insufficient payment
 
 
@@ -498,10 +498,8 @@ public class OrderTests
                 {
                     var inventoryUnitResult = ReSys.Core.Domain.Orders.Shipments.InventoryUnit.Create(
                         variantId: lineItem.VariantId,
-                        orderId: order.Id,
                         lineItemId: lineItem.Id,
-                        shipmentId: shipment.Id,
-                        quantity: 1); // Each unit represents 1 quantity
+                        shipmentId: shipment.Id); // Each unit represents 1 quantity
                     inventoryUnitResult.IsError.Should().BeFalse($"InventoryUnit creation failed: {inventoryUnitResult.FirstError.Description}");
                     var inventoryUnit = inventoryUnitResult.Value;
                     
@@ -514,8 +512,8 @@ public class OrderTests
 
         order.AddPayment(1500, Guid.NewGuid(), "CreditCard");
         var payment = order.Payments.First(); // Get the payment from the collection
-        payment.Authorize("auth123", "code123"); // Authorize the payment first
-        payment.Capture("transactionId"); // Mark payment as completed
+        payment = payment.MarkAsAuthorized("auth123", "code123").Value; // Authorize the payment first
+        payment = payment.MarkAsCaptured("transactionId").Value; // Mark payment as completed
         payment.IsCompleted.Should().BeTrue(); // Explicitly check the state
 
         order.Next(); // Payment -> Confirm
@@ -528,7 +526,7 @@ public class OrderTests
         result.IsError.Should().BeFalse($"Expected success, but got error: {result.FirstError.Code} - {result.FirstError.Description}");
         var completedOrder = (Order)result.Value; // Explicit cast
         completedOrder.Should().NotBeNull(); // Explicit null check (redundant but for safety)
-        completedOrder.State.Should().Be(Order.OrderState.Complete);
+        completedOrder.State.Should().Be(Order.Order.OrderState.Complete);
         completedOrder.CompletedAt.Should().NotBeNull();
         completedOrder.DomainEvents.OfType<Order.Events.FinalizeInventory>().Should().ContainSingle();
     }
@@ -545,7 +543,7 @@ public class OrderTests
         order.TotalCents = 1000;
 
         // Progress to Confirm state
-        order.State = Order.OrderState.Confirm;
+        order.State = Order.Order.OrderState.Confirm;
         order.AddPayment(1000, Guid.NewGuid(), "CreditCard"); // Payment not captured
 
         // Act
@@ -564,14 +562,14 @@ public class OrderTests
         var variant = CreateTestVariant(productId: Guid.NewGuid(), sku: "SKU1", price: 10.0m, currency: "USD");
         var addLineItemResult = order.AddLineItem(variant, 1);
         addLineItemResult.IsError.Should().BeFalse($"Expected AddLineItem to succeed, but got error: {addLineItemResult.FirstError.Code} - {addLineItemResult.FirstError.Description}");
-        order.State = Order.OrderState.Payment; // Not a complete state
+        order.State = Order.Order.OrderState.Payment; // Not a complete state
 
         // Act
         var result = order.Cancel();
 
         // Assert
         result.IsError.Should().BeFalse($"Expected success, but got error: {result.FirstError.Code} - {result.FirstError.Description}");
-        result.Value.State.Should().Be(Order.OrderState.Canceled);
+        result.Value.State.Should().Be(Order.Order.OrderState.Canceled);
         result.Value.CanceledAt.Should().NotBeNull();
         ((Aggregate)order).DomainEvents.OfType<Order.Events.ReleaseInventory>().Should().ContainSingle();
     }
@@ -581,7 +579,7 @@ public class OrderTests
     {
         // Arrange
         var order = CreateTestOrder(Guid.NewGuid());
-        order.State = Order.OrderState.Complete;
+        order.State = Order.Order.OrderState.Complete;
 
         // Act
         var result = order.Cancel();
@@ -596,7 +594,7 @@ public class OrderTests
     {
         // Arrange
         var order = CreateTestOrder(Guid.NewGuid());
-        order.State = Order.OrderState.Canceled;
+        order.State = Order.Order.OrderState.Canceled;
         order.CanceledAt = DateTimeOffset.UtcNow.AddMinutes(-5); // Already canceled
 
         // Act
@@ -604,7 +602,7 @@ public class OrderTests
 
         // Assert
         result.IsError.Should().BeFalse();
-        result.Value.State.Should().Be(Order.OrderState.Canceled);
+        result.Value.State.Should().Be(Order.Order.OrderState.Canceled);
         // CanceledAt should not be updated if already canceled
         result.Value.CanceledAt.Should().BeCloseTo(DateTimeOffset.UtcNow.AddMinutes(-5), TimeSpan.FromSeconds(1));
     }
@@ -695,7 +693,7 @@ public class OrderTests
         var variant = CreateTestVariant(productId: Guid.NewGuid(), sku: "SKU1", price: 10.0m, currency: "USD");
         var addLineItemResult = order.AddLineItem(variant, 1);
         addLineItemResult.IsError.Should().BeFalse($"Expected AddLineItem to succeed, but got error: {addLineItemResult.FirstError.Code} - {addLineItemResult.FirstError.Description}");
-        order.State = Order.OrderState.Address; // Move out of Cart state
+        order.State = Order.Order.OrderState.Address; // Move out of Cart state
 
         // Act
         var result = order.AddLineItem(CreateTestVariant(productId: Guid.NewGuid(), sku: "SKU2", price: 10.0m, currency: "USD"), 1);
@@ -814,7 +812,7 @@ public class OrderTests
         // Assert
         result.IsError.Should().BeFalse($"Expected success, but got error: {result.FirstError.Code} - {result.FirstError.Description}");
         order.PromotionId.Should().Be(promotion.Id);
-        order.Adjustments.Should().NotBeEmpty(); // Check if any adjustment was added
+        order.OrderAdjustments.Should().NotBeEmpty(); // Check if any adjustment was added
         order.AdjustmentTotalCents.Should().BeLessThan(0); // Should be a discount
         order.TotalCents.Should().Be(order.ItemTotalCents + order.AdjustmentTotalCents); // Check recalculation
     }
@@ -882,7 +880,7 @@ public class OrderTests
         result.IsError.Should().BeFalse($"Expected success, but got error: {result.FirstError.Code} - {result.FirstError.Description}");
         order.PromotionId.Should().BeNull();
         order.PromoCode.Should().BeNull();
-        order.Adjustments.Should().BeEmpty(); // Promotion adjustments cleared
+        order.OrderAdjustments.Should().BeEmpty(); // Promotion adjustments cleared
         order.AdjustmentTotalCents.Should().Be(0);
         order.TotalCents.Should().Be(2000); // Total should revert to ItemTotal
     }
@@ -1015,7 +1013,7 @@ public class OrderTests
         var shippingMethod = shippingMethodResult.Value;
 
         // Set state to Delivery for valid transition
-        order.State = Order.OrderState.Delivery;
+        order.State = Order.Order.OrderState.Delivery;
 
         // Act
         var result = order.SetShippingMethod(shippingMethod);
@@ -1060,7 +1058,7 @@ public class OrderTests
         var shippingMethod = shippingMethodResult.Value;
 
         // Set state to Delivery for valid transition
-        order.State = Order.OrderState.Delivery;
+        order.State = Order.Order.OrderState.Delivery;
 
         // Act
         var result = order.SetShippingMethod(shippingMethod);
@@ -1087,7 +1085,7 @@ public class OrderTests
         shippingMethodResult.IsError.Should().BeFalse();
         var shippingMethod = shippingMethodResult.Value;
 
-        order.State = Order.OrderState.Complete; // Invalid state
+        order.State = Order.Order.OrderState.Complete; // Invalid state
 
         // Act
         var result = order.SetShippingMethod(shippingMethod);

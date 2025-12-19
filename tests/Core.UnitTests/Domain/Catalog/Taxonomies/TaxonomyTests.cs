@@ -15,7 +15,7 @@ public class TaxonomyTests
     // Helper method to create a valid Taxonomy instance
     private static Taxonomy CreateValidTaxonomy(Guid storeId, string name = "test-taxonomy", string presentation = "Test Taxonomy")
     {
-        var result = Taxonomy.Create(storeId: storeId, name: name, presentation: presentation);
+        var result = Taxonomy.Create(name: name, presentation: presentation);
         result.IsError.Should().BeFalse();
         return result.Value;
     }
@@ -29,13 +29,12 @@ public class TaxonomyTests
         var presentation = "Product Categories";
 
         // Act
-        var result = Taxonomy.Create(storeId: storeId, name: name, presentation: presentation);
+        var result = Taxonomy.Create( name: name, presentation: presentation);
 
         // Assert
         result.IsError.Should().BeFalse();
         var taxonomy = result.Value;
         taxonomy.Should().NotBeNull();
-        taxonomy.StoreId.Should().Be(expected: storeId);
         taxonomy.Name.Should().Be(expected: name); // Name is slugified by NormalizeParams
         taxonomy.Presentation.Should().Be(expected: presentation);
         taxonomy.Position.Should().Be(expected: 0); // Default position

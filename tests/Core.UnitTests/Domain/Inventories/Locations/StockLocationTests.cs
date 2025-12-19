@@ -5,11 +5,13 @@ using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Variants;
 using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Inventories.Stocks;
-using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Stores;
 
 using Humanizer; // Added for .ToSlug() and .Humanize()
-using ReSys.Core.Common.Extensions; // Added for .ToSlug() and .Humanize()
+using ReSys.Core.Common.Extensions;
+using ReSys.Core.Domain.Inventories.Movements;
+
+// Added for .ToSlug() and .Humanize()
 
 namespace Core.UnitTests.Domain.Inventories.Locations;
 

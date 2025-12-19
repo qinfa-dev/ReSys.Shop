@@ -5,12 +5,11 @@ using ReSys.Core.Domain.Inventories.Locations;
 using ReSys.Core.Domain.Orders;
 
 using ErrorOr;
-
-using ReSys.Core.Domain.PaymentMethods;
-using ReSys.Core.Domain.ShippingMethods; // Add this using for ErrorOr.Deleted
 using ReSys.Core.Domain.Stores;
 
 using static ReSys.Core.Domain.Stores.Store;
+using ReSys.Core.Domain.Settings.ShippingMethods;
+using ReSys.Core.Domain.Settings.PaymentMethods;
 
 namespace Core.UnitTests.Domain.Stores;
 
@@ -523,7 +522,7 @@ public class StoreTests
         store.Address1.Should().Be("123 Main St");
         store.Address2.Should().Be("Apt 101");
         store.City.Should().Be("Test City");
-        store.Zipcode.Should().Be("12345");
+        store.ZipCode.Should().Be("12345");
         store.Phone.Should().Be("555-1234");
         store.Company.Should().Be("Test Co");
         store.CountryId.Should().Be(countryId);

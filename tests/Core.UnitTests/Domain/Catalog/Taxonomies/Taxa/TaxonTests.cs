@@ -18,7 +18,7 @@ public class TaxonTests
     // Helper method to create a valid Taxonomy instance (copied for self-containment)
     private static Taxonomy CreateValidTaxonomy(Guid storeId, string name = "test-taxonomy", string presentation = "Test Taxonomy")
     {
-        var result = Taxonomy.Create(storeId: storeId, name: name, presentation: presentation);
+        var result = Taxonomy.Create(name: name, presentation: presentation);
         result.IsError.Should().BeFalse();
         return result.Value;
     }

@@ -4,9 +4,9 @@ using FluentAssertions;
 
 using ReSys.Core.Common.Domain.Concerns;
 using ReSys.Core.Common.Extensions;
-using ReSys.Core.Domain.ShippingMethods;
+using ReSys.Core.Domain.Settings.ShippingMethods;
 
-using static ReSys.Core.Domain.ShippingMethods.ShippingMethod;
+using static ReSys.Core.Domain.Settings.ShippingMethods.ShippingMethod;
 
 namespace Core.UnitTests.Domain.ShippingMethods;
 

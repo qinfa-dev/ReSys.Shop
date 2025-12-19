@@ -2,7 +2,7 @@ using FluentAssertions;
 
 using ReSys.Core.Domain.Orders.Payments;
 using ReSys.Core.Common.Extensions;
-using ReSys.Core.Domain.PaymentMethods;
+using ReSys.Core.Domain.Settings.PaymentMethods;
 
 namespace Core.UnitTests.Domain.PaymentMethods;
 

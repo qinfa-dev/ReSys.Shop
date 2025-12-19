@@ -1,11 +1,12 @@
 using ErrorOr;
+
 using FluentAssertions;
+
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Variants;
-using ReSys.Core.Domain.Inventories.Stocks; // Corrected namespace for StockItem
-using ReSys.Core.Domain.Orders; // For StockMovement
-using ReSys.Core.Domain.Orders.Shipments; // For InventoryUnit
-// For reflection
+using ReSys.Core.Domain.Inventories.Movements;
+using ReSys.Core.Domain.Inventories.Stocks;
+using ReSys.Core.Domain.Orders.Shipments; 
 
 namespace Core.UnitTests.Domain.Inventories.Stocks;
 
@@ -33,9 +34,9 @@ public class StockItemTests
         return variant;
     }
 
-    private InventoryUnit CreateTestInventoryUnit(Guid variantId, Guid orderId, Guid lineItemId, InventoryUnit.InventoryUnitState state = InventoryUnit.InventoryUnitState.Backordered)
+    private InventoryUnit CreateTestInventoryUnit(Guid variantId, Guid lineItemId, InventoryUnit.InventoryUnitState state = InventoryUnit.InventoryUnitState.Backordered)
     {
-        var result = InventoryUnit.Create(variantId: variantId, orderId: orderId, lineItemId: lineItemId, shipmentId: Guid.NewGuid(), quantity: 1);
+        var result = InventoryUnit.Create(variantId: variantId, lineItemId: lineItemId, shipmentId: Guid.NewGuid());
         
         if (result.IsError || result.Value is null)
         {

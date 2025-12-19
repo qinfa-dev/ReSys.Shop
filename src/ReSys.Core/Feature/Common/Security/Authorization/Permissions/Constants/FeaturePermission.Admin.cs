@@ -12,8 +12,7 @@ public static partial class FeaturePermission
             .. AuditLog.All,
             .. Catalog.All,
             .. Inventory.All,
-            .. ShippingMethod.All,
-            .. PaymentMethod.All,
+            .. Setting.All,
             .. Store.All,
             .. Promotion.All
         ];

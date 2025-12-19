@@ -2,8 +2,8 @@ using FluentAssertions;
 
 using ReSys.Core.Domain.Catalog.Products;
 using ReSys.Core.Domain.Catalog.Products.Variants;
+using ReSys.Core.Domain.Inventories.Movements;
 using ReSys.Core.Domain.Inventories.Stocks;
-using ReSys.Core.Domain.Orders;
 
 namespace Core.UnitTests.Domain.Inventories.Stocks;
 
