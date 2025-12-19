@@ -87,12 +87,11 @@ public sealed class CatalogTaxonomyDataSeeder(IServiceProvider serviceProvider) 
     private async Task<Taxonomy> EnsureTaxonomyExistsAsync(ApplicationDbContext dbContext, Guid storeId, CancellationToken cancellationToken)
     {
         Taxonomy? productCategoriesTaxonomy = await dbContext.Set<Taxonomy>()
-            .FirstOrDefaultAsync(t => t.Name == "apparel-accessories" && t.StoreId == storeId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Name == "apparel-accessories".ToSlug(), cancellationToken);
 
         if (productCategoriesTaxonomy == null)
         {
             var taxonomyResult = Taxonomy.Create(
-                storeId: storeId,
                 name: "apparel-accessories",
                 presentation: "Apparel & Accessories",
                 position: 0);

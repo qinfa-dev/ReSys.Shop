@@ -40,7 +40,22 @@ internal static class SeedersServiceCollectionExtensions
             propertyValue0: nameof(CatalogTaxonomyDataSeeder),
             propertyValue1: "Transient");
 
-        services.AddHostedService<SeederOrchestrator>();
+        services.AddTransient<IDataSeeder, StockLocationDataSeeder>();
+        Log.Debug(messageTemplate: LogTemplates.ServiceRegistered,
+            propertyValue0: nameof(StockLocationDataSeeder),
+            propertyValue1: "Transient");
+
+        services.AddTransient<IDataSeeder, CatalogProductDataSeeder>();
+        Log.Debug(messageTemplate: LogTemplates.ServiceRegistered,
+            propertyValue0: nameof(CatalogProductDataSeeder),
+            propertyValue1: "Transient");
+
+        services.AddTransient<IDataSeeder, CatalogProductVariantDataSeeder>();
+        Log.Debug(messageTemplate: LogTemplates.ServiceRegistered,
+            propertyValue0: nameof(CatalogProductVariantDataSeeder),
+            propertyValue1: "Transient");
+
+        //services.AddHostedService<SeederOrchestrator>();
         Log.Debug(messageTemplate: LogTemplates.ServiceRegistered,
             propertyValue0: nameof(SeederOrchestrator),
             propertyValue1: "Singleton");

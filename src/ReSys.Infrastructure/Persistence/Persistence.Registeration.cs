@@ -18,7 +18,6 @@ using ReSys.Core.Domain.Catalog.PropertyTypes;
 using ReSys.Core.Domain.Identity.Permissions;
 using ReSys.Core.Domain.Identity.UserAddresses;
 using ReSys.Core.Domain.Inventories.Locations;
-using ReSys.Core.Domain.Inventories.StorePickups;
 using ReSys.Core.Domain.Orders;
 using ReSys.Core.Domain.Orders.Payments;
 using ReSys.Core.Domain.Settings;
@@ -223,7 +222,6 @@ internal static class DatabaseServiceCollectionExtensions
                 dataSourceBuilder.MapEnum<AccessPermission.PermissionCategory>();
                 dataSourceBuilder.MapEnum<AddressType>();
                 dataSourceBuilder.MapEnum<LocationType>();
-                dataSourceBuilder.MapEnum<StorePickup.PickupState>();
                 dataSourceBuilder.MapEnum<AdjustmentScope>();
                 dataSourceBuilder.MapEnum<Order.OrderState>();
                 dataSourceBuilder.MapEnum<Payment.PaymentState>();

@@ -11,6 +11,7 @@ using ReSys.Core.Domain.Identity.Users.Claims;
 using ReSys.Core.Domain.Identity.Users.Logins;
 using ReSys.Core.Domain.Identity.Users.Roles;
 using ReSys.Core.Domain.Identity.Users.Tokens;
+using ReSys.Core.Domain.Orders; // Add this using directive
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
 namespace ReSys.Infrastructure.Persistence.Contexts;
@@ -30,6 +31,22 @@ public sealed class ApplicationDbContext(
 
         builder.ApplyConfigurationsFromAssembly(assembly: typeof(OptionType).Assembly);
         builder.ApplyUtcConversions();
+
+        builder.Entity<Order>(orderBuilder =>
+        {
+            orderBuilder.HasOne(o => o.ShipAddress)
+                .WithOne()
+                .HasForeignKey<Order>(o => o.ShipAddressId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            orderBuilder.HasOne(o => o.BillAddress)
+                .WithOne()
+                .HasForeignKey<Order>(o => o.BillAddressId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
 
     }
 }

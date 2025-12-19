@@ -9,6 +9,7 @@ using ReSys.Core.Common.Constants;
 using ReSys.Core.Feature.Common.Systems;
 using ReSys.Infrastructure.Backgrounds;
 using ReSys.Infrastructure.Notifications;
+using ReSys.Infrastructure.Payments;
 using ReSys.Infrastructure.Persistence;
 using ReSys.Infrastructure.Security;
 using ReSys.Infrastructure.Storages;
@@ -16,6 +17,7 @@ using ReSys.Infrastructure.Storages;
 using Serilog;
 
 namespace ReSys.Infrastructure;
+
 
 /// <summary>
 /// Provides extension methods for configuring infrastructure layer services and middleware.
@@ -94,6 +96,13 @@ public static class DependencyInjection
                 propertyValue0: "Storage",
                 propertyValue1: "Scoped");
 
+            // Register Payments
+            services.AddPaymentServices();
+            serviceCount++;
+            Log.Debug(messageTemplate: LogTemplates.ServiceRegistered,
+                propertyValue0: "PaymentRepository",
+                propertyValue1: "Scoped");
+
             stopwatch.Stop();
             Log.Information(
                 messageTemplate: LogTemplates.ModuleRegistered,
@@ -138,6 +147,7 @@ public static class DependencyInjection
         {
             Log.Information(messageTemplate: "Configuring infrastructure middleware pipeline");
             var middlewareCount = 0;
+            
             app.UseBackgroundServices(environment: environment);
             Log.Debug(messageTemplate: LogTemplates.MiddlewareAdded,
                 propertyValue0: "BackgroundServices",
