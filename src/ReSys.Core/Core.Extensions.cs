@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using ReSys.Core.Feature.Admin.Catalog.Taxons;
 using ReSys.Core.Feature.Common.Behaviors;
+using ReSys.Core.Domain.Inventories.FulfillmentStrategies;
 
 using Serilog;
 
@@ -331,12 +332,8 @@ public static class DependencyInjection
 
 
         // Register: Fulfillment Strategy Factory
-        //services.AddScoped<IFulfillmentStrategyFactory, FulfillmentStrategyFactory>();
-
-        //Log.Debug(
-        //    messageTemplate: LogTemplates.ServiceRegistered,
-        //    propertyValue0: "IFulfillmentStrategyFactory",
-        //    propertyValue1: "Scoped");
+        services.AddScoped<FulfillmentStrategyFactory>();
+        services.AddScoped<IFulfillmentPlanner, FulfillmentPlanner>();
     }
 
     #endregion

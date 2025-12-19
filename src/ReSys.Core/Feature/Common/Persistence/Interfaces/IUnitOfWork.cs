@@ -26,4 +26,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
 
     // Raw SQL Execution
     Task<int> ExecuteSqlAsync(string sql, CancellationToken cancellationToken = default, params object[] parameters);
+
+    // Transactional Execution
+    Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default);
+    Task ExecuteInTransactionAsync(Func<Task> action, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default);
 }

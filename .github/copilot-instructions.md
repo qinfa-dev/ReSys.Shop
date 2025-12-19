@@ -77,7 +77,7 @@ public sealed class CreateProductHandler : ICommandHandler<CreateProductCommand,
 **ONLY aggregate roots** are queried directly from `DbContext`:
 ```csharp
 // ✅ Correct: Query aggregate root
-var order = await _dbContext.Orders.FindAsync(orderId);
+var order = await  _dbContext.Set<Order>().FindAsync(orderId);
 var lineItems = order.LineItems; // Access children through root
 
 // ❌ Wrong: Never query owned entities directly
@@ -172,7 +172,7 @@ public sealed class Order : Aggregate
 // 2. Raise event in aggregate method
 public ErrorOr<Order> Complete()
 {
-    State = OrderState.Complete;
+    State = Order.OrderState.Complete;
     CompletedAt = DateTimeOffset.UtcNow;
     AddDomainEvent(new Events.Completed(OrderId: Id, StoreId: StoreId));
     return this;
@@ -206,7 +206,7 @@ The domain is split into **10 bounded contexts**, each in `src/ReSys.Core/Domain
 | **Catalog.Taxonomies** | `Taxonomy` / `Taxon` | Hierarchical categories (nested set model) |
 | **Catalog.OptionTypes** | `OptionType` | Size, Color, other product options |
 | **Orders** | `Order` | Order lifecycle: Cart→Address→Delivery→Payment→Confirm→Complete |
-| **Inventories** | `StockLocation`, `StockItem` | Stock tracking across warehouse locations |
+| **Inventories** | `StockLocation`, `StockItem`, `StockTransfer`, `StorePickup` | Multi-location stock tracking, fulfillment strategies, retail pickup |
 | **Promotions** | `Promotion` | Discounts with rules and actions |
 | **Payments** | `PaymentMethod` | Payment provider configuration |
 | **Shipping** | `ShippingMethod` | Shipping options and cost calculation |
@@ -217,7 +217,7 @@ The domain is split into **10 bounded contexts**, each in `src/ReSys.Core/Domain
 
 ---
 
-## 🔄 Order Domain - The Complex Case
+## 🔄 Order Domain & Fulfillment - The Complex Case
 
 Orders demonstrate the full pattern with state machine. Key states and transitions:
 
@@ -232,10 +232,56 @@ Payment (payment authorization)
   ↓ Next()
 Confirm (review final order)
   ↓ Next()
-Complete (order finalized, inventory reduced)
+Complete (order finalized, inventory reduced across locations)
 
 OR at any point:
-  → Canceled (releases inventory)
+  → Canceled (releases inventory and fulfillment allocations)
+```
+
+### Multi-Location Fulfillment Strategy Pattern
+
+Orders support sophisticated fulfillment strategies to allocate inventory across multiple warehouse/retail locations:
+
+```csharp
+// 1. Define fulfillment strategy (Nearest, HighestStock, CostOptimized, Preferred)
+public enum FulfillmentStrategyType { Nearest, HighestStock, CostOptimized, Preferred }
+
+// 2. Get strategy from factory
+var strategyFactory = new FulfillmentStrategyFactory();
+var strategy = strategyFactory.GetStrategy(FulfillmentStrategyType.Nearest);
+
+// 3. Allocate inventory across locations
+var allocations = await strategy.AllocateAsync(
+    variant: variant,
+    quantity: orderLineItem.Quantity,
+    availableLocations: stockLocationsWithStock,
+    customerLocation: new(latitude, longitude)
+);
+
+// 4. Each allocation shows: LocationId, LocationName, AllocatedQuantity
+// Strategies automatically select optimal location(s) based on inventory levels, distance, or cost
+```
+
+**Fulfillment Strategy Implementations**:
+- `NearestLocationStrategy` - Minimizes shipping distance using Haversine formula
+- `HighestStockStrategy` - Consolidates fulfillment from best-stocked locations
+- `CostOptimizedStrategy` - Minimizes fulfillment + shipping costs (placeholder)
+- `PreferredLocationStrategy` - Uses admin-configured preferred locations
+
+**Key Pattern**: Strategies implement `IFulfillmentStrategy` with methods:
+- `SelectLocation()` - Returns single best location for a line item
+- `SelectMultipleLocations()` - Splits large orders across up to 3 locations
+- `SupportsMultipleLocations` - Property indicating split-order capability
+
+**Store Pickup Support**: `StorePickup` aggregate manages retail pickup orders:
+```csharp
+// Generate secure pickup code (e.g., "NYC-12345-A7K9")
+var pickupResult = StorePickup.Create(orderId, stockLocationId: retailStoreId, customerId);
+var pickup = pickupResult.Value;
+
+// State machine: Pending → Ready → PickedUp | Cancelled
+pickup.MarkReady();      // Store confirms stock is ready
+pickup.MarkPickedUp();   // Customer collects with pickup code verification
 ```
 
 Example: complete checkout flow
@@ -257,12 +303,12 @@ var toAddressResult = order.Next(); // Cart → Address
 var toDeliveryResult = order.Next(); // Address → Delivery
 
 // 4. Select shipping
-var shippingMethod = await _dbContext.ShippingMethods.FindAsync(methodId);
+var shippingMethod = await _dbContext.Set<ShippingMethod>().FindAsync(methodId);
 order.SetShippingMethod(shippingMethod);
 var toPaymentResult = order.Next(); // Delivery → Payment
 
 // 5. Apply promotion (optional)
-var promo = await _dbContext.Promotions.FindAsync(promoId);
+var promo = await _dbContext.Set<Promotion>().FindAsync(promoId);
 var applyResult = order.ApplyPromotion(promo, code: "SUMMER20");
 
 // 6. Process payment
@@ -279,6 +325,57 @@ var completeResult = order.Next();  // Confirm → Complete
 // 8. Save and events are published
 await _dbContext.SaveChangesAsync(ct);
 ```
+
+---
+
+## 🎯 Fulfillment Strategy Pattern
+
+A strategy pattern implementation for intelligent multi-location inventory allocation. Found in `src/ReSys.Core/Domain/Inventories/FulfillmentStrategies/`.
+
+**Four Built-In Strategies:**
+
+1. **NearestLocationStrategy** - Haversine distance calculation to closest location
+2. **HighestStockStrategy** - Consolidate from best-stocked locations  
+3. **CostOptimizedStrategy** - Minimize total fulfillment + shipping costs (extensible)
+4. **PreferredLocationStrategy** - Admin-configured preferred locations with fallback
+
+**Usage Pattern:**
+```csharp
+// All strategies implement IFulfillmentStrategy with consistent contract
+var strategy = new NearestLocationStrategy();
+
+// Single location selection
+var selectedLocation = strategy.SelectLocation(
+    variant: product.Variants.First(),
+    requiredQuantity: 10,
+    availableLocations: warehouseLocations,
+    customerLatitude: -33.8688,
+    customerLongitude: 151.2093
+);
+
+// Multi-location allocation (for large orders)
+var allocations = strategy.SelectMultipleLocations(
+    variant,
+    requiredQuantity: 100,
+    availableLocations: allWarehouses,
+    maxLocations: 3  // Max 3 locations per strategy
+);
+// Returns: List<(StockLocation Location, int Quantity)> ordered by fulfillment priority
+```
+
+**Key Interface (`IFulfillmentStrategy`):**
+- `Name` - Strategy display name
+- `Description` - Strategy description  
+- `SupportsMultipleLocations` - Boolean flag (Nearest/HighestStock support multi, Preferred does not)
+- `SelectLocation()` - Single location selection
+- `SelectMultipleLocations()` - Split allocation across up to 3 locations
+
+**Important Notes:**
+- Strategies are **stateless** and **testable** (no external calls in current implementations)
+- Haversine distance uses stock location coordinates (`Latitude`, `Longitude`)
+- Falls back gracefully to first available location if customer coordinates absent
+- Use `FulfillmentStrategyFactory` to create instances by type
+- **Never modify location inventory directly** - strategies only allocate; inventory changes happen during order completion
 
 ---
 
