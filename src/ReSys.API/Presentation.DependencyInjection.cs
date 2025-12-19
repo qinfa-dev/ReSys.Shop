@@ -3,6 +3,7 @@
 using Carter;
 
 using ReSys.API.Configurations;
+using ReSys.API.Middlewares;
 using ReSys.API.Middlewares.Exceptions;
 using ReSys.API.Middlewares.Paramesters;
 using ReSys.API.OpenApi;
@@ -167,6 +168,12 @@ public static class DependencyInjection
             Log.Debug(messageTemplate: LogTemplates.MiddlewareAdded,
                 propertyValue0: "Session",
                 propertyValue1: middlewareCount);
+            
+            app.UseMiddleware<UserContextMiddleware>();
+            Log.Debug(messageTemplate: LogTemplates.MiddlewareAdded,
+                propertyValue0: "UserContextMiddleware",
+                propertyValue1: 1);
+            middlewareCount++;
 
             // CORS (after routing, before endpoints)
             app.UseCors();

@@ -26,5 +26,4 @@
     <ProjectReference Include="..\ReSys.Core\ReSys.Core.csproj" />
     <ProjectReference Include="..\ReSys.Infrastructure\ReSys.Infrastructure.csproj" />
   </ItemGroup>
-
 </Project>

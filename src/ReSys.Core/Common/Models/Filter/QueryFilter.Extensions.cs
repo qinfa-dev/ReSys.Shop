@@ -18,9 +18,10 @@ public static class QueryFilterExtensions
     private static readonly ConcurrentDictionary<string, Dictionary<string, PropertyInfo>> PropertyMappingCache = new();
 
     // Cached method references
-    private static readonly MethodInfo StringContainsMethod = GetCachedMethod(type: typeof(string), methodName: "Contains", parameterTypes: [typeof(string), typeof(StringComparison)]);
-    private static readonly MethodInfo StringStartsWithMethod = GetCachedMethod(type: typeof(string), methodName: "StartsWith", parameterTypes: [typeof(string), typeof(StringComparison)]);
-    private static readonly MethodInfo StringEndsWithMethod = GetCachedMethod(type: typeof(string), methodName: "EndsWith", parameterTypes: [typeof(string), typeof(StringComparison)]);
+    private static readonly MethodInfo StringToLowerMethod = GetCachedMethod(type: typeof(string), methodName: "ToLower", parameterTypes: Type.EmptyTypes);
+    private static readonly MethodInfo StringContainsMethod = GetCachedMethod(type: typeof(string), methodName: "Contains", parameterTypes: [typeof(string)]);
+    private static readonly MethodInfo StringStartsWithMethod = GetCachedMethod(type: typeof(string), methodName: "StartsWith", parameterTypes: [typeof(string)]);
+    private static readonly MethodInfo StringEndsWithMethod = GetCachedMethod(type: typeof(string), methodName: "EndsWith", parameterTypes: [typeof(string)]);
 
     /// <summary>
     /// Operator mapping for query parameter parsing.
@@ -578,18 +579,24 @@ public static class QueryFilterExtensions
         if (string.IsNullOrEmpty(value: value))
             return Expression.Constant(value: false);
 
-        var stringValue = Expression.Constant(value: value);
-        var comparison = Expression.Constant(value: StringComparison.OrdinalIgnoreCase);
+        // Correctly declare stringValue as an Expression.Constant
+        var stringValue = Expression.Constant(value: value, type: typeof(string));
+        var lowerStringValue = Expression.Call(stringValue, StringToLowerMethod);
 
         // Add null check for the property
         Expression nullCheck = Expression.NotEqual(left: property, right: Expression.Constant(value: null, type: property.Type));
+        Expression lowerProperty = Expression.Call(property, StringToLowerMethod);
 
         Expression stringOperation = criterion.Operator switch
         {
-            FilterOperator.Contains => Expression.Call(instance: property, method: StringContainsMethod, arg0: stringValue, arg1: comparison),
-            FilterOperator.StartsWith => Expression.Call(instance: property, method: StringStartsWithMethod, arg0: stringValue, arg1: comparison),
-            FilterOperator.EndsWith => Expression.Call(instance: property, method: StringEndsWithMethod, arg0: stringValue, arg1: comparison),
-            FilterOperator.NotContains => Expression.Not(expression: Expression.Call(instance: property, method: StringContainsMethod, arg0: stringValue, arg1: comparison)),
+            FilterOperator.Contains => Expression.Call(instance: lowerProperty, method: StringContainsMethod, arguments:
+                [lowerStringValue]),
+            FilterOperator.StartsWith => Expression.Call(instance: lowerProperty, method: StringStartsWithMethod, arguments:
+                [lowerStringValue]),
+            FilterOperator.EndsWith => Expression.Call(instance: lowerProperty, method: StringEndsWithMethod, arguments:
+                [lowerStringValue]),
+            FilterOperator.NotContains => Expression.Not(Expression.Call(instance: lowerProperty, method: StringContainsMethod, arguments:
+                [lowerStringValue])),
             _ => throw new NotSupportedException(message: $"String operator {criterion.Operator} is not supported.")
         };
 

@@ -9,37 +9,37 @@ namespace ReSys.Core.Common.Models.Wrappers.Responses;
 public sealed class PaginationMetadata
 {
     /// <summary>Gets the current page number (1-based).</summary>
-    public int CurrentPage { get; private set; }
+    public int CurrentPage { get; set; }
 
     /// <summary>Gets the total number of pages available.</summary>
-    public int TotalPages { get; private set; }
+    public int TotalPages { get; set; }
 
     /// <summary>Gets the maximum number of items per page.</summary>
-    public int PageSize { get; private set; }
+    public int PageSize { get; set; }
 
     /// <summary>Gets the total number of items across all pages.</summary>
-    public int TotalCount { get; private set; }
+    public int TotalCount { get; set; }
 
     /// <summary>Gets a value indicating whether there is a previous page.</summary>
-    public bool HasPrevious { get; private set; }
+    public bool HasPrevious { get; set; }
 
     /// <summary>Gets a value indicating whether there is a next page.</summary>
-    public bool HasNext { get; private set; }
+    public bool HasNext { get; set; }
 
     /// <summary>Gets the 1-based index of the first item on the current page.</summary>
-    public int FirstItemIndex { get; private set; }
+    public int FirstItemIndex { get; set; }
 
     /// <summary>Gets the 1-based index of the last item on the current page.</summary>
-    public int LastItemIndex { get; private set; }
+    public int LastItemIndex { get; set; }
 
     /// <summary>Gets a value indicating whether the current page is the first page.</summary>
-    public bool IsFirstPage { get; private set; }
+    public bool IsFirstPage { get; set; }
 
     /// <summary>Gets a value indicating whether the current page is the last page.</summary>
-    public bool IsLastPage { get; private set; }
+    public bool IsLastPage { get; set; }
 
     /// <summary>Gets a value indicating whether the collection is empty.</summary>
-    public bool IsEmpty { get; private set; }
+    public bool IsEmpty { get; set; }
 
     /// <summary>
     /// Private constructor to enforce the use of factory methods for instantiation.

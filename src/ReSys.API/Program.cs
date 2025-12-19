@@ -4,7 +4,7 @@ using ReSys.Infrastructure;
 
 using Serilog;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
 builder.Host.UseSerilog();
 Log.Logger = new LoggerConfiguration()
