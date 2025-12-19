@@ -32,7 +32,6 @@ public static partial class TaxonomyModule
 
                     PagedList<Result> pagedResult = await dbContext.Set<Taxonomy>().AsQueryable()
                         .AsNoTracking()
-                        .Include(navigationPropertyPath: t => t.Store)
                         .ApplySearch(searchParams: command.Request)
                         .ApplyFilters(filterParams: command.Request)
                         .ApplySort(sortParams: command.Request)

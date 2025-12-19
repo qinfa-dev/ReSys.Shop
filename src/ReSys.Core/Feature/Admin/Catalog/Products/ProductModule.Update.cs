@@ -36,14 +36,11 @@ public static partial class ProductModule
                 if (product == null)
                     return Product.Errors.NotFound(id: command.Id);
 
-                if (product.Name != request.Name)
-                {
-                    var uniqueNameCheck = await unitOfWork.Context.Set<Product>()
-                        .Where(predicate: m => m.Id != product.Id)
-                        .CheckNameIsUniqueAsync<Product, Guid>(name: request.Name, prefix: nameof(Product), cancellationToken: ct);
-                    if (uniqueNameCheck.IsError)
-                        return uniqueNameCheck.Errors;
-                }
+                var uniqueNameCheck = await unitOfWork.Context.Set<Product>()
+                    .Where(predicate: m => m.Id != product.Id)
+                    .CheckNameIsUniqueAsync<Product, Guid>(name: request.Name, prefix: nameof(Product), cancellationToken: ct);
+                if (uniqueNameCheck.IsError)
+                    return uniqueNameCheck.Errors;
 
                 await unitOfWork.BeginTransactionAsync(cancellationToken: ct);
 

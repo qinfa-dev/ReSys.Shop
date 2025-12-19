@@ -3,7 +3,6 @@
 using ReSys.Core.Common.Domain.Events;
 using ReSys.Core.Domain.Catalog.Taxonomies;
 using ReSys.Core.Domain.Catalog.Taxonomies.Taxa;
-using ReSys.Core.Domain.Stores;
 using ReSys.Core.Feature.Common.Persistence.Interfaces;
 
 using Serilog;
@@ -35,17 +34,7 @@ public static partial class TaxonomyModule
                 var param = command.Request;
                 await unitOfWork.BeginTransactionAsync(cancellationToken: cancellationToken);
 
-                if (param.StoreId.HasValue)
-                {
-                    // Check if Store exists
-                    Store? store = await unitOfWork.Context.Set<Store>()
-                        .FirstOrDefaultAsync(predicate: store => store.Id == param.StoreId, cancellationToken: cancellationToken);
-                    if (store == null)
-                        return Store.Errors.NotFound(id: param.StoreId.Value);
-                }
-
                 var uniqueNameCheck = await unitOfWork.Context.Set<Taxonomy>()
-                    .Where(m => !param.StoreId.HasValue || m.StoreId == param.StoreId.Value)
                     .CheckNameIsUniqueAsync<Taxonomy, Guid>(
                         name: param.Name,
                         prefix: nameof(Taxonomy),
@@ -55,7 +44,6 @@ public static partial class TaxonomyModule
                     return uniqueNameCheck.Errors;
 
                 var createResult = Taxonomy.Create(
-                    storeId: param.StoreId,
                     name: param.Name,
                     presentation: param.Presentation,
                     position: param.Position,

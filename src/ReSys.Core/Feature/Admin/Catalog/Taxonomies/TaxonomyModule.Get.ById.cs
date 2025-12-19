@@ -24,7 +24,6 @@ public static partial class TaxonomyModule
                 public async Task<ErrorOr<Result>> Handle(Query request, CancellationToken cancellationToken)
                 {
                     var taxonomy = await dbContext.Set<Taxonomy>()
-                        .Include(navigationPropertyPath: t => t.Store)
                         .Include(navigationPropertyPath: t => t.Taxons)
                         .ProjectToType<Result>(config: mapper.Config)
                         .FirstOrDefaultAsync(predicate: p => p.Id == request.Id, cancellationToken: cancellationToken);

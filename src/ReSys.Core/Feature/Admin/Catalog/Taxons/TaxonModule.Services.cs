@@ -448,7 +448,6 @@ public static partial class TaxonModule
                 {
                     // Load: currency by default store
                     var taxonomy = await unitOfWork.Context.Set<Taxonomy>()
-                        .Include(navigationPropertyPath: t => t.Store)
                         .FirstOrDefaultAsync(predicate: t => t.Taxons.Any(tx => tx.Id == taxonId), cancellationToken: cancellationToken);
 
                     if (taxonomy == null)
@@ -457,8 +456,6 @@ public static partial class TaxonModule
                             args: taxonId);
                         return;
                     }
-
-                    var currency = taxonomy.Store.DefaultCurrency;
 
                     var taxon = await unitOfWork.Context.Set<Taxon>()
                         .Include(navigationPropertyPath: t => t.TaxonRules)
@@ -490,7 +487,7 @@ public static partial class TaxonModule
                     }
 
                     // Build and execute query to find matching products
-                    var matchingProductIds = await FindMatchingProductsAsync(taxon: taxon, currency: currency, cancellationToken: cancellationToken);
+                    var matchingProductIds = await FindMatchingProductsAsync(taxon: taxon, cancellationToken: cancellationToken);
 
                     // Sync classifications
                     await SyncClassificationsAsync(taxon: taxon, matchingProductIds: matchingProductIds, cancellationToken: cancellationToken);
@@ -537,7 +534,7 @@ public static partial class TaxonModule
                 await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);
             }
 
-            private async Task<HashSet<Guid>> FindMatchingProductsAsync(Taxon taxon, string? currency = null,
+            private async Task<HashSet<Guid>> FindMatchingProductsAsync(Taxon taxon,
                 CancellationToken cancellationToken = default)
             {
                 var baseQuery = unitOfWork.Context.Set<Product>()
@@ -550,8 +547,7 @@ public static partial class TaxonModule
 
                 if (taxon.RulesMatchPolicy == "all")
                 {
-                    matchingProductsQuery = BuildAllMatchPolicyQuery(baseQuery: baseQuery, simpleRules: simpleRules, collectionRules: collectionRules,
-                        currency: currency);
+                    matchingProductsQuery = BuildAllMatchPolicyQuery(baseQuery: baseQuery, simpleRules: simpleRules, collectionRules: collectionRules);
                 }
                 else if (taxon.RulesMatchPolicy == "any")
                 {
@@ -593,8 +589,7 @@ public static partial class TaxonModule
             private IQueryable<Product> BuildAllMatchPolicyQuery(
                 IQueryable<Product> baseQuery,
                 List<TaxonRule> simpleRules,
-                List<TaxonRule> collectionRules,
-                string? currency = null)
+                List<TaxonRule> collectionRules)
             {
                 // Apply simple rules using QueryFilterBuilder
                 if (simpleRules.Any())
@@ -625,7 +620,7 @@ public static partial class TaxonModule
                 // Apply collection rules manually
                 foreach (var rule in collectionRules)
                 {
-                    baseQuery = ApplyCollectionRule(baseQuery: baseQuery, rule: rule, currency: currency);
+                    baseQuery = ApplyCollectionRule(baseQuery: baseQuery, rule: rule);
                 }
 
                 return baseQuery;
@@ -689,30 +684,28 @@ public static partial class TaxonModule
                 return baseQuery.Where(predicate: p => productIds.Contains(p.Id));
             }
 
-            private IQueryable<Product> ApplyCollectionRule(IQueryable<Product> baseQuery, TaxonRule rule,
-                string? currency = null)
+            private IQueryable<Product> ApplyCollectionRule(IQueryable<Product> baseQuery, TaxonRule rule)
             {
                 return rule.Type switch
                 {
-                    "variant_price" => ApplyVariantPriceRule(baseQuery: baseQuery, rule: rule, currency: currency),
+                    "variant_price" => ApplyVariantPriceRule(baseQuery: baseQuery, rule: rule),
                     "variant_sku" => ApplyVariantSkuRule(baseQuery: baseQuery, rule: rule),
                     "classification_taxon" => ApplyClassificationTaxonRule(baseQuery: baseQuery, rule: rule),
                     _ => baseQuery.Where(predicate: p => false) // Unknown rule type
                 };
             }
 
-            private IQueryable<Product> ApplyVariantPriceRule(IQueryable<Product> baseQuery, TaxonRule rule,
-                string? currency = null)
+            private IQueryable<Product> ApplyVariantPriceRule(IQueryable<Product> baseQuery, TaxonRule rule)
             {
                 // This is a simplified example - you may need to adjust based on your Variant model
                 return rule.MatchPolicy switch
                 {
                     "is_equal_to" when decimal.TryParse(s: rule.Value, result: out var price) =>
-                        baseQuery.Where(predicate: p => p.Variants.Any(v => v.PriceIn(currency) == price)),
+                        baseQuery.Where(predicate: p => p.Variants.Any(v => v.PriceIn(null) == price)),
                     "greater_than" when decimal.TryParse(s: rule.Value, result: out var price) =>
-                        baseQuery.Where(predicate: p => p.Variants.Any(v => v.PriceIn(currency) > price)),
+                        baseQuery.Where(predicate: p => p.Variants.Any(v => v.PriceIn(null) > price)),
                     "less_than" when decimal.TryParse(s: rule.Value, result: out var price) =>
-                        baseQuery.Where(predicate: p => p.Variants.Any(v => v.PriceIn(currency) < price)),
+                        baseQuery.Where(predicate: p => p.Variants.Any(v => v.PriceIn(null) < price)),
                     _ => baseQuery.Where(predicate: p => false)
                 };
             }
